@@ -1,0 +1,1 @@
+include 'ios', 'teavm', 'lwjgl3', 'core', 'android'

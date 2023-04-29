@@ -1,0 +1,104 @@
+
+standard_board.png
+size: 2048, 2048
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+background
+  rotate: false
+  xy: 2, 724
+  size: 1920, 1280
+  orig: 1920, 1280
+  offset: 0, 0
+  index: -1
+black_bishop
+  rotate: false
+  xy: 724, 268
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+black_king
+  rotate: false
+  xy: 724, 116
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+black_knight
+  rotate: false
+  xy: 1028, 572
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+black_pawn
+  rotate: false
+  xy: 876, 572
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+black_queen
+  rotate: false
+  xy: 1180, 572
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+black_rook
+  rotate: false
+  xy: 876, 116
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+green_board
+  rotate: false
+  xy: 2, 2
+  size: 720, 720
+  orig: 720, 720
+  offset: 0, 0
+  index: -1
+white_bishop
+  rotate: false
+  xy: 1028, 420
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+white_king
+  rotate: false
+  xy: 876, 420
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+white_knight
+  rotate: false
+  xy: 724, 572
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+white_pawn
+  rotate: false
+  xy: 724, 420
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+white_queen
+  rotate: false
+  xy: 1028, 268
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+white_rook
+  rotate: false
+  xy: 876, 268
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
