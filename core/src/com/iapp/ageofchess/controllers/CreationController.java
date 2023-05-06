@@ -29,11 +29,10 @@ public class CreationController extends Controller {
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
-                startActivityAlpha(GameActivity.newInstance(localMatch),
-                        ChessConstants.localData.getScreenDuration()));
+                startActivity(GameActivity.newInstance(localMatch)));
     }
 
     public void goToScenario() {
-        startActivity(new ScenariosActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new ScenariosActivity());
     }
 }

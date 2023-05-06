@@ -14,7 +14,7 @@ public class IOSLauncher extends RdIOSLauncher {
     @Override
     protected IOSApplication createApplication() {
         IOSApplicationConfiguration configuration = new IOSApplicationConfiguration();
-        return new IOSApplication(new ChessApplication(this, LaunchMode.SERVER, Cheats.USER), configuration);
+        return new IOSApplication(new ChessApplication(this, LaunchMode.RELEASE, Cheats.USER), configuration);
     }
 
     public static void main(String[] argv) {

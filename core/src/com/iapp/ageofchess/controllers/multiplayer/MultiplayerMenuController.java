@@ -19,18 +19,19 @@ import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerScenariosActivity;
 import com.iapp.ageofchess.graphics.AvatarView;
 import com.iapp.ageofchess.multiplayer.*;
+import com.iapp.ageofchess.multiplayer.webutil.RequestStatus;
 import com.iapp.ageofchess.util.ChessAssetManager;
 import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.ageofchess.util.SettingsUtil;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Controller;
 import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.CallListener;
 import com.iapp.rodsher.util.OnChangeListener;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class MultiplayerMenuController extends Controller {
 
@@ -43,21 +44,34 @@ public class MultiplayerMenuController extends Controller {
     public MultiplayerMenuController(MultiplayerMenuActivity activity) {
         super(activity);
         this.activity = activity;
+
+        ChessApplication.self().getAccountPanel()
+            .initListeners(ChessConstants.loggingAcc,
+                this::seeAccount,
+                this::editAccount);
     }
 
     public void goToMenu() {
-        startActivity(new MenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MenuActivity());
     }
 
     public void goToGames() {
-        startActivity(new MultiplayerGamesActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerGamesActivity());
     }
 
     public void goToScenarios() {
-        startActivity(new MultiplayerScenariosActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerScenariosActivity());
     }
 
-    public void seeAccount(long id) {
+    private void seeAccount(long id) {
+        var dialog = showWatchingDialog();
+
+        MultiplayerEngine.self().getAccount(id, account -> {
+            updateWatchingDialog(account, dialog, false);
+        });
+    }
+
+    public void editAccount(long id) {
         var dialog = showWatchingDialog();
 
         MultiplayerEngine.self().getAccount(id, account -> {
@@ -65,7 +79,7 @@ public class MultiplayerMenuController extends Controller {
         });
     }
 
-    public void seeAccount(Message message) {
+    public void editAccount(Message message) {
         var dialog = showWatchingDialog();
         dialog.getLoading().setVisible(true);
 
@@ -92,8 +106,12 @@ public class MultiplayerMenuController extends Controller {
     }
 
     private void updateWatchingDialog(Account publicAcc, RdDialog dialog) {
+        updateWatchingDialog(publicAcc, dialog, true);
+    }
 
-        boolean self = publicAcc.getId() == ChessConstants.account.getId();
+    private void updateWatchingDialog(Account publicAcc, RdDialog dialog, boolean edit) {
+
+        boolean self = publicAcc.getId() == ChessConstants.loggingAcc.getId();
         dialog.getButtonTable().clear();
         dialog.getContentTable().clear();
         var locale = new Locale(ChessConstants.localData.getLocale().getLanguage(), publicAcc.getCountry());
@@ -134,11 +152,21 @@ public class MultiplayerMenuController extends Controller {
         // ------------------------------------------------------------------------------------------------------ table2
 
         var avatar = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-        avatar.update(publicAcc, 100);
+        MultiplayerEngine.self().getAvatar(publicAcc, bytes ->
+            avatar.update(publicAcc, bytes));
 
-        table2.add(avatar).size(128, 128)
-                .pad(5, 5, 5, 5);
+        table2.add(avatar).pad(5, 5, 5, 5);
         table2.align(Align.topLeft);
+
+        if (edit && (self || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal())) {
+
+            avatar.addListener(new OnChangeListener() {
+                @Override
+                public void onChange(Actor actor) {
+                    showUpdatingAvatarView(publicAcc, avatar);
+                }
+            });
+        }
 
         // ------------------------------------------------------------------------------------------------------- part1
 
@@ -169,7 +197,7 @@ public class MultiplayerMenuController extends Controller {
 
         // ------------------------------------------------------------------------------------------------------ part2
 
-        if (self || ChessConstants.account.getType().ordinal() >= AccountType.DEVELOPER.ordinal()) {
+        if (edit && (self || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.DEVELOPER.ordinal())) {
 
             if (self) {
                 part2.add(new Image(ChessAssetManager.current().getWhiteTexture())).expandX()
@@ -185,7 +213,7 @@ public class MultiplayerMenuController extends Controller {
                 part2.add(lineTable1).expandX().fillX().row();
             }
 
-            // --------- part3
+            // -------------------------------------------------------------------------------------------------- part3
 
             part3.add(new Image(ChessAssetManager.current().getWhiteTexture())).expandX()
                     .fillX().height(2).colspan(2);
@@ -193,11 +221,13 @@ public class MultiplayerMenuController extends Controller {
 
             var lineTable2 = new LineTable(strings.get("change_password"));
 
-            var inputPassword = new RdTextField("");
+            var inputPassword = new RdTextArea("");
+            inputPassword.setPrefLines(1);
             inputPassword.setPasswordCharacter('*');
             inputPassword.setPasswordMode(true);
             inputPassword.setMessageText(strings.get("enter_hint"));
-            var confPassword = new RdTextField("");
+            var confPassword = new RdTextArea("");
+            confPassword.setPrefLines(1);
             confPassword.setPasswordMode(true);
             confPassword.setPasswordCharacter('*');
             confPassword.setMessageText(strings.get("enter_hint"));
@@ -221,12 +251,17 @@ public class MultiplayerMenuController extends Controller {
                     }
 
                     publicAcc.setPassword(inputPassword.getText());
-                    MultiplayerEngine.self().changeAccount(publicAcc);
+                    MultiplayerEngine.self().changeAccount(publicAcc, requestStatus -> {
+                        if (requestStatus != RequestStatus.DONE) {
+                            ChessApplication.self().showError(strings.get("error_change_password") + requestStatus);
+                        } else {
+                            ChessApplication.self().showAccept(strings.get("done_change_password"));
+                        }
+                    });
 
                     if (self) {
                         ChessConstants.localData.setPassword(inputPassword.getText());
                     }
-                    ChessApplication.self().showAccept(strings.get("done_change_password"));
                 }
             });
 
@@ -237,17 +272,17 @@ public class MultiplayerMenuController extends Controller {
             part3.add(lineTable2).expandX().fillX();
         }
 
-        // ---------
+        // -----------------------------------------------------------------------------------------------------------
 
         dialog.getContentTable().align(Align.topLeft);
         dialog.getContentTable().add(scrollPane).expandX().fill().pad(5, 5, 5, 5);
-        dialog.getContentTable().add(table2).expandY().width(130)
+        dialog.getContentTable().add(table2).expandY()
                 .fillY().pad(10, 10, 10, 10);
 
         dialog.getButtonTable().align(Align.topLeft);
         dialog.getButtonTable().add(new RdTextButton(strings.get("report")));
 
-        if (ChessConstants.account.getType().ordinal() >= AccountType.MODERATOR.ordinal() || self) {
+        if (edit && (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal() || self)) {
             var change = new RdTextButton(strings.get("profile"),"blue");
             dialog.getButtonTable().add(change);
 
@@ -284,47 +319,18 @@ public class MultiplayerMenuController extends Controller {
         changeDialog.getButtonTable().align(Align.bottomLeft);
 
         var content = new RdTable();
+        content.padTop(5);
         content.align(Align.topLeft);
         var scroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
         scroll.setFadeScrollBars(false);
         scroll.setOverscroll(false, false);
         scroll.setScrollingDisabled(true, false);
 
-        if (self || ChessConstants.account.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
-            var load = new RdTextButton(strings.get("load"));
+        RdTextArea nameInput = null;
+        if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
 
-            load.addListener(new OnChangeListener() {
-                @Override
-                public void onChange(Actor actor) {
-                    fileSelector = new FileSelectorBuilder()
-                            .title(strings.get("file_selector"))
-                            .endFilters(".png", ".jpg")
-                            .cancel(strings.get("cancel"))
-                            .select(strings.get("select"), handle ->
-                                    loadAvatar(account, handle, () ->
-                                            fileSelector.hide()))
-                            .build();
-
-                    fileSelector.show(activity.getStage());
-                    fileSelector.setSize(900, 800);
-
-                    RdApplication.self().addDialog(fileSelector, WindowUtil::resizeCenter);
-                    RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-                }
-            });
-
-            var label1 = new RdLabel(strings.get("avatar"));
-            label1.setWrap(true);
-
-            content.add(label1).width(350).fillX().padBottom(5);
-            content.add(load).width(450).padBottom(5).expandX().fillX();
-            content.row();
-        }
-
-        RdTextField nameInput = null;
-        if (ChessConstants.account.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
-
-            nameInput = new RdTextField(account.getUsername());
+            nameInput = new RdTextArea(account.getUsername());
+            nameInput.setPrefLines(1);
 
             var label2 = new RdLabel(strings.get("name"));
             label2.setWrap(true);
@@ -334,9 +340,10 @@ public class MultiplayerMenuController extends Controller {
             content.row();
         }
 
-        RdTextField userNameInput = null;
-        if (ChessConstants.account.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
-            userNameInput = new RdTextField(account.getFullName());
+        RdTextArea userNameInput = null;
+        if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
+            userNameInput = new RdTextArea(account.getFullName());
+            userNameInput.setPrefLines(1);
 
             var label3 = new RdLabel(strings.get("username"));
             label3.setWrap(true);
@@ -348,7 +355,9 @@ public class MultiplayerMenuController extends Controller {
 
         var label4 = new RdLabel(strings.get("quote"));
         label4.setWrap(true);
-        var quote = new RdTextField(account.getQuote());
+        var quote = new RdTextArea(account.getQuote());
+        quote.setPrefLines(1);
+        quote.setMaxLines(2);
 
         content.add(label4).width(350).fillX().padBottom(5);
         content.add(quote).width(450).padBottom(5).expandX().fillX();
@@ -412,8 +421,8 @@ public class MultiplayerMenuController extends Controller {
 
         // buttons ----------------------------------------------------------------------------------------------------
 
-        RdTextField finalUserNameInput = userNameInput;
-        RdTextField finalNameInput = nameInput;
+        RdTextArea finalUserNameInput = userNameInput;
+        RdTextArea finalNameInput = nameInput;
         var accept = new RdTextButton(strings.get("apply"), "blue");
 
         accept.addListener(new OnChangeListener() {
@@ -430,7 +439,7 @@ public class MultiplayerMenuController extends Controller {
                     account.setCountry("");
                 } else {
                     account.setCountry(ChessApplication.self()
-                            .getCountries().get(country.getSelectedIndex()));
+                            .getCountries().get(country.getSelectedIndex() - 1));
                 }
 
                 if (!day.getSelected().equals("dd") && !month.getSelected().equals("m")
@@ -443,12 +452,17 @@ public class MultiplayerMenuController extends Controller {
                 }
 
                 if (self) {
-                    ChessConstants.account = new Account(account);
-                    ChessConstants.account.setPassword(ChessConstants.localData.getPassword());
+                    ChessConstants.loggingAcc = new Account(account);
+                    ChessConstants.loggingAcc.setPassword(ChessConstants.localData.getPassword());
                 }
 
-                MultiplayerEngine.self().changeAccount(account);
-                ChessApplication.self().showAccept(strings.get("done_change_profile"));
+                MultiplayerEngine.self().changeAccount(account, requestStatus -> {
+                    if (requestStatus != RequestStatus.DONE) {
+                        ChessApplication.self().showError(strings.get("error_change_profile") + requestStatus);
+                    } else {
+                        ChessApplication.self().showAccept(strings.get("done_change_profile"));
+                    }
+                });
 
                 updateWatchingDialog(account, watchingDialog);
 
@@ -474,10 +488,52 @@ public class MultiplayerMenuController extends Controller {
     }
 
 
-    // ------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------
 
+    private void showUpdatingAvatarView(Account account, AvatarView avatarView) {
+        fileSelector = new FileSelectorBuilder()
+            .title(strings.get("file_selector"))
+            .endFilters(".png", ".jpg")
+            .cancel(strings.get("cancel"))
+            .select(strings.get("select"), handle ->
+                loadAvatar(handle, bytes -> {
 
-    private void loadAvatar(Account account, FileHandle handle, CallListener onFinish) {
+                    if (bytes.length >= 39_000) {
+                        ChessApplication.self().showError(strings.get("error_large_avatar"));
+                        return;
+                    }
+
+                    fileSelector.hide();
+                    MultiplayerEngine.self().changeAvatar(account.getId(), bytes,
+                        requestStatus -> {
+                        if (requestStatus == RequestStatus.DONE) {
+                            ChessApplication.self().showAccept(strings.get("done_change_avatar"));
+                            updateAvatar(avatarView);
+                        } else {
+                            ChessApplication.self().showError(strings.get("error_change_avatar"));
+                        }
+                    });
+
+                }))
+            .build();
+
+        fileSelector.show(activity.getStage());
+        fileSelector.setSize(900, 800);
+
+        RdApplication.self().addDialog(fileSelector, WindowUtil::resizeCenter);
+        RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private void updateAvatar(AvatarView avatarView) {
+        MultiplayerEngine.self().getAvatar(ChessConstants.loggingAcc,
+            bytes -> {
+                ChessApplication.self().getAccountPanel()
+                    .update(ChessConstants.loggingAcc, bytes);
+                avatarView.update(ChessConstants.loggingAcc, bytes);
+            });
+    }
+
+    private void loadAvatar(FileHandle handle, Consumer<byte[]> onFinish) {
         var spinner = new Spinner(strings.get("loading"));
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
@@ -486,9 +542,9 @@ public class MultiplayerMenuController extends Controller {
 
         Runnable task = () -> {
             var bytes = handle.readBytes();
-            account.setAvatar(bytes);
             spinner.hide();
-            Gdx.app.postRunnable(onFinish::call);
+            RdApplication.postRunnable(() ->
+                onFinish.accept(bytes));
         };
         RdApplication.self().execute(task);
     }
@@ -503,12 +559,10 @@ public class MultiplayerMenuController extends Controller {
         boolean warned = false;
         boolean muted = false;
         boolean banned = false;
-        for (var punishment: account.getPunishments()) {
-            if (punishment.isActive()) {
-                if (punishment.getType() == PunishmentType.WARN) warned = true;
-                else if (punishment.getType() == PunishmentType.MUTE) muted = true;
-                else if (punishment.getType() == PunishmentType.BAN) banned = true;
-            }
+        for (var flag : account.getFlags()) {
+            if (flag == Flag.WARN) warned = true;
+            else if (flag == Flag.MUTE) muted = true;
+            else if (flag == Flag.BAN) banned = true;
         }
 
         if (banned) status.append(strings.get("\nbanned"));

@@ -1,8 +1,9 @@
 package com.iapp.rodsher.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.iapp.rodsher.util.RdI18NBundle;
 
 /**
@@ -10,7 +11,7 @@ import com.iapp.rodsher.util.RdI18NBundle;
  * graphic logging and strings (different languages)
  * @version 1.0
  * */
-public abstract class Activity implements Screen {
+public abstract class Activity {
 
     /** strings (different language) */
     protected RdI18NBundle strings;
@@ -30,7 +31,7 @@ public abstract class Activity implements Screen {
      * called when the screen is ready to be drawn
      * @param stage - actor drawing object
      **/
-    public abstract void show(Stage stage);
+    public abstract void show(Stage stage, Activity last);
 
     /** @return an object for drawing actors */
     public Stage getStage() {
@@ -38,8 +39,7 @@ public abstract class Activity implements Screen {
     }
 
     /** Creates a scene and sets up an input listener */
-    @Override
-    public void show() {
+    public void show(Activity last) {
         strings = RdApplication.self().getStrings();
         var defCursor = RdApplication.self().getCursor();
         if (defCursor != null) {
@@ -49,30 +49,26 @@ public abstract class Activity implements Screen {
         initActors();
         initListeners();
         loadSettings();
-        show(RdApplication.self().getStage());
+        show(RdApplication.self().getStage(), last);
     }
 
     /** the stage draws the actors */
-    @Override
     public void render(float delta) {}
 
     /** clears the object for drawing actors */
-    @Override
     public void dispose() {}
 
     /** Called when the screen is resized */
-    @Override
     public void resize(int width, int height) {}
 
     /** Called when the application goes into the background */
-    @Override
     public void pause() {}
 
     /** Called when the application exits the background */
-    @Override
     public void resume() {}
 
-    /** Called when the application window is closed */
-    @Override
-    public void hide() {}
+    /** Called when the given screen is closed */
+    public Actor hide(SequenceAction action, Activity next) {
+        return null;
+    }
 }

@@ -35,7 +35,7 @@ public class ModdingController extends Controller {
     }
 
     public void goToMenu() {
-        startActivity(new MenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MenuActivity());
     }
 
     public void goToEdit(MapData mapData, boolean newMap) {
@@ -59,8 +59,8 @@ public class ModdingController extends Controller {
                 replacePaths(mapData);
                 mapData.setType(Files.FileType.External);
 
-                startActivityAlpha(new EditMapActivity(mapData, resources, newMap),
-                        ChessConstants.localData.getScreenDuration());
+                RdApplication.postRunnable(() ->
+                    startActivity(new EditMapActivity(mapData, resources, newMap)));
             };
             RdApplication.self().execute(task);
         });

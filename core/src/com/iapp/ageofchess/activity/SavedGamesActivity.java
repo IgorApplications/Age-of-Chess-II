@@ -3,9 +3,13 @@ package com.iapp.ageofchess.activity;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.SavedGamesController;
 import com.iapp.ageofchess.graphics.SavedGameView;
@@ -15,6 +19,7 @@ import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 public class SavedGamesActivity extends Activity {
@@ -61,8 +66,22 @@ public class SavedGamesActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
-        RdApplication.self().setBackground(ChessAssetManager.current().findChessRegion("menu_background"));
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        background.setScaling(Scaling.fill);
+        getStage().addActor(background);
+
+        if (ChessConstants.loggingAcc != null) {
+            RdTable panel = new RdTable();
+            panel.align(Align.topLeft);
+            panel.setFillParent(true);
+            getStage().addActor(panel);
+            panel.add(ChessApplication.self().getAccountPanel())
+                .expandX().fillX();
+        }
+
         var content = new Table();
         content.setFillParent(true);
 
@@ -84,6 +103,8 @@ public class SavedGamesActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
     }
 
     @Override
@@ -117,6 +138,17 @@ public class SavedGamesActivity extends Activity {
             if (ref.getMatch() == null) continue;
             scrollContent.add(new SavedGameView(ref, onClear, onPlay))
                     .expandX().left().fillX().pad(10, 10, 10, 10).row();
+        }
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof GameActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        } else {
+            TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+            return windowGroup;
         }
     }
 }

@@ -12,6 +12,6 @@ public class GuideController extends Controller {
     }
 
     public void goToMenu() {
-        startActivity(new MenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MenuActivity());
     }
 }

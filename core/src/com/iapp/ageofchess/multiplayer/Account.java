@@ -1,9 +1,8 @@
 package com.iapp.ageofchess.multiplayer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Account {
 
@@ -14,7 +13,6 @@ public class Account {
     private long coins = 100;
     private double bullet = 1_000, blitz = 1_000,
             rapid = 1_000, longRank = 1_000;
-    private byte[] avatar;
     private String name;
     private String userName;
     private String password;
@@ -23,15 +21,14 @@ public class Account {
     private String quote = "";
     private long dateBirth;
     private AccountType type = AccountType.USER;
-    private final List<Login> logins = new ArrayList<>();
-    private final List<Punishment> punishments = new ArrayList<>();
+    private Login login;
+    private final Set<Flag> flags = new HashSet<>();
     private boolean onlineNow;
 
     public Account() {}
 
     public Account(Account account) {
         id = account.id;
-        avatar = account.avatar;
         name = account.name;
         userName = account.userName;
         password = account.password;
@@ -40,8 +37,8 @@ public class Account {
         quote = account.quote;
         dateBirth = account.dateBirth;
         type = account.type;
-        logins.addAll(account.logins);
-        punishments.addAll(account.punishments);
+        login = account.login;
+        flags.addAll(account.flags);
         onlineNow = account.onlineNow;
         coins = account.coins;
         bullet = account.bullet;
@@ -107,20 +104,16 @@ public class Account {
         this.longRank = longRank;
     }
 
-    public byte[] getAvatar() {
-        return avatar;
+    public void setLogin(Login login) {
+        this.login = login;
     }
 
-    public void setAvatar(byte[] avatar) {
-        this.avatar = avatar;
+    public Login getLogin() {
+        return login;
     }
 
-    public List<Login> getLogins() {
-        return logins;
-    }
-
-    public List<Punishment> getPunishments() {
-        return punishments;
+    public Set<Flag> getFlags() {
+        return flags;
     }
 
     public String getQuote() {
@@ -205,26 +198,6 @@ public class Account {
         this.onlineNow = onlineNow;
     }
 
-
-    @Override
-    public String toString() {
-        return "Account{" +
-                "id=" + id +
-                ", avatar=" + Arrays.toString(avatar) +
-                ", name='" + name + '\'' +
-                ", userName='" + userName + '\'' +
-                ", password='" + password + '\'' +
-                ", country='" + country + '\'' +
-                ", gender=" + gender +
-                ", quote='" + quote + '\'' +
-                ", dateBirth=" + dateBirth +
-                ", type=" + type +
-                ", logins=" + logins +
-                ", punishments=" + punishments +
-                ", onlineNow=" + onlineNow +
-                '}';
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -236,7 +209,31 @@ public class Account {
     @Override
     public int hashCode() {
         int result = Objects.hash(id);
-        result = 31 * result + Arrays.hashCode(avatar);
+        result = 31 * result;
         return result;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Account{" +
+                "id=" + id +
+                ", coins=" + coins +
+                ", bullet=" + bullet +
+                ", blitz=" + blitz +
+                ", rapid=" + rapid +
+                ", longRank=" + longRank +
+                ", name='" + name + '\'' +
+                ", userName='" + userName + '\'' +
+                ", password='" + password + '\'' +
+                ", country='" + country + '\'' +
+                ", gender=" + gender +
+                ", quote='" + quote + '\'' +
+                ", dateBirth=" + dateBirth +
+                ", type=" + type +
+                ", login=" + login +
+                ", flags=" + flags +
+                ", onlineNow=" + onlineNow +
+                '}';
     }
 }

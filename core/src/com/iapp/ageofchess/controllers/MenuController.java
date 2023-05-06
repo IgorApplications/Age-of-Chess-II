@@ -1,25 +1,28 @@
 package com.iapp.ageofchess.controllers;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.activity.*;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
-import com.iapp.ageofchess.graphics.AvatarView;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.util.ChessAssetManager;
 import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Controller;
+import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.OnChangeListener;
 
 public class MenuController extends Controller {
 
     private final MenuActivity activity;
+    private RdDialog loginDialog;
 
     public MenuController(MenuActivity activity) {
         super(activity);
@@ -27,7 +30,7 @@ public class MenuController extends Controller {
     }
 
     public void showLoginDialog() {
-        if (ChessConstants.account != null) {
+        if (ChessConstants.loggingAcc != null) {
             goToMultiplayerMenu();
             return;
         }
@@ -37,7 +40,7 @@ public class MenuController extends Controller {
             return;
         }
 
-        var loginDialog = new RdDialog(strings.get("login"), ChessAssetManager.current().getSkin());
+        loginDialog = new RdDialog(strings.get("login"), ChessAssetManager.current().getSkin());
         loginDialog.removeActor(loginDialog.getButtonTable());
         loginDialog.padBottom(3);
 
@@ -63,19 +66,19 @@ public class MenuController extends Controller {
     }
 
     public void goToScenario() {
-        startActivity(new ScenariosActivity(), ChessConstants.localData.getScreenDuration());
+        RdApplication.self().setScreen(new ScenariosActivity());
     }
 
     public void goToSettings() {
-        startActivity(new SettingsActivity(), ChessConstants.localData.getScreenDuration());
+        RdApplication.self().setScreen(new SettingsActivity());
     }
 
     public void goToModding() {
-        startActivity(new ModdingActivity(), ChessConstants.localData.getScreenDuration());
+        RdApplication.self().setScreen(new ModdingActivity());
     }
 
     public void goToGuide() {
-        startActivity(new GuideActivity(), ChessConstants.localData.getScreenDuration());
+        RdApplication.self().setScreen(new GuideActivity());
     }
 
     public void exit() {
@@ -83,7 +86,7 @@ public class MenuController extends Controller {
     }
 
     private void goToMultiplayerMenu() {
-        startActivity(new MultiplayerMenuActivity(), ChessConstants.localData.getScreenDuration());
+        RdApplication.self().setScreen(new MultiplayerMenuActivity());
     }
 
     private RdTable getLoginTable() {
@@ -212,14 +215,16 @@ public class MenuController extends Controller {
                 account -> {
                     ChessConstants.localData.setNameAcc(account.getUsername());
                     ChessConstants.localData.setPassword(password);
-                    ChessConstants.account = account;
+                    ChessConstants.loggingAcc = account;
 
-                    var avatarView = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-                    avatarView.update(account, 80);
+                    ChessApplication.self().getAccountPanel().setVisible(true);
+                    MultiplayerEngine.self().getAvatar(account, bytes ->
+                        ChessApplication.self().getAccountPanel().update(account, bytes));
 
-                    ChessApplication.self().getAccountPanel().update(avatarView);
                     activity.hideBlackout();
-                    goToMultiplayerMenu();
+                    Runnable task = this::goToMultiplayerMenu;
+                    if (loginDialog == null) task.run();
+                    else loginDialog.hide(Actions.run(task));
 
                 },
                 (error) -> {
@@ -237,7 +242,7 @@ public class MenuController extends Controller {
     }
 
     private boolean isASCII(String s) {
-        for (var c : s.toCharArray()) {
+        for (char c : s.toCharArray()) {
             if (c > 127) return false;
         }
         return true;

@@ -11,6 +11,7 @@ import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.multiplayer.Account;
 import com.iapp.ageofchess.multiplayer.AccountType;
 import com.iapp.ageofchess.multiplayer.Message;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.util.ChessAssetManager;
 import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.rodsher.actors.RdLabel;
@@ -20,6 +21,7 @@ import com.iapp.rodsher.util.OnChangeListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.function.Consumer;
 
 public class MessageView extends Table implements Disposable {
 
@@ -27,14 +29,15 @@ public class MessageView extends Table implements Disposable {
             ChessConstants.localData.getLocale());
     private final AvatarView avatarView;
 
-    public MessageView(Message message, Account account, OnChangeListener onAvatar, OnChangeListener onDelete) {
+    public MessageView(Message message, Account account, OnChangeListener onAvatar,
+                       OnChangeListener onDelete) {
         setBackground(new NinePatchDrawable(
                 new NinePatch(ChessApplication.self().getAssetManager().findRegion("lite_pane"),
                         10,10,10,10)));
         align(Align.topLeft);
 
         avatarView = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-        avatarView.update(account, 100);
+
         avatarView.align(Align.topLeft);
         avatarView.addListener(onAvatar);
 
@@ -46,8 +49,12 @@ public class MessageView extends Table implements Disposable {
 
         table2.add(text).expandX().fillX().left();
 
-        add(avatarView).size(128, 128).padRight(12);
+        add(avatarView).align(Align.topLeft).padRight(12);
         add(table2).expand().fill();
+    }
+
+    public AvatarView getAvatarView() {
+        return avatarView;
     }
 
     private RdTable getTitleTable(Account account, Message message, OnChangeListener onDelete) {
@@ -65,8 +72,8 @@ public class MessageView extends Table implements Disposable {
         table.align(Align.topLeft);
         table.add(name);
 
-        if (ChessConstants.account.getId() == message.getSenderId()
-                || ChessConstants.account.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
+        if (ChessConstants.loggingAcc.getId() == message.getSenderId()
+                || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
             table.add(del).expandX().size(48, 48).right();
             table.add(time);
         } else {

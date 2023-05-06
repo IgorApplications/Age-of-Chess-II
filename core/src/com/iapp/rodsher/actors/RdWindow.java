@@ -28,7 +28,7 @@ public class RdWindow extends Table {
     private RdWindowStyle style;
     boolean isMovable = true, isModal, isResizable;
     int resizeBorder = 8;
-    boolean keepWithinStage = true;
+    boolean keepWithinStage = false;
     RdLabel titleLabel;
     RdTable titleTable;
     boolean drawTitleTable;
@@ -83,6 +83,7 @@ public class RdWindow extends Table {
                 return false;
             }
         });
+
         addListener(new InputListener() {
             float startX, startY, lastX, lastY;
 
@@ -223,7 +224,7 @@ public class RdWindow extends Table {
     }
 
     public void keepWithinStage () {
-        if (!keepWithinStage) return;
+        if (!keepWithinStage && !isMovable) return;
         Stage stage = getStage();
         if (stage == null) return;
         Camera camera = stage.getCamera();

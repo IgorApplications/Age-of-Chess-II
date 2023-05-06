@@ -124,7 +124,9 @@ public class LoaderMap {
 
                         setFinished(internalLoader.getAssetManager().isFinished()
                                 && externalLoader.getAssetManager().isFinished());
-                        if (isFinished()) onFinish.call();
+                        if (isFinished()) {
+                            onFinish.call();
+                        }
                     });
 
                     externalLoader.setOnFinish(() -> {
@@ -136,7 +138,9 @@ public class LoaderMap {
 
                         setFinished(internalLoader.getAssetManager().isFinished()
                                 && externalLoader.getAssetManager().isFinished());
-                        if (isFinished()) onFinish.call();
+                        if (isFinished()) {
+                            onFinish.call();
+                        }
                     });
 
                     internalLoader.launchLoad();

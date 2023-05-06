@@ -2,22 +2,28 @@ package com.iapp.ageofchess.activity.multiplayer;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGamesController;
 import com.iapp.ageofchess.graphics.MultiplayerMatchView;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.util.ChessAssetManager;
+import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class MultiplayerGamesActivity extends Activity {
 
@@ -30,6 +36,7 @@ public class MultiplayerGamesActivity extends Activity {
     private final List<RdDialog> errors = new ArrayList<>();
     private final List<RdDialog> info = new ArrayList<>();
     private RdDialog conf;
+    private Consumer<List<Match>> onMatches;
 
     public MultiplayerGamesActivity() {
         controller = new MultiplayerGamesController(this);
@@ -69,7 +76,20 @@ public class MultiplayerGamesActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
+        RdTable panel = new RdTable();
+        panel.align(Align.topLeft);
+        panel.setFillParent(true);
+        getStage().addActor(panel);
+        panel.add(ChessApplication.self().getAccountPanel())
+            .expandX().fillX();
+
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
         stage.addActor(window);
@@ -94,7 +114,10 @@ public class MultiplayerGamesActivity extends Activity {
         messagesTable.getLoading().setVisible(true);
 
         // listener update matches
-        MultiplayerEngine.self().setOnMatches(this::updateGames);
+        onMatches = this::updateGames;
+        MultiplayerEngine.self().addOnMatches(onMatches);
+
+        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
     }
 
     @Override
@@ -102,13 +125,12 @@ public class MultiplayerGamesActivity extends Activity {
         super.dispose();
 
         // clear listener
-        MultiplayerEngine.self().setOnMatches(null);
+        MultiplayerEngine.self().removeOnMatches(onMatches);
     }
 
     private RdDialog confMatch;
 
     public void updateGames(List<Match> matches) {
-        Collections.reverse(matches);
         messagesTable.clear();
 
         for (var match : matches) {
@@ -147,5 +169,15 @@ public class MultiplayerGamesActivity extends Activity {
             WindowUtil.resizeCenter(error);
         WindowUtil.resizeCenter(conf);
         WindowUtil.resizeCenter(spinner);
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof MultiplayerGameActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        }
+        TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+        return windowGroup;
     }
 }

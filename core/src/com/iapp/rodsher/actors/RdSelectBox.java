@@ -139,7 +139,8 @@ public class RdSelectBox<T> extends Widget implements Disableable {
     }
 
     /** Set the backing Array that makes up the choices available in the SelectBox */
-    public void setItems (T... newItems) {
+    @SafeVarargs
+    public final void setItems(T... newItems) {
         if (newItems == null) throw new IllegalArgumentException("newItems cannot be null.");
         float oldPrefWidth = getPrefWidth();
 

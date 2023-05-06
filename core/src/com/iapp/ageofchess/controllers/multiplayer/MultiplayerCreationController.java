@@ -27,9 +27,14 @@ public class MultiplayerCreationController extends Controller {
     }
 
     public void launchGame(LocalMatch localMatch) {
-        MultiplayerEngine.self().createMatch(localMatch, match ->
-                goToGame(localMatch, match), error -> RdApplication.postRunnable(() ->
-                        ChessApplication.self().showError(strings.get("error_create_match") + error)));
+        MultiplayerEngine.self().createMatch(localMatch,
+            match -> {
+                goToGame(localMatch, match);
+            },
+            error -> {
+                RdApplication.postRunnable(() ->
+                    ChessApplication.self().showError(strings.get("error_create_match") + error));
+            });
     }
 
     public void goToGame(LocalMatch localMatch, Match match) {
@@ -42,12 +47,10 @@ public class MultiplayerCreationController extends Controller {
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
-                startActivityAlpha(MultiplayerGameActivity.newInstance(localMatch, match),
-                        ChessConstants.localData.getScreenDuration()));
+                startActivity(MultiplayerGameActivity.newInstance(localMatch, match)));
     }
 
     public void goToScenario() {
-        startActivity(new MultiplayerScenariosActivity(),
-                ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerScenariosActivity());
     }
 }

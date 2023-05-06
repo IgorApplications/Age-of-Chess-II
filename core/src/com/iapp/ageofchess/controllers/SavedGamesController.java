@@ -34,7 +34,7 @@ public class SavedGamesController extends Controller {
     }
 
     public void goToScenario() {
-        startActivity(new ScenariosActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new ScenariosActivity());
     }
 
     public void lunchGame(MatchState state) {
@@ -51,8 +51,7 @@ public class SavedGamesController extends Controller {
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         LoaderMap.self().loadIntoRam(mapData, () ->
-                startActivityAlpha(GameActivity.newInstance(state),
-                        ChessConstants.localData.getScreenDuration()));
+                startActivity(GameActivity.newInstance(state)));
     }
 
     public RdDialog showClearDialog(MatchState ref) {

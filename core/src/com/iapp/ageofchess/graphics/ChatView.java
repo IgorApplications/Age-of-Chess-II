@@ -11,7 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.ageofchess.util.SettingsUtil;
 import com.iapp.rodsher.actors.RdLabel;
 import com.iapp.rodsher.actors.RdScrollPane;

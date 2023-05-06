@@ -17,10 +17,10 @@ public class MultiplayerGamesController extends Controller {
     }
 
     public void goToMultiplayerMenuActivity() {
-        startActivity(new MultiplayerMenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerMenuActivity());
     }
 
     public void goToMultiplayerScenariosActivity(Match match) {
-        startActivity(new MultiplayerScenariosActivity(match), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerScenariosActivity(match));
     }
 }

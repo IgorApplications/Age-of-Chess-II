@@ -167,6 +167,9 @@ public class GrayAssetManager extends RdAssetManager {
                 new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 5)),
                 new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 6))
         );
+
+        graySkin.add("loading_bg", loadingBg);
+        graySkin.add("logo_anim", loadingAnim);
     }
 
     private void initCursor() {
@@ -676,7 +679,7 @@ public class GrayAssetManager extends RdAssetManager {
         style.padLeft = 15;
         style.padRight = 15;
         style.padBottom = 30;
-        style.padTop = 0;
+        style.padTop = 100;
         style.buttonMinWidth = 300;
         style.windowMinWidth = 1200;
 

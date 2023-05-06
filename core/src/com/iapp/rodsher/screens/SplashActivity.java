@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 public class SplashActivity extends Activity {
 
     /** this screen will be launched after loading all resources */
-    private final Supplier<Screen> nextScreen;
+    private final Supplier<Activity> nextScreen;
     /** time at the start of the start window */
     private final long startMillis;
     /**
@@ -39,7 +39,7 @@ public class SplashActivity extends Activity {
     private boolean intent, launchLoad;
 
     /** @see SplashActivity#loadLibrary(Supplier, long, Texture, Texture, TaskLoad...)  */
-    public static void loadLibrary(Supplier<Screen> nextScreen, String logoPath,
+    public static void loadLibrary(Supplier<Activity> nextScreen, String logoPath,
                                    String titleLogoPath, TaskLoad... taskLoads) {
         var screen = new SplashActivity(nextScreen, 500,
                 logoPath == null ? null : new Texture(logoPath),
@@ -56,13 +56,13 @@ public class SplashActivity extends Activity {
      * @param titleLogo - app name texture
      * @param taskLoads - tasks to be loaded in the graphics thread
      *  */
-    public static void loadLibrary(Supplier<Screen> nextScreen, long minDelayMillis,
+    public static void loadLibrary(Supplier<Activity> nextScreen, long minDelayMillis,
                                    Texture logo, Texture titleLogo, TaskLoad... taskLoads) {
         var screen = new SplashActivity(nextScreen, minDelayMillis, logo, titleLogo, taskLoads);
         RdApplication.self().setScreen(screen);
     }
 
-    SplashActivity(Supplier<Screen> nextScreen, long minDelayMillis,
+    SplashActivity(Supplier<Activity> nextScreen, long minDelayMillis,
                    Texture logo, Texture titleLogo, TaskLoad... taskLoads) {
         this.nextScreen = nextScreen;
         this.minDelayMillis = minDelayMillis;
@@ -93,7 +93,7 @@ public class SplashActivity extends Activity {
     public void initListeners() {}
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         RdApplication.self().getAssetManager().load();
         var content = new Table();
         content.setFillParent(true);

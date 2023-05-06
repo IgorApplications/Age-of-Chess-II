@@ -4,27 +4,29 @@ import java.util.Date;
 
 public class Punishment {
 
-    private String moderator;
+    private long moderatorId;
     private String cause;
-    private PunishmentType type;
+    private Flag type;
     private boolean active;
     private long receivedTime;
     private long removedTime = 0;
 
-    public Punishment(String moderator, String cause, PunishmentType type, boolean active) {
-        this.moderator = moderator;
+    public Punishment() {}
+
+    public Punishment(long moderatorId, String cause, Flag type, boolean active) {
+        this.moderatorId = moderatorId;
         this.cause = cause;
         this.type = type;
         this.active = active;
         this.receivedTime = new Date().getTime();
     }
 
-    public String getModerator() {
-        return moderator;
+    public long getModerator() {
+        return moderatorId;
     }
 
-    public void setModerator(String moderator) {
-        this.moderator = moderator;
+    public void setModerator(long moderatorId) {
+        this.moderatorId = moderatorId;
     }
 
     public String getCause() {
@@ -35,11 +37,11 @@ public class Punishment {
         this.cause = cause;
     }
 
-    public PunishmentType getType() {
+    public Flag getType() {
         return type;
     }
 
-    public void setType(PunishmentType type) {
+    public void setType(Flag type) {
         this.type = type;
     }
 
@@ -73,7 +75,7 @@ public class Punishment {
     @Override
     public String toString() {
         return "Punishment{" +
-                "moderator='" + moderator + '\'' +
+                "moderatorId=" + moderatorId +
                 ", cause='" + cause + '\'' +
                 ", type=" + type +
                 ", active=" + active +

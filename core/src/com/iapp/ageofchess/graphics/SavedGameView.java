@@ -56,7 +56,7 @@ public class SavedGameView extends Table {
         enter.addListener(onPlay);
 
         var clear = new RdImageTextButton("");
-        clear.setImage("iw_close");
+        clear.setImage("iw_cancel");
         clear.addListener(onClear);
         buttons.add(clear);
         buttons.add(enter).padLeft(10);
@@ -81,7 +81,7 @@ public class SavedGameView extends Table {
         var rankedFlag = state.getMatch().isRanked();
         if (rankedFlag) {
             ranked.setText("[%75][GOLD]" + strings.get("ranked"));
-            table.add(new Image(ChessAssetManager.current().findChessRegion("small_star")));
+            table.add(new Image(ChessAssetManager.current().findChessRegion("cup")));
         } else {
             ranked.setText("[%75]" + strings.get("non_ranked"));
         }

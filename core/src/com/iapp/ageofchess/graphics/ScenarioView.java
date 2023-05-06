@@ -46,20 +46,19 @@ public class ScenarioView extends Table {
 
         var titleTable = new Table();
         titleTable.align(Align.topLeft);
-        var title = new RdLabel("[*]" + mapData.getStrings().get("title_scenario_" + (scenarioI + 1)));
+        var title = new RdLabel("[*][%100]" + mapData.getStrings().get("title_scenario_" + (scenarioI + 1)));
         title.setAlignment(Align.topLeft);
-        //title.setPadBottom(8);
 
         titleTable.add(title);
         if (mapData.isRatingScenario(scenarioI)) {
-            var star = new Image(ChessAssetManager.current().findChessRegion("star"));
-            titleTable.add(star).size(32, 32);
+            var star = new Image(ChessAssetManager.current().findChessRegion("cup"));
+            star.setScaling(Scaling.fit);
+            titleTable.add(star);
         }
 
-        var description = new RdLabel(mapData.getStrings().get("desc_scenario_" + (scenarioI + 1)));
+        var description = new RdLabel("[%75]" + mapData.getStrings().get("desc_scenario_" + (scenarioI + 1)));
         description.setWrap(true);
         description.setAlignment(Align.topLeft);
-        //description.setPadBottom(20);
 
         table.add(titleTable).expandX().fillX().align(Align.topLeft).row();
         table.add(description).expand().fill().align(Align.topLeft);

@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.MenuActivity;
 import com.iapp.ageofchess.activity.SettingsActivity;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.util.*;
 import com.iapp.rodsher.actors.RdDialog;
 import com.iapp.rodsher.actors.RdDialogBuilder;
@@ -30,7 +31,7 @@ public class SettingsController extends Controller {
     }
 
     public void goToMenu() {
-        startActivity(new MenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MenuActivity());
     }
 
     public void updateLang(int index) {
@@ -45,8 +46,7 @@ public class SettingsController extends Controller {
                         ChessConstants.localData.getLocale()));
         ChessApplication.self().initialize();
 
-        startActivityAlpha(new SettingsActivity(),
-                ChessConstants.localData.getScreenDuration(),
+        startActivity(new SettingsActivity(),
                 Actions.run(() -> {
                     for (var dataMap : ChessAssetManager.current().getDataMaps()) {
                         dataMap.updateLang();
@@ -84,12 +84,10 @@ public class SettingsController extends Controller {
                     @Override
                     public void onChange(Actor actor) {
                         ChessConstants.localData = new LocalData();
-                        ChessConstants.account = null;
-                        ChessApplication.self().getAccountPanel().clear();
-
                         ChessConstants.localData.setLocale(Locale.getDefault());
                         ChessApplication.self().initialize();
-                        startActivityAlpha(new SettingsActivity(), ChessConstants.localData.getScreenDuration());
+
+                        startActivity(new SettingsActivity());
                     }
                 })
                 .build(ChessAssetManager.current().getSkin(), "input");

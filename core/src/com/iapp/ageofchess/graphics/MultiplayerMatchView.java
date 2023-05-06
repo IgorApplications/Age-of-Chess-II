@@ -62,11 +62,11 @@ public class MultiplayerMatchView extends Table {
         enter.addListener(onPlay);
 
         var remove = new RdImageTextButton("");
-        remove.setImage("iw_close");
-        remove.addListener(onRemove);
+        remove.setImage("iw_cancel");
+        if (onRemove != null) remove.addListener(onRemove);
 
-        if ((ChessConstants.account.getId() == match.getCreatorId() && !match.isStarted())
-                || ChessConstants.account.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
+        if (onRemove != null && ((ChessConstants.loggingAcc.getId() == match.getCreatorId() && !match.isStarted())
+                || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal())) {
             table2.add(remove).padRight(5);
         }
         table2.add(enter);

@@ -1,13 +1,15 @@
 package com.iapp.ageofchess.multiplayer;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.Json;
 import com.github.czyzby.websocket.CommonWebSockets;
 import com.github.czyzby.websocket.WebSocket;
 import com.github.czyzby.websocket.WebSocketListener;
 import com.github.czyzby.websocket.WebSockets;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.iapp.ageofchess.chess_engine.Color;
 import com.iapp.ageofchess.modding.LocalMatch;
+import com.iapp.ageofchess.multiplayer.webutil.BinaryRequests;
 import com.iapp.ageofchess.multiplayer.webutil.RequestStatus;
 import com.iapp.ageofchess.multiplayer.webutil.SocketRequest;
 import com.iapp.ageofchess.multiplayer.webutil.SocketResult;
@@ -18,21 +20,32 @@ import com.iapp.rodsher.util.CallListener;
 import com.iapp.rodsher.util.Pair;
 import com.iapp.rodsher.util.SystemValidator;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+/**
+ * Web socket multiplayer controller based
+ * on requests and update listeners
+ * @author Igor Ivanov
+ *
+ * the binary protocol works in the following format:
+ * send:
+ * 0 (update avatar): [0] - request, [1] - id size, [2:n] - id, [n+1:] - avatar
+ * 1 (get avatar): [0] - request, [1] - id size, [2:] - id
+ * update server:
+ * 0 (result update avatar): [0] - request, [1] - RequestStatus ordinal
+ * 1 (result get avatar): [0] - request, [1] - RequestStatus ordinal, [2] - id size, [2:n] - id, [n+1:] - avatar
+ *
+ * */
 public class MultiplayerEngine {
 
     private WebSocket socket;
 
-    private final Json gson;
+    private final Gson gson;
     private boolean multiplayerThread;
-
-    // current match
-    private volatile Consumer<Match> onUpdate;
-    private volatile long matchId;
 
     /** login listeners */
     private volatile Consumer<Account> loginAccount;
@@ -43,16 +56,30 @@ public class MultiplayerEngine {
     private volatile Consumer<String> signupError;
 
     /** get account listener */
-    private volatile Consumer<Account> getAccount;
+    private final Map<Long, Consumer<Account>> getAccounts = RdApplication.self().getLauncher().concurrentHashMap();
+
+    /** change account listener */
+    private volatile Consumer<RequestStatus> onChangeAccount;
 
     /** listener on update main chat messages */
     private volatile Pair<List<Message>, Map<Long, Account>> lastMessages;
     private volatile Consumer<Pair<List<Message>, Map<Long, Account>>> mainChatMessages;
 
     /** listener on update games */
-    private volatile Consumer<List<Match>> onMatches;
+    private volatile List<Consumer<List<Match>>> listOnMatches = RdApplication.self().getLauncher().copyOnWriteArrayList();
     private volatile List<Match> lastMatches;
 
+    /** avatar listeners */
+    private final Map<Long, Pair<Long, byte[]>> accountCache = RdApplication.self().getLauncher().concurrentHashMap();
+    private final Map<Long, List<Consumer<byte[]>>> onAvatars = RdApplication.self().getLauncher().concurrentHashMap();
+    private volatile Consumer<RequestStatus> onChangeAvatar;
+
+    /** current entered match */
+    private volatile Consumer<Match> createdMatch;
+    private volatile Consumer<Match> enteredMatch;
+    private volatile Consumer<String> createdError;
+    private volatile long matchId;
+    private volatile Match lastMatch;
 
     private static final MultiplayerEngine INSTANCE = new MultiplayerEngine();
 
@@ -61,7 +88,7 @@ public class MultiplayerEngine {
     }
 
     private MultiplayerEngine() {
-        gson = new Json();
+        gson = new Gson();
     }
 
     // account requests -----------------------------------------------------------------------------------------------
@@ -80,7 +107,8 @@ public class MultiplayerEngine {
             Locale.getDefault().getCountry(),
             SystemValidator.getOperationSystem().replaceAll("\\s", ""));
 
-        socket.send(new SocketRequest("/api/v1/accounts/login", name, password, gson.toJson(login)));
+        socket.send(new SocketRequest("/api/v1/accounts/login",
+            name, password, gson.toJson(login)));
     }
 
     /** creates a new user account on the server */
@@ -92,14 +120,36 @@ public class MultiplayerEngine {
         socket.send(new SocketRequest("/api/v1/accounts/signup", name, userName, password));
     }
 
-    @SuppressWarnings("DefaultLocale")
-    public void changeAccount(Account updated) {
+    public void changeAccount(Account updated, Consumer<RequestStatus> onResult) {
+        onChangeAccount = onResult;
         socket.send(new SocketRequest("/api/v1/accounts/change", gson.toJson(updated)));
     }
 
+    public void changeAvatar(long accountId, byte[] avatar, Consumer<RequestStatus> onChangeAvatar) {
+        this.onChangeAvatar = onChangeAvatar;
+        socket.send(BinaryRequests.updateAvatar((byte) 0, accountId, avatar));
+    }
+
     public void getAccount(long id, Consumer<Account> getAccount) {
-        this.getAccount = getAccount;
+        getAccounts.put(id, getAccount);
         socket.send(new SocketRequest("/api/v1/accounts/see", String.valueOf(id)));
+    }
+
+    public void getAvatar(Account account, Consumer<byte[]> getAvatar) {
+        putOnAvatar(account.getId(), getAvatar);
+        socket.send(BinaryRequests.getAvatar((byte) 1, account.getId()));
+    }
+
+    private byte[] getCacheAvatar(long id) {
+        var pair = accountCache.get(id);
+        if (pair == null || System.currentTimeMillis() - pair.getKey() > 3 * 60 * 1000) return null;
+        return pair.getValue();
+    }
+
+    private void putOnAvatar(long accountId, Consumer<byte[]> getAvatar) {
+        List<Consumer<byte[]>> list = onAvatars.get(accountId);
+        if (list == null) onAvatars.put(accountId, new CopyOnWriteArrayList<>());
+        onAvatars.get(accountId).add(getAvatar);
     }
 
     // main chat ------------------------------------------------------------------------------------------------------
@@ -126,10 +176,9 @@ public class MultiplayerEngine {
 
     // match requests -------------------------------------------------------------------------------------------------
 
-    public void setOnMatches(Consumer<List<Match>> onMatches) {
-        this.onMatches = onMatches;
+    public void addOnMatches(Consumer<List<Match>> onMatches) {
+        listOnMatches.add(onMatches);
 
-        if (onMatches == null) return;
         if (lastMatches != null) {
             onMatches.accept(lastMatches);
         } else {
@@ -137,50 +186,83 @@ public class MultiplayerEngine {
         }
     }
 
+    public void removeOnMatches(Consumer<List<Match>> onMatches) {
+        listOnMatches.remove(onMatches);
+    }
+
     public void removeMatch(long matchId) {
-
-
+        socket.send(new SocketRequest("/api/v1/games/removeMatch", String.valueOf(matchId)));
     }
 
     public void createMatch(LocalMatch localMatch, Consumer<Match> onMatch,
                             Consumer<String> onError) {
+        createdMatch = onMatch;
+        createdError = onError;
 
+        var match = new Match(-1,
+            localMatch.getName(),
+            localMatch.getSponsored(),
+            localMatch.getRankType(),
+            -1,
+            -1,
+            -1,
+            localMatch.getTimeByGame(),
+            localMatch.getTimeByGame(),
+            localMatch.getTimeByTurn(),
+            localMatch.getTurnMode(),
+            localMatch.getMaxMoves(),
+            localMatch.isRandomColor(),
+            localMatch.getMatchData().getScenarios()[localMatch.getNumberScenario()]);
+
+        socket.send(new SocketRequest("/api/v1/games/create", gson.toJson(match)));
     }
 
     public void enterMatch(long matchId) {
+        socket.send(new SocketRequest("/api/v1/games/enter", String.valueOf(matchId)));
+    }
 
+    public void exitMatch() {
+        if (matchId != -1) exitMatch(matchId);
+    }
+
+    public void exitMatch(long matchId) {
+        socket.send(new SocketRequest("/api/v1/games/exit", String.valueOf(matchId)));
     }
 
     public void makeMove(long matchId, String fen) {
-
+        socket.send(new SocketRequest("/api/v1/games/makeMove", String.valueOf(matchId), fen));
     }
 
     public void join(long matchId, Color color) {
-
+        socket.send(new SocketRequest("/api/v1/games/join", String.valueOf(matchId), color.toString()));
     }
 
     public void disjoin(long matchId) {
-
+        socket.send(new SocketRequest("/api/v1/games/disjoin", String.valueOf(matchId)));
     }
 
     public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate) {
+        enteredMatch = onUpdate;
+        if ((this.matchId == -1 || this.matchId == matchId) && lastMatch != null && enteredMatch != null) {
+            enteredMatch.accept(lastMatch);
+        }
         this.matchId = matchId;
-        this.onUpdate = onUpdate;
-    }
-
-    private void updateMatch(long matchId, Consumer<Match> onNewMatch) {
 
     }
 
     public void start(long matchId) {
-
+        socket.send(new SocketRequest("/api/v1/games/start", String.valueOf(matchId)));
     }
 
     public void sendLobbyMessage(long matchId, String message) {
-
+        socket.send(new SocketRequest("/api/v1/games/sendMessage", String.valueOf(matchId), message));
     }
 
     // ----------------------------------------------------------------------------------------------------------------
+
+    public void resetConnection() {
+        socket.close();
+    }
 
     public void launchMultiplayerThread() {
         if (multiplayerThread) return;
@@ -205,20 +287,18 @@ public class MultiplayerEngine {
 
             @Override
             public boolean onMessage(WebSocket webSocket, String packet) {
-                var socketRes = gson.fromJson( SocketResult.class, packet);
+                var socketRes = gson.fromJson(packet, SocketResult.class);
                 var request = socketRes.getRequest();
-                Gdx.app.log("Websocket onStringMessage", socketRes.getRequest());
+
+                Gdx.app.log("Websocket onStringMessage", socketRes.getRequest()
+                    + ", status = " + socketRes.getStatus() + ", senderId = " + socketRes.getId());
 
                 if (request.startsWith("/api/v1/accounts")) {
                     onMessageAccounts(request.replaceAll("/api/v1/accounts", ""), socketRes);
-                }
-
-                else if (request.startsWith("/api/v1/mainChat")) {
+                } else if (request.startsWith("/api/v1/mainChat")) {
                     onMessageMainChat(request.replaceAll("/api/v1/mainChat", ""), socketRes);
-                }
-
-                else if (request.startsWith("/api/v1/games")) {
-                    onMessageGames(request.replaceAll("/api/v1/games", ""), socketRes);
+                } else if (request.startsWith("/api/v1/games")) {
+                       onMessageGames(request.replaceAll("/api/v1/games", ""), socketRes);
                 }
 
                 return false;
@@ -226,7 +306,44 @@ public class MultiplayerEngine {
 
             @Override
             public boolean onMessage(WebSocket webSocket, byte[] packet) {
-                Gdx.app.log("Websocket onByteMessage", " - Nothing!");
+                Gdx.app.log("Websocket onByteMessage", "Binary request - " + packet[0]);
+
+                switch (packet[0]) {
+
+                    case 0: {
+                        RequestStatus result = BinaryRequests.parseResultUpdateAvatar(packet);
+                        if (result != RequestStatus.DONE) {
+                            Gdx.app.error("Update avatar", result.toString());
+                        }
+                        RdApplication.postRunnable(() ->
+                            onChangeAvatar.accept(result));
+
+                        break;
+                    }
+
+                    case 1: {
+
+                        Pair<RequestStatus, Pair<Long, byte[]>> result = BinaryRequests.parseResultGetAvatar(packet);
+                        var avatarId = result.getValue().getKey();
+                        var avatar = result.getValue().getValue();
+
+                        if (result.getKey() != RequestStatus.DONE) {
+                            Gdx.app.error("Get avatar", "for id - " + result.getValue().getKey()
+                                + ", status - "+  result.getKey().toString());
+                            break;
+                        }
+
+                        RdApplication.postRunnable(() -> {
+                            List<Consumer<byte[]>> list = onAvatars.get(avatarId);
+                            for (Consumer<byte[]> onAvatar : list) {
+                                onAvatar.accept(avatar);
+                            }
+                            list.clear();
+                        });
+
+                    }
+                }
+
                 return false;
             }
 
@@ -238,6 +355,34 @@ public class MultiplayerEngine {
 
         });
         socket.connect();
+
+        Runnable listener = () -> {
+            AtomicBoolean reset = new AtomicBoolean(false);
+
+            while (true) {
+                if (!socket.isConnecting() && !socket.isOpen()) {
+                    socket.connect();
+                    reset.set(ChessConstants.loggingAcc != null);
+                } else if (reset.get()) {
+                    login(ChessConstants.localData.getNameAcc(), ChessConstants.localData.getPassword(),
+                        account -> {
+                            Gdx.app.log("multiplayerThread", "account successfully logged in again");
+                            reset.set(false);
+                        },
+                        s -> {
+                            Gdx.app.error("multiplayerThread", "account could not login; " + s);
+                        });
+                }
+
+                try {
+                    Thread.sleep(2500);
+                } catch (InterruptedException e) {
+                    Gdx.app.error("multiplayerThread fatal", RdLogger.getDescription(e));
+                }
+            }
+
+        };
+        RdApplication.self().execute(listener);
     }
 
     private void onMessageAccounts(String reqAccounts, SocketResult socketRes) {
@@ -268,7 +413,14 @@ public class MultiplayerEngine {
             case "/see":
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
-                    parseJson(socketRes.getResult(), Account.class, getAccount);
+                    parseJson(socketRes.getResult(), Account.class, account -> {
+                        var callback = getAccounts.remove(account.getId());
+                        if (callback != null) {
+                            callback.accept(account);
+                        } else {
+                            Gdx.app.error("get account consumer don't found", socketRes.getStatus().toString());
+                        }
+                    });
                 } else {
                     Gdx.app.error("error get account", socketRes.getStatus().toString());
                 }
@@ -277,12 +429,16 @@ public class MultiplayerEngine {
 
             case "/change":
 
+                if (onChangeAccount != null) {
+                    RdApplication.postRunnable(() ->
+                        onChangeAccount.accept(socketRes.getStatus()));
+                }
+
                 if (socketRes.getStatus() != RequestStatus.DONE) {
                     Gdx.app.error("error change account", socketRes.getStatus().toString());
                 }
 
                 break;
-
         }
 
     }
@@ -295,11 +451,11 @@ public class MultiplayerEngine {
             if (socketRes.getStatus() == RequestStatus.DONE
                 || socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
 
-                parseJson(socketRes.getResult(), Pair.class,
-                    res -> {
-                        // TODO
+                parseJson(socketRes.getResult(), new TypeToken<Pair<List<Message>, Map<Long, Account>>>() {}.getType(),
+                    (Consumer<Pair<List<Message>, Map<Long, Account>>>) res -> {
                         lastMessages = res;
-                        mainChatMessages.accept(res);
+                        Collections.reverse(res.getKey());
+                        if (mainChatMessages != null) mainChatMessages.accept(res);
                     });
 
             } else {
@@ -328,27 +484,145 @@ public class MultiplayerEngine {
 
     private void onMessageGames(String reqGames, SocketResult socketRes) {
 
-        if (reqGames.equals("/getGames") || (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER
-            && reqGames.equals("/create"))) {
+        if (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
 
-            if (socketRes.getStatus() == RequestStatus.DONE
-                || socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
-
-
-                parseJson(socketRes.getResult(), List.class,
-                    matches -> {
-                        // TODO
+            if (socketRes.getResult().startsWith("[")) {
+                parseJson(socketRes.getResult(), new TypeToken<List<Match>>() {}.getType(),
+                    (Consumer<List<Match>>) matches -> {
                         lastMatches = matches;
-                        onMatches.accept(matches);
+                        Collections.reverse(lastMatches);
+                        for (Consumer<List<Match>> onMatches : listOnMatches) {
+                            onMatches.accept(matches);
+                        }
                     }
                 );
-
             } else {
-                Gdx.app.error("error get matches", socketRes.getStatus().toString());
+
+                // update current match
+                parseJson(socketRes.getResult(), Match.class,
+                    match -> {
+                    lastMatch = match;
+                    if (enteredMatch != null)
+                        enteredMatch.accept(match);
+                });
+
+            }
+
+        } else {
+
+            switch (reqGames) {
+
+                case "/getGames": {
+
+                    if (socketRes.getStatus() == RequestStatus.DONE) {
+
+                        parseJson(socketRes.getResult(), new TypeToken<List<Match>>() {}.getType(),
+                            (Consumer<List<Match>>) matches -> {
+                                lastMatches = matches;
+                                Collections.reverse(lastMatches);
+                                for (Consumer<List<Match>> onMatches : listOnMatches) {
+                                    onMatches.accept(matches);
+                                }
+                            }
+                        );
+
+                    } else {
+                        Gdx.app.error("error get matches", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/create": {
+
+                    if (socketRes.getStatus() == RequestStatus.DONE) {
+
+                        parseJson(socketRes.getResult(), Match.class,
+                            match -> {
+                                lastMatch = match;
+                                if (createdMatch != null) {
+                                    createdMatch.accept(match);
+                                    createdMatch = null;
+                                }
+                            });
+
+                    } else {
+                        Gdx.app.error("error create match", socketRes.getStatus().toString()
+                            + ": " + socketRes.getResult());
+
+                        if (createdError != null && socketRes.getId() == ChessConstants.loggingAcc.getId()) {
+                            createdError.accept(socketRes.getStatus().toString() + ": " + socketRes.getResult());
+                        }
+                    }
+
+                    break;
+                }
+
+                case "/sendMessage": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error send message in match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/makeMove": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error make move", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/enter": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error enter match", socketRes.getStatus().toString());
+                    }
+                }
+
+                case "/exit": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error exit match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/join": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error join match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/disjoin": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error disjoin match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/start": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error start match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                case "/removeMatch": {
+                    if (socketRes.getStatus() != RequestStatus.DONE) {
+                        Gdx.app.error("error remove match", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
             }
 
         }
-
     }
 
     private <T> void parseJson(String json, Class<T> clazz, Consumer<T> onResult) {
@@ -357,8 +631,7 @@ public class MultiplayerEngine {
 
     private <T> void parseJson(String json, Class<T> clazz, Consumer<T> onResult, Consumer<String> onError) {
         try {
-
-            T data = gson.fromJson(clazz, json);
+            T data = gson.fromJson(json, clazz);
             if (data == null) {
                 Gdx.app.error("parseJson", clazz + " == null");
                 RdApplication.postRunnable(() -> onError.accept(clazz + " == null"));
@@ -368,6 +641,25 @@ public class MultiplayerEngine {
         } catch (Throwable t) {
             Gdx.app.error("parseJson", clazz + ": " + t);
             RdApplication.postRunnable(() -> onError.accept(clazz + ": " + t));
+        }
+    }
+
+    private <T> void parseJson(String json, Type type, Consumer<T> onResult) {
+        parseJson(json, type, onResult, s -> {});
+    }
+
+    private <T> void parseJson(String json, Type type, Consumer<T> onResult, Consumer<String> onError) {
+        try {
+            T data = gson.fromJson(json, type);
+            if (data == null) {
+                Gdx.app.error("parseJson", type + " == null");
+                RdApplication.postRunnable(() -> onError.accept(type + " == null"));
+            }
+            RdApplication.postRunnable(() -> onResult.accept(data));
+
+        } catch (Throwable t) {
+            Gdx.app.error("parseJson", RdLogger.getDescription(t));
+            RdApplication.postRunnable(() -> onError.accept(RdLogger.getDescription(t)));
         }
     }
 }

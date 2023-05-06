@@ -242,6 +242,7 @@ public final class SettingsUtil {
         if (type == RankType.BULLET) return strings.get("bullet");
         else if (type == RankType.BLITZ) return strings.get("blitz");
         else if (type == RankType.RAPID) return strings.get("rapid");
+        else if (type == RankType.UNRANKED) return strings.get("non_ranked");
         else return strings.get("long");
     }
 

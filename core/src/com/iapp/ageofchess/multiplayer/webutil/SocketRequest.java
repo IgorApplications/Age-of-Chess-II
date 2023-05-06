@@ -4,6 +4,7 @@ public class SocketRequest {
 
     private final String request;
     private final String[] parameters;
+    private long id = -1;
 
     public SocketRequest(String request, String... parameters) {
         this.request = request;
@@ -16,5 +17,13 @@ public class SocketRequest {
 
     public String[] getParameters() {
         return parameters;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public long getId() {
+        return id;
     }
 }

@@ -68,8 +68,7 @@ public class GameController extends EngineController {
         stop();
         resetSounds();
         if (getMatch().isFlippedPieces() && getMatch().getGameMode() == GameMode.TWO_PLAYERS) flipPieces();
-        startActivityAlpha(new ScenariosActivity(),
-                ChessConstants.localData.getScreenDuration(),
+        startActivity(new ScenariosActivity(),
                 Actions.run(() -> DisposeUtil.dispose(localMatch.getMatchData().getAtlas())));
     }
 
@@ -80,7 +79,7 @@ public class GameController extends EngineController {
         stop();
         if (getMatch().isFlippedPieces() && getMatch().getGameMode() == GameMode.TWO_PLAYERS) flipPieces();
         resetSounds();
-        startActivityAlpha(GameActivity.newInstance(localMatch), ChessConstants.localData.getScreenDuration());
+        startActivity(GameActivity.newInstance(localMatch));
     }
 
     @SuppressWarnings("DefaultLocale")

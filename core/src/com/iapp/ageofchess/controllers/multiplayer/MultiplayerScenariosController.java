@@ -19,18 +19,19 @@ import com.iapp.rodsher.screens.RdApplication;
 public class MultiplayerScenariosController extends Controller {
 
     private final MultiplayerScenariosActivity activity;
+    private final Match match;
 
-    public MultiplayerScenariosController(MultiplayerScenariosActivity current) {
+    public MultiplayerScenariosController(MultiplayerScenariosActivity current, Match match) {
         super(current);
         activity = current;
+        this.match = match;
     }
 
     public void goToCreation(MapData mapData, int scenario) {
-        startActivity(new MultiplayerCreationActivity(mapData, scenario),
-                ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerCreationActivity(mapData, scenario));
     }
 
-    public void goToGame(MapData mapData, Match match) {
+    public void goToGame(MapData mapData) {
         MultiplayerEngine.self().enterMatch(match.getId());
 
         boolean infinityTimeByTurn = match.getTimeByTurn() == -1;
@@ -58,15 +59,14 @@ public class MultiplayerScenariosController extends Controller {
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
-                startActivityAlpha(MultiplayerGameActivity.newInstance(localMatch, match),
-                        ChessConstants.localData.getScreenDuration()));
+                startActivity(MultiplayerGameActivity.newInstance(localMatch, match)));
     }
 
     public void goToMenu() {
-        startActivity(new MultiplayerMenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerMenuActivity());
     }
 
     public void goToGames() {
-        startActivity(new MultiplayerGamesActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MultiplayerGamesActivity());
     }
 }

@@ -4,6 +4,8 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -14,11 +16,13 @@ import com.iapp.ageofchess.graphics.EditMapDataView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.TypeMap;
 import com.iapp.ageofchess.util.ChessAssetManager;
+import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.ageofchess.util.DataManager;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.util.List;
@@ -44,8 +48,11 @@ public class ModdingActivity extends Activity {
 
     @Override
     public void initActors() {
-        RdApplication.self().setBackground(new TextureRegionDrawable(
-                ChessAssetManager.current().findChessRegion("menu_background")));
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        background.setScaling(Scaling.fill);
+        getStage().addActor(background);
 
         back = new RdImageTextButton(strings.get("back"), "red_screen");
         back.setImage("ib_back");
@@ -80,10 +87,19 @@ public class ModdingActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         var content = new Table();
         content.setFillParent(true);
         getStage().addActor(content);
+
+        if (ChessConstants.loggingAcc != null) {
+            RdTable panel = new RdTable();
+            panel.align(Align.topLeft);
+            panel.setFillParent(true);
+            getStage().addActor(panel);
+            panel.add(ChessApplication.self().getAccountPanel())
+                .expandX().fillX();
+        }
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
@@ -99,6 +115,12 @@ public class ModdingActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        if (last instanceof EditMapActivity) {
+            TransitionEffects.alphaShow(getStage().getRoot(), ChessConstants.localData.getScreenDuration());
+        } else if (!(last instanceof ModdingActivity)){
+            TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        }
     }
 
     @Override
@@ -123,11 +145,8 @@ public class ModdingActivity extends Activity {
             }, new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    if (maps.get(finalI).getType() == Files.FileType.Internal) {
-                        controller.goToEdit(new MapData(maps.get(finalI)), true);
-                    } else  {
-                        controller.goToEdit(new MapData(maps.get(finalI)), false);
-                    }
+                    controller.goToEdit(new MapData(maps.get(finalI)),
+                        maps.get(finalI).getType() == Files.FileType.Internal);
                 }
             }))
             .expandX().fillX().pad(10, 10, 10, 10).row();
@@ -161,6 +180,17 @@ public class ModdingActivity extends Activity {
         deleteMap.getIcon().setDrawable(new TextureRegionDrawable(
                 ChessAssetManager.current().findRegion("icon_warn")));
         deleteMap.getIcon().setScaling(Scaling.fit);
-    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof EditMapActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        } else {
+            TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+            return windowGroup;
+        }
     }
 }

@@ -15,14 +15,14 @@ public class ScenarioController extends Controller {
     }
 
     public void goToCreation(MapData mapData, int scenario) {
-        startActivity(new CreationActivity(mapData, scenario), ChessConstants.localData.getScreenDuration());
+        startActivity(new CreationActivity(mapData, scenario));
     }
 
     public void goToMenu() {
-        startActivity(new MenuActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new MenuActivity());
     }
 
     public void goToSavedGames() {
-        startActivity(new SavedGamesActivity(), ChessConstants.localData.getScreenDuration());
+        startActivity(new SavedGamesActivity());
     }
 }

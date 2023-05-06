@@ -8,57 +8,76 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.multiplayer.Account;
+import com.iapp.ageofchess.util.ChessAssetManager;
 import com.iapp.ageofchess.util.LoadAvatarUtil;
+import com.iapp.rodsher.actors.AnimatedImage;
 import com.iapp.rodsher.util.DisposeUtil;
 
 import java.util.Arrays;
 
 public class AvatarView extends ImageButton implements Disposable {
 
-    private Account lastAccount;
-    private Drawable avatar;
+    private byte[] lastByteAvatar;
+    private AnimatedImage avatar;
+    private final Drawable loadingBg;
     private Image online;
     private Texture avatarTexture;
-    private float size;
+    private boolean init;
 
     public AvatarView(ImageButtonStyle style) {
         super(style);
+        avatar = ChessAssetManager.current().getSkin().get("logo_anim", AnimatedImage.class);
+        loadingBg = new TextureRegionDrawable(ChessAssetManager.current().getDarkGrayTexture());
     }
 
     public AvatarView(AvatarView avatarView) {
         super(avatarView.getStyle());
-        lastAccount = avatarView.lastAccount;
+
+        lastByteAvatar = avatarView.lastByteAvatar;
         avatar = avatarView.avatar;
         online = avatarView.online;
         avatarTexture = avatarView.avatarTexture;
-        size = avatarView.size;
+        loadingBg = avatarView.loadingBg;
+        init = avatarView.init;
     }
 
-    public void update(Account account, float size) {
-        if (lastAccount != null && Arrays.equals(lastAccount.getAvatar(), account.getAvatar())) {
+    public void update(Account account, byte[] byteAvatar) {
+        if (lastByteAvatar != null && Arrays.equals(lastByteAvatar, byteAvatar)) {
             return;
         }
 
-        var lastTexture = avatarTexture;
-        lastAccount = account;
+        var disposedTexture = avatarTexture;
+        lastByteAvatar = byteAvatar;
 
-        var avatarPair = LoadAvatarUtil.loadAvatar(account);
+        var avatarPair = LoadAvatarUtil.loadAvatar(byteAvatar);
         var avatarDrawable = avatarPair.getKey();
         avatarTexture = avatarPair.getValue();
-        avatar = new TextureRegionDrawable(avatarDrawable);
-        this.size = size;
+        avatar = new AnimatedImage(Long.MAX_VALUE, new TextureRegionDrawable(avatarDrawable));
         online = LoadAvatarUtil.getOnline(account);
+        init = true;
 
-        DisposeUtil.dispose(lastTexture);
+        DisposeUtil.dispose(disposedTexture);
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        if (avatar != null) {
-            avatar.draw(batch, getX() + (getWidth() - size) / 2,
-                    getY() + (getHeight() - size) / 2,
-                    size, size);
+
+        if (!init) {
+            loadingBg.draw(batch, getX() + getWidth() * 0.1f, getY() +  getHeight() * 0.1f,
+                getWidth() * 0.8f, getHeight() * 0.8f);
         }
+
+        float size = Math.min(getWidth(), getHeight());
+        float margin = size * 0.109375f;
+        size -= margin * 2;
+        if (!init) {
+            // loading 72x72
+            size = 72;
+            margin = 28;
+        }
+
+        avatar.setBounds(getX() + margin, getY() + margin, size, size);
+        avatar.draw(batch, parentAlpha);
 
         super.draw(batch, parentAlpha);
 

@@ -10,7 +10,9 @@ public final class ChessConstants {
     public static final String STORAGE_DIRECTORY = "age_of_chess";
     public static final String MAPS_DIRECTORY = "age_of_chess/maps";
     public static final String SETTINGS = "age_of_chess/settings";
+    public static final String LOGS_DIRECTORY = "age_of_chess/logs";
 
+    public static String serverAPI;
     public static LocalData localData;
-    public static Account account;
+    public static Account loggingAcc;
 }

@@ -3,6 +3,9 @@ package com.iapp.ageofchess.activity.multiplayer;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -14,12 +17,14 @@ import com.iapp.ageofchess.graphics.ScenarioView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.util.ChessAssetManager;
+import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.screens.RdLogger;
 import com.iapp.rodsher.util.OnChangeListener;
 import com.iapp.rodsher.util.StreamUtil;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.util.List;
@@ -36,11 +41,11 @@ public class MultiplayerScenariosActivity extends Activity {
 
     public MultiplayerScenariosActivity(Match match) {
         this.match = match;
-        controller = new MultiplayerScenariosController(this);
+        controller = new MultiplayerScenariosController(this, match);
     }
 
     public MultiplayerScenariosActivity() {
-        controller = new MultiplayerScenariosController(this);
+        controller = new MultiplayerScenariosController(this, null);
     }
 
     public void setSpinner(Spinner spinner) {
@@ -70,8 +75,19 @@ public class MultiplayerScenariosActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
-        RdApplication.self().setBackground(ChessAssetManager.current().findChessRegion("menu_background"));
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
+        RdTable panel = new RdTable();
+        panel.align(Align.topLeft);
+        panel.setFillParent(true);
+        getStage().addActor(panel);
+        panel.add(ChessApplication.self().getAccountPanel())
+            .expandX().fillX();
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
@@ -89,6 +105,8 @@ public class MultiplayerScenariosActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
     }
 
     @Override
@@ -104,13 +122,12 @@ public class MultiplayerScenariosActivity extends Activity {
     private void addMapInfo(RdTable content, List<MapData> maps) {
         for (int i = 0; i < maps.size(); i++) {
             int finalI = i;
-            if (maps.get(i).getId() < 0) continue;
 
             content.add(new MapDataView(maps.get(i), new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
                     if (match != null) {
-                        controller.goToGame(maps.get(finalI), match);
+                        controller.goToGame(maps.get(finalI));
                     } else {
                         showScenarios(maps.get(finalI));
                     }
@@ -139,7 +156,9 @@ public class MultiplayerScenariosActivity extends Activity {
                 content.add(new ScenarioView(mapData, i, new OnChangeListener() {
                             @Override
                             public void onChange(Actor actor) {
-                                controller.goToCreation(mapData, finalI);
+                                scenarios.hide(Actions.run(() ->
+                                    controller.goToCreation(mapData, finalI)));
+
                             }
                         }))
                         .expandX().fillX().left().padBottom(5).row();
@@ -179,5 +198,15 @@ public class MultiplayerScenariosActivity extends Activity {
         scenarios.show(getStage());
         scenarios.setSize(800, 600);
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof MultiplayerGameActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        }
+        TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+        return windowGroup;
     }
 }

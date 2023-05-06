@@ -1,7 +1,6 @@
 package com.iapp.ageofchess.controllers.multiplayer;
 
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.utils.Json;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerGameActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
@@ -15,10 +14,10 @@ import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.util.ChessConstants;
 import com.iapp.ageofchess.util.SettingsUtil;
 import com.iapp.ageofchess.util.Sounds;
-import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.CallListener;
 import com.iapp.rodsher.util.DisposeUtil;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Optional;
 
@@ -30,6 +29,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
 
     private Match currentMatch;
     private Account firstPlayer, secondPlayer;
+    private boolean initMatchListener;
 
     public MultiplayerGameController(MultiplayerGameActivity activity, LocalMatch localMatch, Match match) {
         super(activity, localMatch, match);
@@ -38,8 +38,8 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     }
 
     public boolean isInside() {
-        return currentMatch.getBlackPlayerId() == ChessConstants.account.getId()
-                || currentMatch.getWhitePlayerId() == ChessConstants.account.getId();
+        return currentMatch.getBlackPlayerId() == ChessConstants.loggingAcc.getId()
+                || currentMatch.getWhitePlayerId() == ChessConstants.loggingAcc.getId();
     }
 
     public Account getFirstPlayer() {
@@ -56,7 +56,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     }
 
     public boolean isCreator() {
-        return ChessConstants.account.getId() == currentMatch.getCreatorId();
+        return ChessConstants.loggingAcc.getId() == currentMatch.getCreatorId();
     }
 
     public long getMatchId() {
@@ -66,8 +66,8 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     public void setBoardView(MultiplayerBoardView boardView) {
         this.boardView = boardView;
 
-        if (currentMatch.getResult() != Result.NONE || (currentMatch.getBlackPlayerId() != ChessConstants.account.getId()
-                && currentMatch.getWhitePlayerId() != ChessConstants.account.getId())) {
+        if (currentMatch.getResult() != Result.NONE || (currentMatch.getBlackPlayerId() != ChessConstants.loggingAcc.getId()
+                && currentMatch.getWhitePlayerId() != ChessConstants.loggingAcc.getId())) {
             boardView.setBlockedMove(true);
         }
     }
@@ -78,14 +78,21 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         updateBlockedBoard();
         activity.update();
 
+        // update correct start position
+        if (ChessConstants.loggingAcc.getId() == currentMatch.getBlackPlayerId()
+            && !currentMatch.isRandom()) {
+            update(Color.WHITE);
+        }
+
+        updateAccounts(currentMatch);
         // activity not null!
         // Reads data from the server, can not be disabled!
         updateMatchListener();
     }
 
     public Optional<Color> getUserColor() {
-        if (currentMatch.getBlackPlayerId() == ChessConstants.account.getId()) return Optional.of(Color.BLACK);
-        else if (currentMatch.getWhitePlayerId() == ChessConstants.account.getId()) return Optional.of(Color.WHITE);
+        if (currentMatch.getBlackPlayerId() == ChessConstants.loggingAcc.getId()) return Optional.of(Color.BLACK);
+        else if (currentMatch.getWhitePlayerId() == ChessConstants.loggingAcc.getId()) return Optional.of(Color.WHITE);
         return Optional.empty();
     }
 
@@ -93,7 +100,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         stop();
         resetSounds();
 
-        startActivityAlpha(new MultiplayerMenuActivity(), ChessConstants.localData.getScreenDuration(),
+        startActivity(new MultiplayerMenuActivity(),
                 Actions.run(() -> DisposeUtil.dispose(localMatch.getMatchData().getAtlas())));
     }
 
@@ -200,9 +207,10 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     public void stop() {
         super.stop();
         System.gc();
-        ChessApplication.self().getAccountPanel().update(
-                ChessApplication.self().getAccountPanel().getAvatarView());
+
         MultiplayerEngine.self().setOnUpdateMatch(-1, null);
+        MultiplayerEngine.self().exitMatch(matchId);
+        ChessApplication.self().getAccountPanel().updateTable();
     }
 
     private void finishGame(Result result) {
@@ -263,21 +271,17 @@ public class MultiplayerGameController extends MultiplayerEngineController {
                   && getUserColor().isPresent() && currentMatch.isStarted()) {
             update(SettingsUtil.reverse(getUserColor().get()));
             flipped = true;
-         }
-
-        if (currentMatch.getResult() != Result.NONE
-                && firstPlayer != null && secondPlayer != null) {
-            finishGame(currentMatch.getResult());
         }
+        updateFinishDialog();
 
         // avoiding calls to the same moves
         if (this.last == last) return;
 
-        if (!last.getFen().equals(currentMatch.getFen()) && (ChessConstants.account.getId() == currentMatch.getWhitePlayerId()
-                || ChessConstants.account.getId() == currentMatch.getBlackPlayerId())) {
+        if (!last.getFen().equals(currentMatch.getFen()) && (ChessConstants.loggingAcc.getId() == currentMatch.getWhitePlayerId()
+                || ChessConstants.loggingAcc.getId() == currentMatch.getBlackPlayerId())) {
 
             Color userColor;
-            if (currentMatch.getBlackPlayerId() == ChessConstants.account.getId()) userColor = Color.BLACK;
+            if (currentMatch.getBlackPlayerId() == ChessConstants.loggingAcc.getId()) userColor = Color.BLACK;
             else userColor = Color.WHITE;
 
             var game = new Game(Color.BLACK, currentMatch.getFen());
@@ -310,8 +314,8 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     private void updateBlockedBoard() {
 
         if (currentMatch.isStarted() && currentMatch.getResult() == Result.NONE) {
-            boardView.setBlockedMove((getColorMove() != Color.BLACK || currentMatch.getBlackPlayerId() != ChessConstants.account.getId())
-                    && (getColorMove() != Color.WHITE || currentMatch.getWhitePlayerId() != ChessConstants.account.getId()));
+            boardView.setBlockedMove((getColorMove() != Color.BLACK || currentMatch.getBlackPlayerId() != ChessConstants.loggingAcc.getId())
+                    && (getColorMove() != Color.WHITE || currentMatch.getWhitePlayerId() != ChessConstants.loggingAcc.getId()));
         } else {
             boardView.setBlockedMove(true);
         }
@@ -330,107 +334,64 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     // --------------------------------------------------------------------------------------------------------------
 
     private void updateMatchListener() {
+        if (initMatchListener) return;
+        initMatchListener = true;
+
         MultiplayerEngine.self().setOnUpdateMatch(matchId, newMatch -> {
             var last = currentMatch;
-
-            if (newMatch != null) currentMatch = newMatch;
-            update(last);
-
-            long firstId, secondId;
-            if (ChessConstants.account.getId() != currentMatch.getBlackPlayerId()) {
-                firstId = currentMatch.getWhitePlayerId();
-                secondId = currentMatch.getBlackPlayerId();
-            } else {
-                firstId = currentMatch.getBlackPlayerId();
-                secondId = currentMatch.getWhitePlayerId();
+            if (newMatch != null) {
+                currentMatch = newMatch;
+                update(last);
             }
-
-            updateAccounts(firstId, secondId, last);
+            updateAccounts(last);
         });
     }
 
     private void updateAccounts(long first, long second, Match last) {
 
-
         if (first != -1) {
-            MultiplayerEngine.self().getAccount(first, account ->
-                    RdApplication.postRunnable(() -> {
-                        firstPlayer = account;
-                        update(last);
-                    }));
+            MultiplayerEngine.self().getAccount(first, account -> {
+                    firstPlayer = account;
+                    update(last);
+                });
         } else {
             firstPlayer = null;
         }
 
         if (second != -1) {
-            MultiplayerEngine.self().getAccount(second, account ->
-                    RdApplication.postRunnable(() -> {
-                        secondPlayer = account;
-                        update(last);
-                    }));
+            MultiplayerEngine.self().getAccount(second, account -> {
+                secondPlayer = account;
+                update(last);
+            });
         } else  {
             secondPlayer = null;
         }
     }
 
-    // ---------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public void undo() {
-        if (boardView.isBlockedMove() || result != Result.NONE || localMatch.isBlockedHints()) return;
-
-        if (localMatch.getGameMode() == GameMode.TWO_PLAYERS) {
-            if (lastMoves.size() < 1) return;
+    private void updateAccounts(Match last) {
+        long firstId, secondId;
+        if (ChessConstants.loggingAcc.getId() == currentMatch.getBlackPlayerId()) {
+            firstId = currentMatch.getBlackPlayerId();
+            secondId = currentMatch.getWhitePlayerId();
+        } else if (ChessConstants.loggingAcc.getId() == currentMatch.getWhitePlayerId()) {
+            firstId = currentMatch.getWhitePlayerId();
+            secondId = currentMatch.getBlackPlayerId();
         } else {
-            if (lastMoves.size() < 2) return;
-            cancelMove();
-            boardView.cancelMove();
+            firstId = currentMatch.getBlackPlayerId();
+            secondId = currentMatch.getWhitePlayerId();
         }
-        undoMove();
+
+        updateAccounts(firstId, secondId, last);
     }
 
-    public void showHint() {
-        if (boardView.isBlockedMove() || result != Result.NONE || localMatch.isBlockedHints()) return;
-        getHint(4, (move, type) -> boardView.showHint(move));
+    private void updateFinishDialog() {
+        if (currentMatch.getResult() != Result.NONE
+            && firstPlayer != null && secondPlayer != null) {
+            finishGame(currentMatch.getResult());
+        }
     }
 
-    public void makeHint() {
-        if (boardView.isBlocked() || boardView.isBlockedMove() || result != Result.NONE ||
-                (localMatch.getGameMode() != GameMode.TWO_PLAYERS && getColorMove() == localMatch.getUpperColor())) return;
-        getHint(4, (move, type) -> makeMove(move, null, false));
-    }
-
-    public void flipPieces() {
-        var color = localMatch.getUpperColor() == Color.BLACK ? "black_" : "white_";
-        getRegion(color + "pawn").flip(false, true);
-        getRegion(color + "pawn").flip(false, true);
-        getRegion(color + "pawn").flip(false, true);
-        getRegion(color + "pawn").flip(false, true);
-        getRegion(color + "pawn").flip(false, true);
-        getRegion(color + "pawn").flip(false, true);
-    }
+    // ---------------------------------------------------------------------------------------------------------------
 
     public String defineColorMove() {
         if (getColorMove() == Color.WHITE) return strings.get("white_upper");
@@ -492,21 +453,5 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         } else {
             Sounds.self().startLose();
         }
-    }
-
-    private void undoMove() {
-        var lastMove = cancelMove();
-
-        boardView.setBlockedMove(true);
-        var callback = (CallListener) () -> {
-            Sounds.self().playMove();
-            var position = getCheckKing();
-            if (position != null) Sounds.self().playCheck();
-            boardView.setBlockedMove(false);
-            // update condition
-            activity.onMadeMove();
-        };
-
-        boardView.undoMove(lastMove.getKey(), isCastleMove(lastMove.getKey()), true, callback);
     }
 }

@@ -111,8 +111,7 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
         getStage().addActor(timeByTurnLabel);
         getStage().addActor(whiteTime);
         getStage().addActor(blackTime);
-        // Control Game
-        initControlTable();
+        getStage().addActor(controlGame);
         getStage().addActor(chatView);
         getStage().addActor(blackout);
 

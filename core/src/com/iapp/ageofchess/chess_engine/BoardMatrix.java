@@ -141,30 +141,7 @@ public class BoardMatrix {
         }
 
         if (upper == Color.WHITE) {
-            var line1 = matrix[2];
-            var line2 = matrix[3];
-            var line3 = matrix[4];
-            var line4 = matrix[5];
-
-            matrix[2] = matrix[9];
-            matrix[3] = matrix[8];
-            matrix[4] = matrix[7];
-            matrix[5] = matrix[6];
-
-            matrix[9] = line1;
-            matrix[8] = line2;
-            matrix[7] = line3;
-            matrix[6] = line4;
-
-            line1 = id[0];
-            line2 = id[1];
-            line3 = id[2];
-            line4 = id[3];
-
-            id[7] = line1;
-            id[6] = line2;
-            id[5] = line3;
-            id[4] = line4;
+            flipBoard();
         }
     }
 
@@ -198,20 +175,7 @@ public class BoardMatrix {
         };
 
         if (upper == Color.WHITE) {
-            byte[] whiteLine1  = matrix[8];
-            byte[] whiteLine2 = matrix[9];
-
-            matrix[9] = matrix[2];
-            matrix[8] = matrix[3];
-
-            matrix[2] = whiteLine2;
-            matrix[3] = whiteLine1;
-
-            matrix[2][5] = WHITE_KING;
-            matrix[2][6] = WHITE_QUEEN;
-
-            matrix[9][5] = BLACK_KING;
-            matrix[9][6] = BLACK_QUEEN;
+            flipBoard();
         }
     }
 
@@ -243,14 +207,7 @@ public class BoardMatrix {
         if (this.upper == upper) return;
         this.upper = upper;
 
-        for (int i = 0; i < id.length; i++) {
-            for (int j = 0; j < id[i].length; j++) {
-                if (id[i][j] != -1 && matrix[i + INDENT_WALL][j + INDENT_WALL] != CAGE) {
-                    id[i][j] = (byte) (31 - id[i][j]);
-                    matrix[i + INDENT_WALL][j + INDENT_WALL] = (byte) -matrix[i + INDENT_WALL][j + INDENT_WALL];
-                }
-            }
-        }
+        flipBoard();
     }
 
     byte[][] getMatrix() {
@@ -314,5 +271,32 @@ public class BoardMatrix {
         }
 
         return new BoardMatrix(upper, newMatrix, newId, flags);
+    }
+
+    private void flipBoard() {
+        var line1 = matrix[2];
+        var line2 = matrix[3];
+        var line3 = matrix[4];
+        var line4 = matrix[5];
+
+        matrix[2] = matrix[9];
+        matrix[3] = matrix[8];
+        matrix[4] = matrix[7];
+        matrix[5] = matrix[6];
+
+        matrix[9] = line1;
+        matrix[8] = line2;
+        matrix[7] = line3;
+        matrix[6] = line4;
+
+        line1 = id[0];
+        line2 = id[1];
+        line3 = id[2];
+        line4 = id[3];
+
+        id[7] = line1;
+        id[6] = line2;
+        id[5] = line3;
+        id[4] = line4;
     }
 }

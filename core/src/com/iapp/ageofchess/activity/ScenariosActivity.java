@@ -5,6 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Event;
 import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -24,6 +26,7 @@ import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.screens.RdLogger;
 import com.iapp.rodsher.util.OnChangeListener;
 import com.iapp.rodsher.util.StreamUtil;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.util.HashMap;
@@ -68,8 +71,21 @@ public class ScenariosActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
-        RdApplication.self().setBackground(ChessAssetManager.current().findChessRegion("menu_background"));
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        background.setScaling(Scaling.fill);
+        getStage().addActor(background);
+
+        if (ChessConstants.loggingAcc != null) {
+            RdTable panel = new RdTable();
+            panel.align(Align.topLeft);
+            panel.setFillParent(true);
+            getStage().addActor(panel);
+            panel.add(ChessApplication.self().getAccountPanel())
+                .expandX().fillX();
+        }
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
@@ -88,6 +104,12 @@ public class ScenariosActivity extends Activity {
 
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        if (last instanceof GameActivity) {
+            TransitionEffects.alphaShow(getStage().getRoot(), ChessConstants.localData.getScreenDuration());
+        } else {
+            TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        }
     }
 
     @Override
@@ -133,7 +155,9 @@ public class ScenariosActivity extends Activity {
                 content.add(new ScenarioView(mapData, i, new OnChangeListener() {
                             @Override
                             public void onChange(Actor actor) {
-                                controller.goToCreation(mapData, finalI);
+                                scenarios.hide(Actions.run(() ->
+                                    controller.goToCreation(mapData, finalI)));
+
                             }
                         }))
                         .expandX().fillX().left().padBottom(5).row();
@@ -212,5 +236,11 @@ public class ScenariosActivity extends Activity {
         }
 
         return levels;
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+        return windowGroup;
     }
 }

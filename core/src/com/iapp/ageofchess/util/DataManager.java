@@ -3,11 +3,11 @@ package com.iapp.ageofchess.util;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.StringBuilder;
-import com.iapp.ageofchess.modding.MapResources;
+import com.google.gson.Gson;
 import com.iapp.ageofchess.modding.MapData;
+import com.iapp.ageofchess.modding.MapResources;
 import com.iapp.rodsher.screens.RdLogger;
 
 import java.nio.charset.StandardCharsets;
@@ -23,7 +23,7 @@ public class DataManager {
             "</array>";
 
     private static final DataManager INSTANCE = new DataManager();
-    private final Json gson;
+    private final Gson gson;
 
     public static DataManager self() {
         return INSTANCE;
@@ -79,7 +79,12 @@ public class DataManager {
             if (child1.name().startsWith("map")) {
                 var child2 = child1.child("mapData");
                 if (child2.exists()) {
-                    dataMaps.add(gson.fromJson(MapData.class, child2.readString()));
+                    try {
+                        dataMaps.add(gson.fromJson(child2.readString(),
+                            MapData.class));
+                    } catch (Throwable t) {
+                        Gdx.app.error("readDataMaps", child2.path());
+                    }
                 }
             }
         }
@@ -98,8 +103,8 @@ public class DataManager {
         if (!accountHandler.exists()) return new LocalData();
         try {
             var localData = gson.fromJson(
-                LocalData.class,
-                accountHandler.readString(StandardCharsets.UTF_8.toString()));
+                accountHandler.readString(StandardCharsets.UTF_8.toString()),
+                LocalData.class);
 
             // remove bad links! backward compatibility
             localData.getReferences().removeIf(ref -> ref.getMatch() == null);
@@ -111,7 +116,7 @@ public class DataManager {
     }
 
     private DataManager() {
-        gson = new Json();
+        gson = new Gson();
     }
 
     private byte[] readAbsBytes(String path) {

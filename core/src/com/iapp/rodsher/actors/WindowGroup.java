@@ -19,8 +19,6 @@ public class WindowGroup extends Table {
 
     /** main window */
     private final RdWindow window;
-    /** title table */
-    private final RdTable titleTable;
     /** buttons table */
     private RdTable buttonsTable;
 
@@ -39,13 +37,6 @@ public class WindowGroup extends Table {
         this.style = style;
         this.window = window;
         this.buttons = buttons;
-
-        titleTable = new RdTable();
-    }
-
-    /** returns top table */
-    public RdTable getTitleTable() {
-        return titleTable;
     }
 
     /** returns button table */
@@ -64,6 +55,7 @@ public class WindowGroup extends Table {
      * @see com.iapp.rodsher.screens.Activity#resize(int, int)
      *  */
     public void update() {
+        if (!getActions().isEmpty()) return;
         var stage = RdApplication.self().getStage();
 
         if (stage.getWidth() > stage.getHeight()) {
@@ -75,12 +67,9 @@ public class WindowGroup extends Table {
                 buttonsTable.add(button).minWidth(style.buttonMinWidth).fillX().row();
             }
 
-            add();
-            add(titleTable).fillX().left().padTop(style.padTop).padLeft(5).row();
-
-            add(buttonsTable).expandY().fillY().padLeft(style.padLeft);
+            add(buttonsTable).expandY().fillY().padLeft(style.padLeft).padTop(style.padTop);
             add(window).prefWidth(style.windowMinWidth).expandY().fillY().center()
-                    .pad(0, 5, style.padBottom, style.padRight);
+                    .pad(style.padTop, 5, style.padBottom, style.padRight);
 
 
         } else if (stage.getWidth() < stage.getHeight()) {
@@ -101,10 +90,7 @@ public class WindowGroup extends Table {
                 }
             }
 
-            add(titleTable).fillX().left().padTop(style.padTop)
-                    .padLeft(style.padLeft).row();
-
-            add(buttonsTable).fill().row();
+            add(buttonsTable).padTop(style.padTop).fill().row();
             add(window).prefWidth(style.windowMinWidth).expandY().fillY().center()
                     .pad(5, style.padLeft, style.padBottom, style.padRight);
 

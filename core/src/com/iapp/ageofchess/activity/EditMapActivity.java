@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -19,6 +20,7 @@ import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 public class EditMapActivity extends Activity {
@@ -110,7 +112,12 @@ public class EditMapActivity extends Activity {
 
     @Override
     public void initActors() {
-        RdApplication.self().setBackground(controller.getRegion("background"));
+        Image background = new Image(new TextureRegionDrawable(
+            controller.getRegion("background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
         content = new Table();
         content.setFillParent(true);
         content.align(Align.center);
@@ -208,7 +215,7 @@ public class EditMapActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         stage.addActor(boardTable);
         stage.addActor(content);
 
@@ -220,6 +227,8 @@ public class EditMapActivity extends Activity {
                 });
             }
         }
+
+        TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
     }
 
     @Override
@@ -312,5 +321,11 @@ public class EditMapActivity extends Activity {
             cell.width(rectSize / coefY);
             cell.height(rectSize);
         }
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+        return getStage().getRoot();
     }
 }

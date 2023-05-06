@@ -55,7 +55,7 @@ public class IgorChessEngineAdapter implements ChessEngine {
                 }
 
                 String finalTextMoves = textMoves;
-                Gdx.app.postRunnable(() -> onGetting.accept(finalTextMoves));
+                RdApplication.postRunnable(() -> onGetting.accept(finalTextMoves));
             });
         };
         RdApplication.self().execute(task);

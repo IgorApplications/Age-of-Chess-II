@@ -72,7 +72,7 @@ public class EditMapController extends Controller {
     }
 
     public void goToModding(Action action) {
-        startActivityAlpha(new ModdingActivity(), ChessConstants.localData.getScreenDuration(), action);
+        startActivity(new ModdingActivity(), action);
     }
 
     public void goToModding() {
@@ -131,15 +131,16 @@ public class EditMapController extends Controller {
                             DataManager.self().loadMapData(mapData, resources);
 
                             var taskLoad = LoaderMap.self().getTaskLoadDiskMaps(() ->
-                                    goToModding(Actions.run(() -> {
-                                        resources.dispose();
-                                        mapData.getAtlas().dispose();
-                                        for (var mapData : copy) {
-                                            mapData.dispose();
-                                        }
-                                    }))
+                                goToModding(Actions.run(() -> {
+                                    resources.dispose();
+                                    mapData.getAtlas().dispose();
+                                    for (var mapData : copy) {
+                                        mapData.dispose();
+                                    }
+                                }))
                             );
                             taskLoad.load();
+
                         };
                         RdApplication.self().execute(task);
                     }

@@ -53,7 +53,7 @@ public final class RdLogger {
     /** Displays a crushed window with a description of the error
      * @param error - application exception
      * */
-    public static Screen showFatalScreen(Throwable error) {
+    public static Activity showFatalScreen(Throwable error) {
         var loggingScreen = new LoggingActivity(getDescription(error), description,
                 logStyle, descStyle, OnFatal);
         RdApplication.self().setScreen(loggingScreen);

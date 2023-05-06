@@ -1,5 +1,6 @@
 package com.iapp.ageofchess;
 
+import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -45,7 +46,7 @@ public class ChessApplication extends RdApplication {
 	}
 
 	public ChessApplication(Launcher launcher) {
-		this(launcher, LaunchMode.SERVER, Cheats.USER);
+		this(launcher, LaunchMode.RELEASE, Cheats.USER);
 	}
 
 	public List<String> getLanguages() {
@@ -101,26 +102,30 @@ public class ChessApplication extends RdApplication {
 		RdLogger.setLogStyle(style);
 		RdLogger.setDescStyle(style);
 		initConstants();
-		accountPanel = new AccountPanel();
 
 		SplashActivity.loadLibrary(MenuActivity::new,
             "gray_style/textures/logo.png", "gray_style/textures/title_logo.png",
             LoaderMap.self().getTaskLoadDiskMaps(() -> ChessApplication.self().initialize()));
 
+        if (launchMode == LaunchMode.RELEASE) {
+            ChessConstants.serverAPI = "ws://localhost:8082";
+            RdApplication.self().setLogHandle(Files.FileType.External, ChessConstants.LOGS_DIRECTORY);
+        } else {
+            ChessConstants.serverAPI = "ws://localhost:8082";
+        }
 
 		Gdx.app.log("Launch Mode", String.valueOf(launchMode));
         MultiplayerEngine.self().launchMultiplayerThread();
 	}
 
 	public void updateTitle(WindowGroup group, String text) {
+        //RdApplication.self().getTopContent().add(accountPanel)
+        //    .align(Align.topRight).padRight(100);
+
 		var modeTitle = new RdTable();
 		modeTitle.setBackground(new TextureRegionDrawable(
 				ChessAssetManager.current().findChessRegion("mode_app")));
 		modeTitle.add(new RdLabel("[%125]" + text));
-
-		group.getTitleTable().add(modeTitle).height(80);
-		group.getTitleTable().add(ChessApplication.self().getAccountPanel()).expandX().right();
-		group.getTitleTable();
 	}
 
 	@Override
@@ -141,6 +146,7 @@ public class ChessApplication extends RdApplication {
 
 	@Override
 	public void dispose() {
+        MultiplayerEngine.self().exitMatch();
 		if (ChessConstants.localData.isSaveWindowSize()) {
 			ChessConstants.localData.setWindowSize(
 					new Pair<>(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
@@ -151,10 +157,8 @@ public class ChessApplication extends RdApplication {
 	}
 
 	public void initialize() {
-		RdApplication.self().getTopContent().setTouchable(Touchable.enabled);
 		RdApplication.self().setBackgroundColor(Color.BLACK);
 		RdApplication.self().getLauncher().setOnFinish(null);
-		RdApplication.self().setBackground(ChessAssetManager.current().findChessRegion("menu_background"));
 
 		var baseFileHandle = Gdx.files.internal("languages/lang");
 		RdApplication.self().setStrings(RdI18NBundle.createBundle(baseFileHandle,
@@ -173,7 +177,11 @@ public class ChessApplication extends RdApplication {
 		if (ChessConstants.localData.isFullScreen()) Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
 		OnChangeListener.setButtonClick(ChessAssetManager.current().getClickListener());
 
+        // single initialize!
 		if (loggingView == null) {
+
+            accountPanel = new AccountPanel();
+            accountPanel.setVisible(false);
 
 			Runnable task = () -> {
 
@@ -202,9 +210,8 @@ public class ChessApplication extends RdApplication {
 
 			loggingView = new LoggingView(ChessAssetManager.current().getSkin());
 			loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
-			RdApplication.self().getTopContent()
-					.add(ChessApplication.self().getLoggingView())
-					.expand().align(Align.topLeft).padLeft(5);
+            getStage().addActor(loggingView);
+
 			loggingView.setDefaultToken("[%75]");
 		}
 

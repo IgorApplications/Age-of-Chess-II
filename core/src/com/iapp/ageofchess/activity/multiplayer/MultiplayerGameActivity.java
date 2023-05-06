@@ -2,17 +2,16 @@ package com.iapp.ageofchess.activity.multiplayer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
@@ -20,24 +19,21 @@ import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.chess_engine.Result;
 import com.iapp.ageofchess.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
-import com.iapp.ageofchess.graphics.ChatView;
-import com.iapp.ageofchess.graphics.MultiplayerBoardView;
-import com.iapp.ageofchess.graphics.MultiplayerSelectionDialog;
-import com.iapp.ageofchess.graphics.ResultDialog;
+import com.iapp.ageofchess.graphics.*;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.multiplayer.Account;
-import com.iapp.ageofchess.multiplayer.AccountType;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
+import com.iapp.ageofchess.multiplayer.RankType;
 import com.iapp.ageofchess.util.*;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.screens.RdLogger;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -55,8 +51,9 @@ public abstract class MultiplayerGameActivity extends Activity {
     RdLabel timeByTurnLabel, turnsLabel, whiteTime, blackTime;
     boolean fewTime;
 
-    // control buttons
     ChatView chatView;
+    ControlGameView controlGame;
+    private int lastSize;
 
     // game board
     MultiplayerBoardView gameBoard;
@@ -113,7 +110,9 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {}
+    public void show(Stage stage, Activity last) {
+        TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
+    }
 
     public void onMadeMove() {
        updateFelledPieces();
@@ -144,14 +143,31 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof MultiplayerGameActivity) return null;
+        TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+        return getStage().getRoot();
+    }
+
+    @Override
     public void initActors() {
-        RdApplication.self().setBackground(controller.getRegion("background"));
+        Image background = new Image(new TextureRegionDrawable(
+            controller.getRegion("background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
+        chatView = new ChatView(700, message ->
+            MultiplayerEngine.self().sendLobbyMessage(controller.getMatchId(), message));
+
+        controlGame = new ControlGameView(controller);
+        controlGame.align(Align.bottom);
+        controlGame.setFillParent(true);
 
         if (restoreState()) {
-            chatView = new ChatView(550, message ->
-                    MultiplayerEngine.self().sendLobbyMessage(controller.getMatchId(), message));
             return;
         }
+
         infoSprite = new Sprite();
         selectionSprite = new Sprite();
         gameBoard = new MultiplayerBoardView(controller, getStage());
@@ -170,9 +186,6 @@ public abstract class MultiplayerGameActivity extends Activity {
         menu.getLabelCell().reset();
         initFelledPieces();
 
-        chatView = new ChatView(700, message ->
-                MultiplayerEngine.self().sendLobbyMessage(controller.getMatchId(), message));
-
         timeByTurnLabel = new RdLabel(controller.getTimeByTurn());
         turnsLabel = new RdLabel(controller.getTurn() + ". " + controller.defineColorMove());
         whiteTime = new RdLabel(controller.getWhiteTime());
@@ -182,108 +195,21 @@ public abstract class MultiplayerGameActivity extends Activity {
         updateFelledPieces();
     }
 
-    private RdTable controlTable;
-    private int lastSize;
-
-    // контрольный бокс, обрезание данных с сервера на сервере, автар противника, собственный аватар над лобби,
+    // обрезание данных с сервера на сервере, автар противника
     // смена кнопок (до начала/после начала)
     public void update() {
         boolean updateLobby = lastSize != controller.getCurrentMatch().getLobby().size();
         lastSize = controller.getCurrentMatch().getLobby().size();
-        if (!updateLobby) return;
-
-        chatView.updateMessages(controller.getCurrentMatch().getLobby(),
+        if (updateLobby) {
+            chatView.updateMessages(controller.getCurrentMatch().getLobby(),
                 "[GREEN]# " + strings.get("online") + controller.getCurrentMatch().getEntered().size());
+        }
 
-        if (controlTable != null) {
+        if (controlGame != null) {
             if (controller.getCurrentMatch().isStarted()) {
-                controlTable.addAction(Actions.moveBy(0.0f, -900, 5));
+                controlGame.addAction(Actions.moveBy(0.0f, -900, 5));
             }
-            updateControlContent();
-        }
-    }
-
-    private RdImageTextButton join, start;
-    private RdSelectBox<String> availableColors;
-    private RdTable controlContent;
-
-    void initControlTable() {
-        var current = controller.getCurrentMatch();
-        if ((current.getWhitePlayerId() != -1 && current.getBlackPlayerId() != -1
-                && current.getWhitePlayerId() != ChessConstants.account.getId()
-                && current.getBlackPlayerId() != ChessConstants.account.getId())
-                || controller.getCurrentMatch().getResult() != Result.NONE || current.isStarted()) {
-            return;
-        }
-
-        controlTable = new RdTable();
-        controlTable.align(Align.bottom);
-        controlTable.setFillParent(true);
-        getStage().addActor(controlTable);
-
-        controlContent = new RdTable();
-        controlContent.align(Align.center);
-        controlContent.setBackground(new NinePatchDrawable(
-                new NinePatch(ChessApplication.self().getAssetManager().findChessRegion("control_bg"),
-                        15,15,15,15)));
-        controlContent.pad(5, 5, 5, 5);
-        controlTable.add(controlContent).padBottom(20);
-
-        join = new RdImageTextButton("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
-        start = new RdImageTextButton("[%125]" + strings.get("start"), "blue");
-        availableColors = new RdSelectBox<>();
-        updateControlContent();
-
-        join.addListener(new OnChangeListener() {
-            @Override
-            public void onChange(Actor actor) {
-
-                if (!controller.isInside()) {
-                    var color = SettingsUtil.defineColor(availableColors.getSelected());
-                    MultiplayerEngine.self().join(controller.getMatchId(), color);
-                    if (!controller.getCurrentMatch().isRandom()) {
-                        controller.update(SettingsUtil.reverse(color));
-                    }
-
-                } else {
-                    MultiplayerEngine.self().disjoin(controller.getMatchId());
-                }
-
-            }
-        });
-
-        start.addListener(new OnChangeListener() {
-            @Override
-            public void onChange(Actor actor) {
-                int count = 0;
-                if (controller.getCurrentMatch().getBlackPlayerId() != -1) count++;
-                if (controller.getCurrentMatch().getWhitePlayerId() != -1) count++;
-
-                if (count < 2) {
-                    ChessApplication.self().showInfo(strings.get("not_enough_players"));
-                    return;
-                }
-                MultiplayerEngine.self().start(controller.getMatchId());
-            }
-        });
-    }
-
-    private void updateControlContent() {
-        controlContent.clear();
-
-        var data = new ArrayList<String>();
-        if (controller.getCurrentMatch().getWhitePlayerId() == -1) data.add("[%125]" + strings.get("white"));
-        if (controller.getCurrentMatch().getBlackPlayerId() == -1) data.add("[%125]" + strings.get("black"));
-        availableColors.setItems(data.toArray(new String[0]));
-        join.setText("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
-
-        controlContent.add(join).padRight(30).padLeft(30).minWidth(300);
-        if (controller.isCreator() || ChessConstants.account.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
-            controlContent.add(start).minWidth(300).padRight(30);
-        }
-
-        if (!controller.isInside() && !controller.getCurrentMatch().isRandom()) {
-            controlContent.add(availableColors).padRight(30);
+            controlGame.updateControlContent();
         }
     }
 
@@ -296,16 +222,21 @@ public abstract class MultiplayerGameActivity extends Activity {
         blackTime.setColor(Color.WHITE);
         whiteTime.setColor(Color.WHITE);
 
+        // check
+        if (controller.getCurrentMatch().getResult() != Result.NONE) return;
+        if (!controller.getCurrentMatch().isStarted() && controller.getCurrentMatch().isRandom()) return;
+
         var userColor = controller.getUserColor();
         if (!userColor.isPresent() || controller.getCurrentMatch().isAlternately()) return;
         var color = userColor.get();
 
-        if (!controller.getCurrentMatch().isStarted() && controller.getCurrentMatch().isRandom()) return;
         if (color == com.iapp.ageofchess.chess_engine.Color.WHITE) whiteTime.setColor(Color.GREEN);
         else blackTime.setColor(Color.GREEN);
         if (color == controller.getColorMove()) timeByTurnLabel.setColor(Color.GREEN);
 
+        // check
         if (!controller.getCurrentMatch().isStarted()) return;
+
         if (controller.isFewTimeByTurn() && controller.getColorMove() == color) timeByTurnLabel.setColor(Color.RED);
         if (controller.isFewBlackTime() && color == com.iapp.ageofchess.chess_engine.Color.BLACK) blackTime.setColor(Color.RED);
         if (controller.isFewWhiteTime() && color == com.iapp.ageofchess.chess_engine.Color.WHITE) whiteTime.setColor(Color.RED);
@@ -428,8 +359,9 @@ public abstract class MultiplayerGameActivity extends Activity {
         blackQueen = oldState.blackQueen;
         blackScore = oldState.blackScore;
 
-        chatView = oldState.chatView;
+        //chatView = oldState.chatView;
         menu = oldState.menu;
+        //controlGame = oldState.controlGame;
 
         whitePawn = oldState.whitePawn;
         whiteRook = oldState.whiteRook;
@@ -591,8 +523,11 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     private void showVictory(ResultDialog dialog, Account first, Account second) {
-        var label2 = new RdLabel("[GREEN]" + strings.get("rank_type")
-                + SettingsUtil.getRank(controller.getCurrentMatch().getRankType()));
+        RankType type = controller.getCurrentMatch().getRankType();
+        String rankType = (type == RankType.UNRANKED ? "" : strings.get("rank_type"))
+            + SettingsUtil.getRank(controller.getCurrentMatch().getRankType());
+
+        var label2 = new RdLabel("[GREEN]" + rankType);
         var label3 = new RdLabel("1. [_]" + first.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
@@ -605,8 +540,11 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     private void showDrawn(ResultDialog dialog, Account first, Account second) {
-        var label1 = new RdLabel("[GREEN]" + strings.get("rank_type")
-                + SettingsUtil.getRank(controller.getCurrentMatch().getRankType()));
+        RankType type = controller.getCurrentMatch().getRankType();
+        String rankType = (type == RankType.UNRANKED ? "" : strings.get("rank_type"))
+            + SettingsUtil.getRank(controller.getCurrentMatch().getRankType());
+
+        var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("2. [_]" + first.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
@@ -620,8 +558,11 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     private void showLose(ResultDialog dialog, Account first, Account second) {
-        var label1 = new RdLabel("[GREEN]" + strings.get("rank_type")
-                + SettingsUtil.getRank(controller.getCurrentMatch().getRankType()));
+        RankType type = controller.getCurrentMatch().getRankType();
+        String rankType = (type == RankType.UNRANKED ? "" : strings.get("rank_type"))
+            + SettingsUtil.getRank(controller.getCurrentMatch().getRankType());
+
+        var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("1. [_]" + first.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
@@ -742,7 +683,7 @@ public abstract class MultiplayerGameActivity extends Activity {
                 Gdx.app.error("multiplayer info 1500 millis", RdLogger.getDescription(e));
             }
             handleInfoBlackout.set(false);
-            Gdx.app.postRunnable(() -> {
+            RdApplication.postRunnable(() -> {
                 if (infoDialog != null) {
                     infoDialog.hide();
                     infoDialog = null;

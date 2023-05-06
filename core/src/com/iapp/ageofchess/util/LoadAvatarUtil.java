@@ -13,15 +13,14 @@ import java.io.IOException;
 
 public class LoadAvatarUtil {
 
-    public static Pair<TextureRegionDrawable, Texture> loadAvatar(Account account) {
+    public static Pair<TextureRegionDrawable, Texture> loadAvatar(byte[] avatarBytes) {
         TextureRegionDrawable avatarDrawable;
         Texture avatarTexture = null;
 
-        if (account.getAvatar().length == 0) {
+        if (avatarBytes == null || avatarBytes.length == 0) {
             avatarDrawable = new TextureRegionDrawable(
                     ChessApplication.self().getAssetManager().findChessRegion("cross"));
         } else {
-            var avatarBytes = account.getAvatar();
             Gdx2DPixmap gdxPixmap;
             try {
                 gdxPixmap = new Gdx2DPixmap(avatarBytes, 0, avatarBytes.length, 0);
@@ -33,9 +32,7 @@ public class LoadAvatarUtil {
                 avatarDrawable = new TextureRegionDrawable(
                         ChessApplication.self().getAssetManager().findChessRegion("cross"));
             }
-            avatarDrawable = new TextureRegionDrawable(
-                ChessApplication.self().getAssetManager().findChessRegion("cross"));
-        }
+       }
 
         return new Pair<>(avatarDrawable, avatarTexture);
     }
@@ -43,7 +40,7 @@ public class LoadAvatarUtil {
     public static Image getOnline(Account account) {
         if (account.isOnlineNow()) {
 
-            var login = account.getLogins().get(account.getLogins().size() - 1);
+            var login = account.getLogin();
             Image online;
             if (login.getSystem().contains("android")
                     || login.getSystem().contains("ios")) {

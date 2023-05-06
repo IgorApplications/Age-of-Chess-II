@@ -23,13 +23,11 @@ class LoggingActivity extends Activity {
         this.descTextStyle = descTextStyle;
         this.logText = logText.replace("[", "|").replace("]", "|");
         this.description = description.replace("[", "|").replace("]", "|");
-        System.out.println(logText);
         Gdx.app.postRunnable(onFatal::call);
     }
 
     @Override
     public void initActors() {
-        RdApplication.self().getBackground().setDrawable(null);
         RdApplication.self().setBackgroundColor(Color.BLUE);
 
         logLabel = new RdLabel(logText, logTextStyle);
@@ -42,7 +40,7 @@ class LoggingActivity extends Activity {
     public void initListeners() {}
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         var content = new Table();
         content.setFillParent(true);
         content.align(Align.topLeft);

@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -29,6 +30,7 @@ import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.screens.RdLogger;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -116,7 +118,9 @@ public abstract class GameActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {}
+    public void show(Stage stage, Activity last) {
+        TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
+    }
 
     public void onMadeMove() {
        updateFelledPieces();
@@ -161,8 +165,18 @@ public abstract class GameActivity extends Activity {
     }
 
     @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+        return getStage().getRoot();
+    }
+
+    @Override
     public void initActors() {
-        RdApplication.self().setBackground(controller.getRegion("background"));
+        Image background = new Image(new TextureRegionDrawable(
+            controller.getRegion("background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
 
         if (restoreState()) return;
         infoSprite = new Sprite();

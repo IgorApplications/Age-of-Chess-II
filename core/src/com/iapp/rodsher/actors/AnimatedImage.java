@@ -29,6 +29,7 @@ public class AnimatedImage extends Image {
     public AnimatedImage(long intervalMillis, Drawable... drawables) {
         this.intervalMillis = intervalMillis;
         this.drawables = drawables;
+        setDrawable(drawables[index]);
     }
 
     @Override

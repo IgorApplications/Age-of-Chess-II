@@ -4,6 +4,11 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.chess_engine.Color;
 import com.iapp.ageofchess.controllers.SettingsController;
@@ -11,6 +16,7 @@ import com.iapp.ageofchess.util.*;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 public class SettingsActivity extends Activity {
@@ -305,7 +311,22 @@ public class SettingsActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setScaling(Scaling.fill);
+        background.setFillParent(true);
+        getStage().addActor(background);
+
+        if (ChessConstants.loggingAcc != null) {
+            RdTable panel = new RdTable();
+            panel.align(Align.topLeft);
+            panel.setFillParent(true);
+            getStage().addActor(panel);
+            panel.add(ChessApplication.self().getAccountPanel())
+                .expandX().fillX();
+        }
+
         var window = new RdWindow("", "screen_window");
         window.setMovable(false);
         var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
@@ -378,6 +399,12 @@ public class SettingsActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        if (last instanceof SettingsActivity) {
+            TransitionEffects.alphaShow(getStage().getRoot(), ChessConstants.localData.getScreenDuration());
+        } else {
+            TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        }
     }
 
     @Override
@@ -413,5 +440,16 @@ public class SettingsActivity extends Activity {
 
         windowSize.setChecked(ChessConstants.localData.isSaveWindowSize());
         fullScreen.setChecked(ChessConstants.localData.isFullScreen());
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof SettingsActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        } else {
+            TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+            return windowGroup;
+        }
     }
 }

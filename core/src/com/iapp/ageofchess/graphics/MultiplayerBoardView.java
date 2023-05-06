@@ -80,7 +80,9 @@ public class MultiplayerBoardView extends Image {
         transitions.clear();
 
         var movingPiece = pieceViews[move.getPieceY()][move.getPieceX()];
-        if (movingPiece == null) throw new IllegalArgumentException("Illegal move! moving piece = null");
+        if (movingPiece == null) {
+            throw new IllegalArgumentException("Illegal move! moving piece = null");
+        }
         if (movingPiece == checked) checked = null;
         var movingTransit = new Transition(movingPiece, move);
         movingTransit.moving = true;
@@ -181,6 +183,7 @@ public class MultiplayerBoardView extends Image {
 
     public void update() {
         var matrix = controller.getMatrix();
+        System.out.println(Arrays.deepToString(matrix).replaceAll("],", "\n"));
         pieceViews = new PieceView[8][8];
 
         for (int i = 0; i < matrix.length; i++) {

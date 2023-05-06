@@ -2,6 +2,11 @@ package com.iapp.ageofchess.activity.multiplayer;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.CreationActivity;
 import com.iapp.ageofchess.chess_engine.Color;
@@ -14,6 +19,7 @@ import com.iapp.ageofchess.util.*;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 public class MultiplayerCreationActivity extends Activity {
@@ -161,8 +167,20 @@ public class MultiplayerCreationActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         ChessApplication.self().getLauncher().setOnFinish(controller::goToScenario);
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        background.setScaling(Scaling.fill);
+        getStage().addActor(background);
+
+        RdTable panel = new RdTable();
+        panel.align(Align.topLeft);
+        panel.setFillParent(true);
+        getStage().addActor(panel);
+        panel.add(ChessApplication.self().getAccountPanel())
+            .expandX().fillX();
 
         windowGroup = new WindowGroup(window, back);
         ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
@@ -190,6 +208,8 @@ public class MultiplayerCreationActivity extends Activity {
         properties.add(new PropertyTable.Element(strings.get("max_turns"), maxTurns));
 
         properties.add(new PropertyTable.Element("", create));
+
+        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
     }
 
     private void update() {
@@ -302,6 +322,7 @@ public class MultiplayerCreationActivity extends Activity {
                 .maxTurns(turns.getValue())
                 .infiniteTurns(turns.getKey())
                 .gameMode(GameMode.MULTIPLAYER)
+                .numberScenario(scenario)
                 .rankType(rank)
                 .randomColor(random.isChecked())
                 .sponsored(coins);
@@ -340,5 +361,15 @@ public class MultiplayerCreationActivity extends Activity {
             return -1;
         }
         return unrankedGame[timeByGame.getSelectedIndex()];
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof MultiplayerGameActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        }
+        TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+        return windowGroup;
     }
 }

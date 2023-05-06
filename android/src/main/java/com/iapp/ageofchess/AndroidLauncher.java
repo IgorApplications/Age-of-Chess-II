@@ -15,6 +15,6 @@ public class AndroidLauncher extends RdAndroidLauncher {
         config.useAccelerometer = false;
         config.useCompass = false;
 
-        initialize(new ChessApplication(this, LaunchMode.SERVER, Cheats.USER), config);
+        initialize(new ChessApplication(this, LaunchMode.RELEASE, Cheats.USER), config);
     }
 }

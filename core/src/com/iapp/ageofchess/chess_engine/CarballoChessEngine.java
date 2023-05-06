@@ -47,7 +47,7 @@ public class CarballoChessEngine implements ChessEngine {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            Gdx.app.postRunnable(() -> onGetting.accept(textMoves));
+            RdApplication.postRunnable(() -> onGetting.accept(textMoves));
         };
         RdApplication.self().execute(task);
     }

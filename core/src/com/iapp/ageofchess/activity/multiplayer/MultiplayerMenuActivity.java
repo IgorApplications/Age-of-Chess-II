@@ -1,12 +1,19 @@
 package com.iapp.ageofchess.activity.multiplayer;
 
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
 import com.iapp.ageofchess.graphics.MessageView;
@@ -20,9 +27,11 @@ import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.screens.RdApplication;
 import com.iapp.rodsher.util.OnChangeListener;
 import com.iapp.rodsher.util.Pair;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -51,7 +60,7 @@ public class MultiplayerMenuActivity extends Activity {
 
         OnChangeListener last = null;
         for (var listener : avatarView.getListeners()) {
-            if (listener instanceof  OnChangeListener) {
+            if (listener instanceof OnChangeListener) {
                 last = (OnChangeListener) listener;
                 break;
             }
@@ -64,7 +73,7 @@ public class MultiplayerMenuActivity extends Activity {
         avatarView.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                controller.seeAccount(ChessConstants.account.getId());
+                controller.editAccount(ChessConstants.loggingAcc.getId());
             }
         });
 
@@ -121,8 +130,19 @@ public class MultiplayerMenuActivity extends Activity {
 
 
     @Override
-    public void show(Stage stage) {
-        RdApplication.self().setBackground(ChessAssetManager.current().findChessRegion("menu_background"));
+    public void show(Stage stage, Activity last) {
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
+        RdTable panel = new RdTable();
+        panel.align(Align.topLeft);
+        panel.setFillParent(true);
+        getStage().addActor(panel);
+        panel.add(ChessApplication.self().getAccountPanel())
+            .expandX().fillX();
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
@@ -156,6 +176,12 @@ public class MultiplayerMenuActivity extends Activity {
         Consumer<Pair<List<Message>, Map<Long, Account>>> onMessage =
                 listMapPair -> updateMessages(listMapPair.getKey(), listMapPair.getValue());
         MultiplayerEngine.self().setOnMainChatMessages(onMessage);
+
+        if (last instanceof MultiplayerGameActivity) {
+            TransitionEffects.alphaShow(getStage().getRoot(), ChessConstants.localData.getScreenDuration());
+        } else {
+            TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        }
     }
 
     @Override
@@ -180,14 +206,15 @@ public class MultiplayerMenuActivity extends Activity {
     public void updateMessages(List<Message> messages, Map<Long, Account> accounts) {
         dispose(views);
         messagesTable.clear();
-        Collections.reverse(messages);
+
+        Map<Long, List<MessageView>> idByMessages = new HashMap<>();
 
         for (var message : messages) {
             var view = new MessageView(message, accounts.get(message.getSenderId()),
                     new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    controller.seeAccount(message);
+                    controller.editAccount(message);
                 }
             }, new OnChangeListener() {
                 @Override
@@ -205,10 +232,26 @@ public class MultiplayerMenuActivity extends Activity {
                 }
             });
 
+            if (!idByMessages.containsKey(message.getSenderId())) {
+                idByMessages.put(message.getSenderId(), new ArrayList<>());
+            }
+            idByMessages.get(message.getSenderId()).add(view);
+
             views.add(view);
             messagesTable.add(view)
                     .pad(8, 3, 8, 3).expandX().fillX().row();
         }
+
+        for (Account account : accounts.values()) {
+            MultiplayerEngine.self().getAvatar(account, bytes -> {
+
+                for (MessageView message : idByMessages.get(account.getId())) {
+                    message.getAvatarView().update(account, bytes);
+                }
+
+            });
+        }
+
         messagesTable.getLoading().setVisible(false);
     }
 
@@ -217,5 +260,11 @@ public class MultiplayerMenuActivity extends Activity {
             view.dispose();
         }
         views.clear();
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+        return windowGroup;
     }
 }

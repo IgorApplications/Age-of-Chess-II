@@ -20,7 +20,8 @@ public class MapDataView extends Table {
                                10,10,10,10)));
 
         add(getFirstTable(mapData)).align(Align.topLeft);
-        add(getSecondTable(mapData)).expand().fill().align(Align.topLeft);
+        add(getSecondTable(mapData)).padLeft(3).expand().fill()
+            .align(Align.topLeft).padRight(3);
         add(getCreate(onSelection)).fillY().center();
     }
 
@@ -30,16 +31,12 @@ public class MapDataView extends Table {
 
         var author = new RdLabel(
                 "[75%]" + strings.get("author") + "[_]" + mapData.getStrings().get("author"));
-        //author.setPadBottom(20);
         var created = new RdLabel(
                 "[75%]" + strings.get("created") + mapData.getStrings().get("created"));
-        //created.setPadBottom(20);
         var updated = new RdLabel(
                 "[75%]" + strings.get("updated") + mapData.getStrings().get("updated"));
-        //updated.setPadBottom(20);
         var typeMap = new RdLabel(
                 "[75%]" + strings.get("type_map") + mapData.getTypeMap());
-        //typeMap.setPadBottom(20);
 
         table.align(Align.topLeft);
         table.add(new Image(mapData.getMapIcon()))

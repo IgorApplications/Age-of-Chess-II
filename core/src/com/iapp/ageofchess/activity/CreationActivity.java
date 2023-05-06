@@ -2,6 +2,11 @@ package com.iapp.ageofchess.activity;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.chess_engine.Color;
 import com.iapp.ageofchess.controllers.CreationController;
@@ -14,6 +19,7 @@ import com.iapp.ageofchess.util.SettingsUtil;
 import com.iapp.rodsher.actors.*;
 import com.iapp.rodsher.screens.Activity;
 import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.rodsher.util.TransitionEffects;
 import com.iapp.rodsher.util.WindowUtil;
 
 public class CreationActivity extends Activity {
@@ -181,8 +187,23 @@ public class CreationActivity extends Activity {
     }
 
     @Override
-    public void show(Stage stage) {
+    public void show(Stage stage, Activity last) {
         ChessApplication.self().getLauncher().setOnFinish(controller::goToScenario);
+
+        Image background = new Image(new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("menu_background")));
+        background.setFillParent(true);
+        getStage().addActor(background);
+        background.setScaling(Scaling.fill);
+
+        if (ChessConstants.loggingAcc != null) {
+            RdTable panel = new RdTable();
+            panel.align(Align.topLeft);
+            panel.setFillParent(true);
+            getStage().addActor(panel);
+            panel.add(ChessApplication.self().getAccountPanel())
+                .expandX().fillX();
+        }
 
         var turnModeHint = new RdImageTextButton("", "circle");
         turnModeHint.getLabelCell().reset();
@@ -217,6 +238,8 @@ public class CreationActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
+
+        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
     }
 
     @Override
@@ -284,5 +307,16 @@ public class CreationActivity extends Activity {
             }
         }
         return -1;
+    }
+
+    @Override
+    public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof GameActivity) {
+            TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
+            return getStage().getRoot();
+        } else {
+            TransitionEffects.transitionBottomHide(action, windowGroup, ChessConstants.localData.getScreenDuration());
+            return windowGroup;
+        }
     }
 }

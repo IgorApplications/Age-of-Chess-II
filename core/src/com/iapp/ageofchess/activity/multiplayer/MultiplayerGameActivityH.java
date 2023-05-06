@@ -111,8 +111,8 @@ class MultiplayerGameActivityH extends MultiplayerGameActivity {
         contentTime.add(whiteTime).row();
         contentTime.add(blackTime).row();
         generalTime.add(contentTime).pad(5, 5, 5, 5);
-        // Control Game
-        initControlTable();
+
+        getStage().addActor(controlGame);
         getStage().addActor(chatView);
         getStage().addActor(blackout);
 
