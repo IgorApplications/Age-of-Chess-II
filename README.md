@@ -3,7 +3,7 @@
 This is the first Chess strategy with different modes. You can play with artificial intelligence, with other people or friends, create your own maps.
 
 The project uses libgdx, textratypist, Carballo.
-In addition, there is a shared codebase within the project called Rodsher.
+In addition, there is a shared codebase within the project called "lib".
 
 This is a commercial property of the IgorApplications specification. It is forbidden to distribute and use for any purpose (commercial or otherwise).
 
