@@ -2,8 +2,6 @@ package com.iapp.ageofchess;
 
 import android.os.Bundle;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.iapp.ageofchess.util.Cheats;
-import com.iapp.ageofchess.util.LaunchMode;
 
 /** Launches the Android application. */
 public class AndroidLauncher extends RdAndroidLauncher {
@@ -15,6 +13,6 @@ public class AndroidLauncher extends RdAndroidLauncher {
         config.useAccelerometer = false;
         config.useCompass = false;
 
-        initialize(new ChessApplication(this, LaunchMode.RELEASE, Cheats.USER), config);
+        initialize(new ChessApplication(this), config);
     }
 }

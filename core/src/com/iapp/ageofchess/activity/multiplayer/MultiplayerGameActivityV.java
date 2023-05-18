@@ -1,24 +1,28 @@
 package com.iapp.ageofchess.activity.multiplayer;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.iapp.ageofchess.chess_engine.Result;
+import com.iapp.lib.chess_engine.Result;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
+import com.iapp.ageofchess.graphics.ControlGameView;
 import com.iapp.ageofchess.graphics.MultiplayerBoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.ui.screens.RdApplication;
 
 class MultiplayerGameActivityV extends MultiplayerGameActivity {
 
     private Table information;
     private Cell<MultiplayerBoardView> boardCell;
     private RdLabel playerInfo;
+    private RdTable buttons;
 
     public MultiplayerGameActivityV(LocalMatch localMatch, Match match) {
         super(localMatch, match);
@@ -31,6 +35,7 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
     @Override
     public void update() {
         super.update();
+        buttons.setVisible(controller.getCurrentMatch().isStarted());
 
         var firstPlayer = controller.getFirstPlayer();
         var secondPlayer = controller.getSecondPlayer();
@@ -87,10 +92,6 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
         if (information != null) {
             information.setPosition(0, viewport.getWorldHeight() - 150);
             information.setSize(viewport.getWorldWidth(), 120);
-
-            timeByTurnLabel.setPosition(20, viewport.getWorldHeight() - 150);
-            whiteTime.setPosition(viewport.getWorldWidth() - 150, viewport.getWorldHeight() - 100);
-            blackTime.setPosition(viewport.getWorldWidth() - 150, viewport.getWorldHeight() - 150);
         }
     }
 
@@ -98,28 +99,38 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
     public void initActors() {
         super.initActors();
 
+        controlGame = new ControlGameView(controller, controlMenu);
+        controlGame.align(Align.bottom);
+        controlGame.setFillParent(true);
+
+        playerInfo = new RdLabel("");
+        RdTable first = new RdTable();
+        first.add(timeByTurnLabel);
+        RdTable second = new RdTable();
+        second.add(whiteTime).row();
+        second.add(blackTime).row();
+        RdTable third = new RdTable();
+        third.add(playerInfo).row();
+        third.add(turnsLabel);
+
         information = new Table();
         information.setBackground(new TextureRegionDrawable(ChessAssetManager.current().getBlackTexture()));
         information.align(Align.center);
-
-        playerInfo = new RdLabel("");
-
-        information.add(playerInfo).row();
-        information.add(turnsLabel);
+        information.add(first).padLeft(10);
+        information.add(second).padLeft(30);
+        information.add(third).expandX().padRight(210);
 
         getStage().addActor(information);
-        getStage().addActor(timeByTurnLabel);
-        getStage().addActor(whiteTime);
-        getStage().addActor(blackTime);
         getStage().addActor(controlGame);
         getStage().addActor(chatView);
         getStage().addActor(blackout);
 
-        var buttons = new Table();
+        buttons = new RdTable();
         buttons.add(menu).padRight(5).size(125);
         boardCell = content.add(gameBoard).padTop(120).center();
         content.row();
         content.add(buttons).padTop(10).center();
+        buttons.setVisible(false);
 
         if (selectionDialog != null) getStage().addActor(selectionDialog);
         if (resultDialog != null) getStage().addActor(resultDialog);
@@ -129,6 +140,7 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
 
         controller.setActivity(this);
         updateLabels();
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
 }

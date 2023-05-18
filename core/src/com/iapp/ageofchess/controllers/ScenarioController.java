@@ -4,9 +4,8 @@ import com.iapp.ageofchess.activity.MenuActivity;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.activity.CreationActivity;
 import com.iapp.ageofchess.activity.SavedGamesActivity;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.Controller;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.Controller;
 
 public class ScenarioController extends Controller {
 

@@ -9,12 +9,11 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.*;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.util.RdI18NBundle;
-import com.iapp.rodsher.util.StreamUtil;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.util.RdI18NBundle;
+import com.iapp.lib.util.StreamUtil;
 
-import java.math.BigInteger;
 import java.util.*;
 
 /**

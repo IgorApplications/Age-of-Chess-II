@@ -8,15 +8,15 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.MenuActivity;
 import com.iapp.ageofchess.activity.SettingsActivity;
-import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.RdDialog;
-import com.iapp.rodsher.actors.RdDialogBuilder;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.Pair;
-import com.iapp.rodsher.util.RdI18NBundle;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.actors.RdDialogBuilder;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.GrayAssetManager;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.Pair;
+import com.iapp.lib.util.RdI18NBundle;
 
 import java.util.Locale;
 

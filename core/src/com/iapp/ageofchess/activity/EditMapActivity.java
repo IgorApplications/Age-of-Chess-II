@@ -4,7 +4,6 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -15,13 +14,13 @@ import com.iapp.ageofchess.controllers.EditMapController;
 import com.iapp.ageofchess.graphics.ModdingView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.MapResources;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 public class EditMapActivity extends Activity {
 

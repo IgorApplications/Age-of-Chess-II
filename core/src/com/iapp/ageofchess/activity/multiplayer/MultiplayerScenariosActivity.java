@@ -11,21 +11,18 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
+import com.iapp.ageofchess.activity.GameActivity;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerScenariosController;
 import com.iapp.ageofchess.graphics.MapDataView;
 import com.iapp.ageofchess.graphics.ScenarioView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdLogger;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.StreamUtil;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.util.*;
 
 import java.util.List;
 
@@ -60,8 +57,6 @@ public class MultiplayerScenariosActivity extends Activity {
 
     @Override
     public void initListeners() {
-        ChessApplication.self().getLauncher().setOnFinish(controller::goToMenu);
-
         back.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -76,6 +71,12 @@ public class MultiplayerScenariosActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
+        if (last instanceof MultiplayerCreationActivity) {
+            ChessApplication.self().getLauncher().setOnFinish(controller::goToMenu);
+        } else {
+            ChessApplication.self().getLauncher().setOnFinish(controller::goToGames);
+        }
+
         Image background = new Image(new TextureRegionDrawable(
             ChessAssetManager.current().findChessRegion("menu_background")));
         background.setFillParent(true);
@@ -106,7 +107,11 @@ public class MultiplayerScenariosActivity extends Activity {
         stage.addActor(windowGroup);
         windowGroup.update();
 
-        TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        if (last instanceof MultiplayerGameActivity || last instanceof GameActivity) {
+            TransitionEffects.alphaShow(getStage().getRoot(), ChessConstants.localData.getScreenDuration());
+        } else {
+            TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
+        }
     }
 
     @Override

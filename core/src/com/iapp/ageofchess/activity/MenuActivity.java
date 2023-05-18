@@ -4,7 +4,7 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
@@ -14,19 +14,18 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.MenuController;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.DataManager;
-import com.iapp.rodsher.actors.RdDialog;
-import com.iapp.rodsher.actors.RdImageTextButton;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.SplashActivity;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TextureUtil;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.DataManager;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.SplashActivity;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 public class MenuActivity extends Activity {
 
@@ -51,11 +50,13 @@ public class MenuActivity extends Activity {
     }
 
     public void showBlackout() {
-        getStage().addActor(blackout);
+        blackout.setVisible(true);
+        blackout.setTouchable(Touchable.enabled);
     }
 
     public void hideBlackout() {
-        getStage().getActors().removeValue(blackout, true);
+        blackout.setVisible(false);
+        blackout.setTouchable(Touchable.disabled);
     }
 
     @Override
@@ -103,6 +104,9 @@ public class MenuActivity extends Activity {
                 ChessAssetManager.current().getBlackTexture()));
         blackout.getColor().a = 0.25f;
         blackout.setFillParent(true);
+        blackout.setVisible(false);
+        blackout.setTouchable(Touchable.disabled);
+        getStage().addActor(blackout);
     }
 
     @Override
@@ -111,7 +115,17 @@ public class MenuActivity extends Activity {
         multiplayer.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                controller.showLoginDialog();
+
+                if (ChessConstants.loggingAcc == null) showBlackout();
+                MultiplayerEngine.self().tryConnect((res, s) -> {
+                    if (res) {
+                        controller.showLoginDialog();
+                    } else {
+                        hideBlackout();
+                        ChessApplication.self().showError(strings.format("error_connect", s));
+                    }
+                });
+
             }
         });
         singlePlayer.addListener(new OnChangeListener() {
@@ -142,8 +156,18 @@ public class MenuActivity extends Activity {
         login.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
+
                 if (ChessConstants.loggingAcc == null) {
-                    controller.showLoginDialog();
+                    showBlackout();
+                    MultiplayerEngine.self().tryConnect((res, s) -> {
+                        if (res) {
+                            controller.showLoginDialog();
+                        } else {
+                            hideBlackout();
+                            ChessApplication.self().showError(strings.format("error_connect", s));
+                        }
+                    });
+
                 } else {
                     ChessConstants.loggingAcc = null;
                     ChessApplication.self().getAccountPanel().setVisible(false);
@@ -151,6 +175,7 @@ public class MenuActivity extends Activity {
                     MultiplayerEngine.self().resetConnection();
                     login.setStyle(ChessAssetManager.current().getLoginStyle());
                 }
+
             }
         });
 
@@ -168,7 +193,7 @@ public class MenuActivity extends Activity {
     @Override
     public void show(Stage stage, Activity last) {
         stage.addActor(content);
-        var buttons = new RdTable();
+        RdTable buttons = new RdTable();
         buttons.align(Align.center);
 
         if (ChessConstants.loggingAcc != null) {
@@ -189,7 +214,7 @@ public class MenuActivity extends Activity {
 
         var table = new RdTable();
         table.align(Align.topLeft);
-        table.add(login).align(Align.topLeft);
+        table.add(login).align(Align.topLeft).minSize(100);
         table.add(buttons).expandX().align(Align.center)
             .fillX().padRight(75);
 

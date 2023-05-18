@@ -3,13 +3,13 @@ package com.iapp.ageofchess.controllers.multiplayer;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.StringBuilder;
-import com.iapp.ageofchess.chess_engine.*;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.util.Pair;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.chess_engine.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.util.Pair;
 
 import java.util.LinkedList;
 

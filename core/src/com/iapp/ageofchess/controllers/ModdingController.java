@@ -2,9 +2,6 @@ package com.iapp.ageofchess.controllers;
 
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.assets.AssetDescriptor;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.EditMapActivity;
@@ -13,11 +10,11 @@ import com.iapp.ageofchess.activity.ModdingActivity;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.MapResources;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.Spinner;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.Spinner;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

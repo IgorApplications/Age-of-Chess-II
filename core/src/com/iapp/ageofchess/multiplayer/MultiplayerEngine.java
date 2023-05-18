@@ -7,30 +7,28 @@ import com.github.czyzby.websocket.WebSocketListener;
 import com.github.czyzby.websocket.WebSockets;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.iapp.ageofchess.chess_engine.Color;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.ageofchess.multiplayer.webutil.BinaryRequests;
-import com.iapp.ageofchess.multiplayer.webutil.RequestStatus;
-import com.iapp.ageofchess.multiplayer.webutil.SocketRequest;
-import com.iapp.ageofchess.multiplayer.webutil.SocketResult;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdLogger;
-import com.iapp.rodsher.util.CallListener;
-import com.iapp.rodsher.util.Pair;
-import com.iapp.rodsher.util.SystemValidator;
+import com.iapp.lib.web.*;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.util.CallListener;
+import com.iapp.lib.util.Pair;
+import com.iapp.lib.util.SystemValidator;
 
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
  * Web socket multiplayer controller based
  * on requests and update listeners
  * @author Igor Ivanov
- *
+ * <p>
  * the binary protocol works in the following format:
  * send:
  * 0 (update avatar): [0] - request, [1] - id size, [2:n] - id, [n+1:] - avatar
@@ -45,7 +43,10 @@ public class MultiplayerEngine {
     private WebSocket socket;
 
     private final Gson gson;
-    private boolean multiplayerThread;
+    private final AtomicBoolean initEngine = new AtomicBoolean(false);
+
+    /** returns the status of an attempt to connect to the server */
+    private volatile BiConsumer<Boolean, String> onTryConnect;
 
     /** login listeners */
     private volatile Consumer<Account> loginAccount;
@@ -58,15 +59,24 @@ public class MultiplayerEngine {
     /** get account listener */
     private final Map<Long, Consumer<Account>> getAccounts = RdApplication.self().getLauncher().concurrentHashMap();
 
+    /** account search listeners */
+    private volatile Consumer<List<Account>> onSearch;
+
     /** change account listener */
     private volatile Consumer<RequestStatus> onChangeAccount;
+
+    /** rank listeners */
+    private volatile Consumer<List<Account>> onBullet;
+    private volatile Consumer<List<Account>> onBlitz;
+    private volatile Consumer<List<Account>> onRapid;
+    private volatile Consumer<List<Account>> onLong;
 
     /** listener on update main chat messages */
     private volatile Pair<List<Message>, Map<Long, Account>> lastMessages;
     private volatile Consumer<Pair<List<Message>, Map<Long, Account>>> mainChatMessages;
 
     /** listener on update games */
-    private volatile List<Consumer<List<Match>>> listOnMatches = RdApplication.self().getLauncher().copyOnWriteArrayList();
+    private final List<Consumer<List<Match>>> listOnMatches = RdApplication.self().getLauncher().copyOnWriteArrayList();
     private volatile List<Match> lastMatches;
 
     /** avatar listeners */
@@ -92,6 +102,14 @@ public class MultiplayerEngine {
     }
 
     // account requests -----------------------------------------------------------------------------------------------
+
+    public void tryConnect(BiConsumer<Boolean, String> onTryConnect) {
+        if (socket.isOpen()) {
+            onTryConnect.accept(true, "");
+        } else {
+            this.onTryConnect = onTryConnect;
+        }
+    }
 
     /** updates online and gets the user */
     public void login(String name, String password, Consumer<Account> loginAccount,
@@ -142,7 +160,7 @@ public class MultiplayerEngine {
 
     private byte[] getCacheAvatar(long id) {
         var pair = accountCache.get(id);
-        if (pair == null || System.currentTimeMillis() - pair.getKey() > 3 * 60 * 1000) return null;
+        if (pair == null || RdApplication.self().getLauncher().currentMillis() - pair.getKey() > 3 * 60 * 1000) return null;
         return pair.getValue();
     }
 
@@ -150,6 +168,31 @@ public class MultiplayerEngine {
         List<Consumer<byte[]>> list = onAvatars.get(accountId);
         if (list == null) onAvatars.put(accountId, new CopyOnWriteArrayList<>());
         onAvatars.get(accountId).add(getAvatar);
+    }
+
+    public void searchAccounts(String partName, Consumer<List<Account>> onSearch) {
+        this.onSearch = onSearch;
+        socket.send(new SocketRequest("/api/v1/accounts/search", partName));
+    }
+
+    public void getBulletTop(Consumer<List<Account>> onBullet) {
+        this.onBullet = onBullet;
+        socket.send(new SocketRequest("/api/v1/accounts/bullet"));
+    }
+
+    public void getBlitzTop(Consumer<List<Account>> onBlitz) {
+        this.onBlitz = onBlitz;
+        socket.send(new SocketRequest("/api/v1/accounts/blitz"));
+    }
+
+    public void getRapidTop(Consumer<List<Account>> onRapid) {
+        this.onRapid = onRapid;
+        socket.send(new SocketRequest("/api/v1/accounts/rapid"));
+    }
+
+    public void getLongTop(Consumer<List<Account>> onLong) {
+        this.onLong = onLong;
+        socket.send(new SocketRequest("/api/v1/accounts/long"));
     }
 
     // main chat ------------------------------------------------------------------------------------------------------
@@ -221,10 +264,6 @@ public class MultiplayerEngine {
         socket.send(new SocketRequest("/api/v1/games/enter", String.valueOf(matchId)));
     }
 
-    public void exitMatch() {
-        if (matchId != -1) exitMatch(matchId);
-    }
-
     public void exitMatch(long matchId) {
         socket.send(new SocketRequest("/api/v1/games/exit", String.valueOf(matchId)));
     }
@@ -242,12 +281,17 @@ public class MultiplayerEngine {
     }
 
     public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate) {
+        this.matchId = matchId;
         enteredMatch = onUpdate;
-        if ((this.matchId == -1 || this.matchId == matchId) && lastMatch != null && enteredMatch != null) {
+    }
+
+    public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate, boolean realtime) {
+        this.matchId = matchId;
+        enteredMatch = onUpdate;
+        if (realtime && enteredMatch != null && lastMatch != null
+            && (this.matchId == matchId || this.matchId == -1)) {
             enteredMatch.accept(lastMatch);
         }
-        this.matchId = matchId;
-
     }
 
     public void start(long matchId) {
@@ -264,18 +308,24 @@ public class MultiplayerEngine {
         socket.close();
     }
 
-    public void launchMultiplayerThread() {
-        if (multiplayerThread) return;
-        multiplayerThread = true;
+    public void launchMultiplayerEngine() {
+        if (initEngine.getAndSet(true)) return;
 
         CommonWebSockets.initiate();
-        socket = WebSockets.newSocket("ws://localhost:8082/ws");
+        socket = WebSockets.newSocket(ChessConstants.serverAPI);
         socket.setSerializeAsString(true);
         socket.addListener(new WebSocketListener() {
 
             @Override
             public boolean onOpen(WebSocket webSocket) {
                 Gdx.app.log("Websocket Open", webSocket.getUrl());
+
+                if (onTryConnect != null) {
+                    BiConsumer<Boolean, String> localConnect = onTryConnect;
+                    onTryConnect = null;
+                    RdApplication.postRunnable(() -> localConnect.accept(true, ""));
+                }
+
                 return false;
             }
 
@@ -298,7 +348,7 @@ public class MultiplayerEngine {
                 } else if (request.startsWith("/api/v1/mainChat")) {
                     onMessageMainChat(request.replaceAll("/api/v1/mainChat", ""), socketRes);
                 } else if (request.startsWith("/api/v1/games")) {
-                       onMessageGames(request.replaceAll("/api/v1/games", ""), socketRes);
+                    onMessageGames(request.replaceAll("/api/v1/games", ""), socketRes);
                 }
 
                 return false;
@@ -350,45 +400,35 @@ public class MultiplayerEngine {
             @Override
             public boolean onError(WebSocket webSocket, Throwable error) {
                 Gdx.app.error("Websocket onError", RdLogger.getDescription(error));
+
+                if (onTryConnect != null) {
+                    BiConsumer<Boolean, String> localConnect = onTryConnect;
+                    onTryConnect = null;
+                    RdApplication.postRunnable(() -> localConnect.accept(false, error.toString()));
+                }
+
                 return false;
             }
 
         });
-        socket.connect();
-
-        Runnable listener = () -> {
-            AtomicBoolean reset = new AtomicBoolean(false);
-
-            while (true) {
-                if (!socket.isConnecting() && !socket.isOpen()) {
-                    socket.connect();
-                    reset.set(ChessConstants.loggingAcc != null);
-                } else if (reset.get()) {
-                    login(ChessConstants.localData.getNameAcc(), ChessConstants.localData.getPassword(),
-                        account -> {
-                            Gdx.app.log("multiplayerThread", "account successfully logged in again");
-                            reset.set(false);
-                        },
-                        s -> {
-                            Gdx.app.error("multiplayerThread", "account could not login; " + s);
-                        });
-                }
-
-                try {
-                    Thread.sleep(2500);
-                } catch (InterruptedException e) {
-                    Gdx.app.error("multiplayerThread fatal", RdLogger.getDescription(e));
-                }
-            }
-
-        };
-        RdApplication.self().execute(listener);
+        launchConnectListener();
     }
 
     private void onMessageAccounts(String reqAccounts, SocketResult socketRes) {
 
+        // main chat update
+        if (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
+            parseJson(socketRes.getResult(), new TypeToken<Pair<List<Message>, Map<Long, Account>>>() {}.getType(),
+                (Consumer<Pair<List<Message>, Map<Long, Account>>>) res -> {
+                    lastMessages = res;
+                    Collections.reverse(res.getKey());
+                    if (mainChatMessages != null) mainChatMessages.accept(res);
+            });
+            return;
+        }
+
         switch (reqAccounts) {
-            case "/login":
+            case "/login": {
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     parseJson(socketRes.getResult(), Account.class, loginAccount, loginError);
@@ -398,8 +438,9 @@ public class MultiplayerEngine {
                 }
 
                 break;
+            }
 
-            case "/signup":
+            case "/signup": {
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     RdApplication.postRunnable(onSignup::call);
@@ -409,8 +450,9 @@ public class MultiplayerEngine {
                 }
 
                 break;
+            }
 
-            case "/see":
+            case "/see": {
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     parseJson(socketRes.getResult(), Account.class, account -> {
@@ -426,8 +468,9 @@ public class MultiplayerEngine {
                 }
 
                 break;
+            }
 
-            case "/change":
+            case "/change": {
 
                 if (onChangeAccount != null) {
                     RdApplication.postRunnable(() ->
@@ -439,6 +482,91 @@ public class MultiplayerEngine {
                 }
 
                 break;
+            }
+
+            case "/search": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE) {
+
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+                            if (onSearch != null) {
+                                onSearch.accept(accounts);
+                                onSearch = null;
+                            }
+                        });
+
+                } else {
+                    Gdx.app.error("error search accounts", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
+            case "/bullet": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE){
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+                            if (onBullet != null) {
+                                RdApplication.postRunnable(() -> onBullet.accept(accounts));
+                            }
+                        });
+                } else {
+                    Gdx.app.error("error get bullet top", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
+            case "/blitz": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE){
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+                            if (onBullet != null) {
+                                RdApplication.postRunnable(() -> onBlitz.accept(accounts));
+                            }
+                        });
+                } else {
+                    Gdx.app.error("error get blitz top", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
+            case "/rapid": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE){
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+                            if (onRapid != null) {
+                                RdApplication.postRunnable(() -> onRapid.accept(accounts));
+                            }
+                        });
+                } else {
+                    Gdx.app.error("error get rapid top", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
+            case "/long": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE){
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+                            if (onLong != null) {
+                                RdApplication.postRunnable(() -> onLong.accept(accounts));
+                            }
+                        });
+                } else {
+                    Gdx.app.error("error get long top", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
         }
 
     }
@@ -501,6 +629,8 @@ public class MultiplayerEngine {
                 // update current match
                 parseJson(socketRes.getResult(), Match.class,
                     match -> {
+                    // > 1 sessions
+                    if (match.getId() != matchId) return;
                     lastMatch = match;
                     if (enteredMatch != null)
                         enteredMatch.accept(match);
@@ -661,5 +791,42 @@ public class MultiplayerEngine {
             Gdx.app.error("parseJson", RdLogger.getDescription(t));
             RdApplication.postRunnable(() -> onError.accept(RdLogger.getDescription(t)));
         }
+    }
+
+    /** reconnects to the server */
+    private void launchConnectListener() {
+
+        Runnable listener = () -> {
+            // non final
+            AtomicBoolean reset = new AtomicBoolean(false);
+
+            while (true) {
+
+                if (!socket.isConnecting() && !socket.isOpen()) {
+                    Gdx.app.log("multiplayerThread","Try connect");
+                    socket.connect();
+                    reset.set(ChessConstants.loggingAcc != null);
+                } else if (reset.get()) {
+
+                    login(ChessConstants.localData.getNameAcc(), ChessConstants.localData.getPassword(),
+                        account -> {
+                            Gdx.app.log("multiplayerThread", "account successfully logged in again");
+                            reset.set(false);
+                        },
+                        s -> {
+                            Gdx.app.error("multiplayerThread", "account could not login; " + s);
+                        });
+                }
+
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Gdx.app.error("multiplayerThread fatal", RdLogger.getDescription(e));
+                }
+
+            }
+
+        };
+        RdApplication.self().execute(listener);
     }
 }

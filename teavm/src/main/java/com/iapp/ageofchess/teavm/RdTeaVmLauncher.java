@@ -1,7 +1,7 @@
 package com.iapp.ageofchess.teavm;
 
 import com.badlogic.gdx.Gdx;
-import com.iapp.rodsher.screens.Launcher;
+import com.iapp.lib.ui.screens.Launcher;
 
 import java.util.*;
 

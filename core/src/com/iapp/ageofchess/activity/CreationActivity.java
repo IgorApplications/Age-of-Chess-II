@@ -8,19 +8,19 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.chess_engine.Color;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.controllers.CreationController;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 public class CreationActivity extends Activity {
 
@@ -68,8 +68,8 @@ public class CreationActivity extends Activity {
         back = new RdImageTextButton(strings.get("back"), "red_screen");
         back.setImage("ib_back");
 
-        name = new RdTextArea("");
-        name.setPrefLines(1);
+        name = new RdTextArea("", ChessAssetManager.current().getSkin());
+        //name.setPrefLines(1);
         pieceColor = new RdSelectionButton(
                 ChessAssetManager.current().getSkin(),
                 new String[]{strings.get("white"), strings.get("black")});

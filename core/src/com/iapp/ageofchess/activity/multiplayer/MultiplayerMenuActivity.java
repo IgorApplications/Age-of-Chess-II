@@ -1,15 +1,12 @@
 package com.iapp.ageofchess.activity.multiplayer;
 
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -17,18 +14,17 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
 import com.iapp.ageofchess.graphics.MessageView;
-import com.iapp.ageofchess.multiplayer.Account;
-import com.iapp.ageofchess.multiplayer.Message;
+import com.iapp.lib.web.Account;
+import com.iapp.lib.web.Message;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.Pair;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.Pair;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +36,7 @@ public class MultiplayerMenuActivity extends Activity {
 
     private WindowGroup windowGroup;
     private final MultiplayerMenuController controller;
-    private RdImageTextButton back, games, createGame;
+    private RdImageTextButton back, games, createGame, rank;
     private RdTable messagesTable;
     private final Array<MessageView> views = new Array<>();
     private RdTextArea messageInput;
@@ -86,8 +82,12 @@ public class MultiplayerMenuActivity extends Activity {
         createGame = new RdImageTextButton(strings.get("create_online"), "white_screen");
         createGame.setImage("ib_games");
 
-        messageInput = new RdTextArea("");
+        rank = new RdImageTextButton(strings.get("rating"), "white_screen");
+        rank.setImage("ib_rating");
+
+        messageInput = new RdTextArea("", ChessAssetManager.current().getSkin());
         messageInput.setMessageText(strings.get("enter_hint"));
+        messageInput.setMaxLength(300);
     }
 
     @Override
@@ -124,6 +124,13 @@ public class MultiplayerMenuActivity extends Activity {
             @Override
             public void onChange(Actor actor) {
                 controller.goToScenarios();
+            }
+        });
+
+        rank.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                controller.goToRank();
             }
         });
     }
@@ -163,7 +170,7 @@ public class MultiplayerMenuActivity extends Activity {
                 .expandX().fillX().row();
         properties.getContent().add(scroll).pad(5, 5, 5,5).expand().fill();
 
-        windowGroup = new WindowGroup(window, back, games, createGame);
+        windowGroup = new WindowGroup(window, back, games, createGame, rank);
         ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
 
         windowGroup.setFillParent(true);
@@ -214,7 +221,7 @@ public class MultiplayerMenuActivity extends Activity {
                     new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    controller.editAccount(message);
+                    controller.seeAccount(message.getSenderId());
                 }
             }, new OnChangeListener() {
                 @Override

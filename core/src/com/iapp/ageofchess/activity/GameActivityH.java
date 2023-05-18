@@ -8,11 +8,11 @@ import com.iapp.ageofchess.controllers.GameController;
 import com.iapp.ageofchess.graphics.BoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.ageofchess.util.Sounds;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.ageofchess.services.Sounds;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.screens.RdApplication;
 
 class GameActivityH extends GameActivity {
 
@@ -116,9 +116,9 @@ class GameActivityH extends GameActivity {
     }
 
     private void updateLabels() {
-        timeByTurnLabel.setSafetyText(controller.getTimeByTurn());
-        blackTime.setSafetyText(controller.getBlackTime());
-        whiteTime.setSafetyText(controller.getWhiteTime());
+        timeByTurnLabel.setText(controller.getTimeByTurn());
+        blackTime.setText(controller.getBlackTime());
+        whiteTime.setText(controller.getWhiteTime());
 
         timeByTurnLabel.setColor(Color.WHITE);
         blackTime.setColor(Color.WHITE);

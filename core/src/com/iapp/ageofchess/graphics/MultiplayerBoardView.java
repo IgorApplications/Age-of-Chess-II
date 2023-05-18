@@ -8,18 +8,17 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
-import com.iapp.ageofchess.chess_engine.Move;
+import com.iapp.lib.chess_engine.Move;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
-import com.iapp.ageofchess.util.BooleanList;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.CallListener;
+import com.iapp.ageofchess.services.BooleanList;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.CallListener;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MultiplayerBoardView extends Image {
 
@@ -183,7 +182,6 @@ public class MultiplayerBoardView extends Image {
 
     public void update() {
         var matrix = controller.getMatrix();
-        System.out.println(Arrays.deepToString(matrix).replaceAll("],", "\n"));
         pieceViews = new PieceView[8][8];
 
         for (int i = 0; i < matrix.length; i++) {

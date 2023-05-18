@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
@@ -17,28 +18,36 @@ import com.iapp.ageofchess.activity.MenuActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerGamesActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerScenariosActivity;
+import com.iapp.ageofchess.activity.multiplayer.RankActivity;
+import com.iapp.ageofchess.graphics.AccountView;
 import com.iapp.ageofchess.graphics.AvatarView;
+import com.iapp.ageofchess.graphics.MultiplayerMatchView;
 import com.iapp.ageofchess.multiplayer.*;
-import com.iapp.ageofchess.multiplayer.webutil.RequestStatus;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.lib.web.*;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.RdI18NBundle;
+import com.iapp.lib.util.WindowUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 public class MultiplayerMenuController extends Controller {
 
+    private static final Pattern FLOAT_PATTERN = Pattern.compile("[-+]?[0-9]*\\.?[0-9]+");
     private static final String[] MONTHS = new String[]{"m", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
 
+    private final Map<Long, Consumer<List<Match>>> idByOnMatches = RdApplication.self().getLauncher().concurrentHashMap();
     @SuppressWarnings("SimpleDateFormat")
-    private final SimpleDateFormat formatter = new SimpleDateFormat("d MMMM yyyy", ChessConstants.localData.getLocale());
+    private final SimpleDateFormat birthdayFormatter = new SimpleDateFormat("d MMMM yyyy", ChessConstants.localData.getLocale());
+    private final SimpleDateFormat createdFormatter = new SimpleDateFormat("d MMM yyyy", ChessConstants.localData.getLocale());
     private final MultiplayerMenuActivity activity;
 
     public MultiplayerMenuController(MultiplayerMenuActivity activity) {
@@ -46,9 +55,10 @@ public class MultiplayerMenuController extends Controller {
         this.activity = activity;
 
         ChessApplication.self().getAccountPanel()
-            .initListeners(ChessConstants.loggingAcc,
+            .updateListeners(ChessConstants.loggingAcc,
                 this::seeAccount,
-                this::editAccount);
+                this::editAccount,
+                this::showGames);
     }
 
     public void goToMenu() {
@@ -63,235 +73,174 @@ public class MultiplayerMenuController extends Controller {
         startActivity(new MultiplayerScenariosActivity());
     }
 
-    private void seeAccount(long id) {
-        var dialog = showWatchingDialog();
+    public void goToRank() {
+        startActivity(new RankActivity());
+    }
+
+    public void seeAccount(long id) {
+        var dialog = showWatchingDialog(isSelf(id));
 
         MultiplayerEngine.self().getAccount(id, account -> {
-            updateWatchingDialog(account, dialog, false);
+            updateAccountDialog(account, dialog, false);
         });
     }
 
     public void editAccount(long id) {
-        var dialog = showWatchingDialog();
+        var dialog = showWatchingDialog(isSelf(id));
 
         MultiplayerEngine.self().getAccount(id, account -> {
-            updateWatchingDialog(account, dialog);
+            updateAccountDialog(account, dialog);
         });
     }
 
     public void editAccount(Message message) {
-        var dialog = showWatchingDialog();
-        dialog.getLoading().setVisible(true);
+        var dialog = showWatchingDialog(isSelf(message.getSenderId()));
 
         MultiplayerEngine.self().getAccount(message.getSenderId(), account -> {
-            updateWatchingDialog(account, dialog);
+            updateAccountDialog(account, dialog);
         });
 
     }
 
-    private RdDialog showWatchingDialog() {
-        var dialog = new RdDialog(strings.get("view_acc"), "input");
-        dialog.getLoading().setVisible(true);
+    private RdDialog showWatchingDialog(boolean self) {
+        return showWatchingDialog(self, 1100, 2000);
+    }
 
-        dialog.show(activity.getStage());
-        dialog.setSize(900, 900);
+    private RdDialog showWatchingDialog(boolean self, float width, float height) {
+
+        String title = strings.get("view_acc");
+        if (self) title = strings.get("acc_management");
+
+        var dialog = new RdDialog(title);
+        dialog.getLoading().setVisible(true);
+        dialog.show(RdApplication.self().getStage());
 
         ChessApplication.self().addDialog(dialog, localDialog -> {
             var viewport = RdApplication.self().getViewport();
-            if (localDialog != null) localDialog.setHeight(viewport.getWorldHeight() - 30);
+            if (localDialog != null) {
+                localDialog.setWidth(Math.min(viewport.getWorldWidth() - 30, width));
+                localDialog.setHeight(Math.min(viewport.getWorldHeight() - 30, height));
+            }
             WindowUtil.resizeCenter(localDialog);
         });
+
         RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         return dialog;
     }
 
-    private void updateWatchingDialog(Account publicAcc, RdDialog dialog) {
-        updateWatchingDialog(publicAcc, dialog, true);
+    private void updateAccountDialog(Account account, RdDialog dialog) {
+        updateAccountDialog(account, dialog, true);
     }
 
-    private void updateWatchingDialog(Account publicAcc, RdDialog dialog, boolean edit) {
+    // state 1 --------------------------------------------------------------------------------------------------------
 
-        boolean self = publicAcc.getId() == ChessConstants.loggingAcc.getId();
+    private void updateAccountDialog(Account account, RdDialog dialog, boolean edit) {
+
+        boolean self = account.getId() == ChessConstants.loggingAcc.getId();
         dialog.getButtonTable().clear();
         dialog.getContentTable().clear();
-        var locale = new Locale(ChessConstants.localData.getLocale().getLanguage(), publicAcc.getCountry());
 
-        var table1 = new RdTable();
-        var scrollPane = new RdScrollPane(table1, ChessAssetManager.current().getSkin());
-        scrollPane.setScrollingDisabled(true, false);
+        RdTable buttons = new RdTable();
+        buttons.align(Align.topLeft);
+        RdTable content = new RdTable();
+        RdScrollPane contentScroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        contentScroll.setScrollingDisabled(true, false);
 
-        table1.align(Align.topLeft);
-        table1.setBackground(new NinePatchDrawable(
-                new NinePatch(ChessApplication.self().getAssetManager().findRegion("dark_pane"),
-                        10,10,10,10)));
-        var table2 = new RdTable();
+        NinePatchDrawable panelBg = new NinePatchDrawable(
+            new NinePatch(ChessApplication.self().getAssetManager().findRegion("dark_pane"),
+                10,10,10,10));
 
-        var part1 = new RdTable();
+        RdTable part1 = new RdTable();
         part1.align(Align.topLeft);
-        var part2 = new RdTable();
+        RdTable part2 = new RdTable();
+        part2.setBackground(panelBg);
         part2.align(Align.topLeft);
-        var part3 = new RdTable();
+        RdTable part3 = new RdTable();
+        part3.setBackground(panelBg);
         part3.align(Align.topLeft);
+        RdTable part4 = new RdTable();
+        part4.setBackground(panelBg);
+        part4.align(Align.topLeft);
+        RdTable part5 = new RdTable();
+        part5.align(Align.topLeft);
+        part5.setBackground(panelBg);
 
-        table1.add(part1).expandX().fillX().align(Align.topLeft).row();
-        table1.add(part2).expandX().fillX().align(Align.topLeft).padTop(5).row();
-        table1.add(part3).expandX().fillX().align(Align.topLeft).padTop(10);
-
-        var name = new RdLabel(publicAcc.getUsername());
-        var status = new RdLabel(getAccountStatus(publicAcc));
-        var userName = new RdLabel(publicAcc.getFullName());
-        var gender = new RdLabel(SettingsUtil.getGenderText(publicAcc.getGender()));
-        var birth = new RdLabel("n/d");
-        if (publicAcc.getDateBirth() != 0) birth.setText(formatter.format(publicAcc.getDateBirth()));
-
-        var country = new RdLabel(locale.getDisplayCountry(ChessConstants.localData.getLocale()));
-        if (publicAcc.getCountry().equals("")) country.setText("n/d");
-        var quote = new RdLabel(publicAcc.getQuote());
-        quote.setWrap(true);
-
-        // ------------------------------------------------------------------------------------------------------ table2
-
+        RdTable avatarTable = new RdTable();
         var avatar = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-        MultiplayerEngine.self().getAvatar(publicAcc, bytes ->
-            avatar.update(publicAcc, bytes));
-
-        table2.add(avatar).pad(5, 5, 5, 5);
-        table2.align(Align.topLeft);
+        MultiplayerEngine.self().getAvatar(account, bytes ->
+            avatar.update(account, bytes));
 
         if (edit && (self || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal())) {
 
             avatar.addListener(new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    showUpdatingAvatarView(publicAcc, avatar);
+                    showUpdatingAvatarView(account, avatar);
                 }
             });
         }
+        avatarTable.add(avatar).row();
+        avatarTable.add(new RdLabel("[%75]" + createdFormatter.format(account.getCreated())));
 
-        // ------------------------------------------------------------------------------------------------------- part1
+        RdTable general1 = new RdTable();
+        general1.setBackground(panelBg);
+        general1.add(part1).expandX().fillX().align(Align.topLeft);
+        general1.add(avatarTable).align(Align.topRight);
 
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_account"))));
-        part1.add(name).padLeft(5).expandX().fillX().row();
+        content.add(general1).expandX().fillX().align(Align.topLeft).padTop(5).row();
+        addAccountInfo(account, part1);
 
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_name"))));
-        part1.add(userName).padLeft(5).expandX().fillX().row();
+        // !!!
+        if (edit && self || !self && ChessConstants.loggingAcc.getType().ordinal() >= AccountType.DEVELOPER.ordinal()) {
+            content.add(part2).expandX().fillX().align(Align.topLeft).padTop(7).row();
+            content.add(part3).expandX().fillX().align(Align.topLeft).padTop(7).row();
 
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_work"))));
-        part1.add(status).padLeft(5).expandX().fillX().row();
+            addLoginPanel(account, part2);
+            addChangePassword(account, part3, self);
+        }
+        if (!self || !edit) {
+            content.add(part4).expandX().fillX().align(Align.topLeft).padTop(7).row();
 
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_cake"))));
-        part1.add(birth).padLeft(5).expandX().fillX().row();
+            addRankPanel(account, part4);
+        }
 
-        if (publicAcc.getGender() != Gender.ND) {
-            part1.add(getGenderImage(publicAcc));
+        // !!!
+        if (edit && self || !self && ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
+            content.add(part5).expandX().fillX().align(Align.topLeft).padTop(7).row();
+
+            addProfilePanel(account, part5, dialog, self);
+        }
+
+        if (self && edit) {
+            ImageButton settings = new ImageButton(ChessAssetManager.current().getSettingsStyle());
+            ImageButton admin = new ImageButton(ChessAssetManager.current().getSearchPeopleStyle());
+            buttons.add(settings).minSize(100).row();
+            buttons.add(admin).minSize(100);
+
+            admin.addListener(new OnChangeListener() {
+                @Override
+                public void onChange(Actor actor) {
+                    dialog.getLoading().setVisible(true);
+                    updateSearchingDialog(account, dialog);
+                }
+            });
+
         } else {
-            part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_face"))));
-        }
-        part1.add(gender).padLeft(5).colspan(2).expandX().fillX().row();
-
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_country"))));
-        part1.add(country).padLeft(5).expandX().fillX().row();
-
-        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_quote"))));
-        part1.add(quote).padLeft(5).expandX().fillX().row();
-
-        // ------------------------------------------------------------------------------------------------------ part2
-
-        if (edit && (self || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.DEVELOPER.ordinal())) {
-
-            if (self) {
-                part2.add(new Image(ChessAssetManager.current().getWhiteTexture())).expandX()
-                        .fillX().height(2).colspan(2);
-                part2.row();
-
-                var lineTable1 = new LineTable(strings.get("login_op"));
-                lineTable1.add(new RdLabel(strings.get("login") + ": " + publicAcc.getUsername()))
-                        .expandX().fillX().row();
-                lineTable1.add(new RdLabel(strings.get("password") + "[*]******"))
-                        .expandX().fillX();
-
-                part2.add(lineTable1).expandX().fillX().row();
-            }
-
-            // -------------------------------------------------------------------------------------------------- part3
-
-            part3.add(new Image(ChessAssetManager.current().getWhiteTexture())).expandX()
-                    .fillX().height(2).colspan(2);
-            part3.row();
-
-            var lineTable2 = new LineTable(strings.get("change_password"));
-
-            var inputPassword = new RdTextArea("");
-            inputPassword.setPrefLines(1);
-            inputPassword.setPasswordCharacter('*');
-            inputPassword.setPasswordMode(true);
-            inputPassword.setMessageText(strings.get("enter_hint"));
-            var confPassword = new RdTextArea("");
-            confPassword.setPrefLines(1);
-            confPassword.setPasswordMode(true);
-            confPassword.setPasswordCharacter('*');
-            confPassword.setMessageText(strings.get("enter_hint"));
-            var changePassword = new RdTextButton(strings.get("change"));
-
-            changePassword.addListener(new OnChangeListener() {
+            RdImageTextButton games = new RdImageTextButton(strings.get("games"));
+            games.addListener(new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    if (inputPassword.getText().length() < 6) {
-                        ChessApplication.self().showInfo(strings.get("min_password"));
-                        return;
-                    }
-                    if (!inputPassword.getText().equals(confPassword.getText())) {
-                        ChessApplication.self().showInfo(strings.get("password_mismatch"));
-                        return;
-                    }
-
-                    if (!checkName(inputPassword.getText())) {
-                        ChessApplication.self().showInfo(strings.get("login_letters"));
-                        return;
-                    }
-
-                    publicAcc.setPassword(inputPassword.getText());
-                    MultiplayerEngine.self().changeAccount(publicAcc, requestStatus -> {
-                        if (requestStatus != RequestStatus.DONE) {
-                            ChessApplication.self().showError(strings.get("error_change_password") + requestStatus);
-                        } else {
-                            ChessApplication.self().showAccept(strings.get("done_change_password"));
-                        }
-                    });
-
-                    if (self) {
-                        ChessConstants.localData.setPassword(inputPassword.getText());
-                    }
+                    showGames(dialog, account);
                 }
             });
-
-            lineTable2.add(inputPassword).expandX().fillX().row();
-            lineTable2.add(confPassword).padTop(5).expandX().fillX().row();
-            lineTable2.add(changePassword).padTop(5).left();
-
-            part3.add(lineTable2).expandX().fillX();
-        }
-
-        // -----------------------------------------------------------------------------------------------------------
-
-        dialog.getContentTable().align(Align.topLeft);
-        dialog.getContentTable().add(scrollPane).expandX().fill().pad(5, 5, 5, 5);
-        dialog.getContentTable().add(table2).expandY()
-                .fillY().pad(10, 10, 10, 10);
-
-        dialog.getButtonTable().align(Align.topLeft);
-        dialog.getButtonTable().add(new RdTextButton(strings.get("report")));
-
-        if (edit && (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal() || self)) {
-            var change = new RdTextButton(strings.get("profile"),"blue");
-            dialog.getButtonTable().add(change);
-
-            change.addListener(new OnChangeListener() {
+            RdImageTextButton report = new RdImageTextButton(strings.get("report"));
+            report.addListener(new OnChangeListener() {
                 @Override
-                public void onChange(Actor actor) {
-                    showChangeDialog(dialog, publicAcc, self);
-                }
+                public void onChange(Actor actor) {}
             });
+
+            buttons.add(games).fillX().minWidth(200).row();
+            if (!self) buttons.add(report).minWidth(200).fillX().row();
         }
 
         dialog.setOnCancel(new OnChangeListener() {
@@ -305,7 +254,258 @@ public class MultiplayerMenuController extends Controller {
             }
         });
 
+        dialog.getContentTable().align(Align.topLeft);
+        dialog.getContentTable().add(buttons).fillY().pad(7, 7, 7, 0);
+        dialog.getContentTable().add(contentScroll).expandX().fill().pad(7, 7, 7, 7);
+
         dialog.getLoading().setVisible(false);
+    }
+
+    // state 2 ------------------------------------------------------------------------------------------------------
+
+    private void updateSearchingDialog(Account account, RdDialog dialog) {
+        List<AccountView> disposed = new ArrayList<>();
+
+        dialog.setOnCancel(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                dialog.afterHide(Actions.run(() -> {
+                    for (AccountView accountView : disposed) {
+                        accountView.dispose();
+                    }
+                }));
+            }
+        });
+        dialog.getButtonTable().clear();
+        dialog.getContentTable().clear();
+        dialog.getContentTable().align(Align.topLeft);
+        NinePatchDrawable panelBg = new NinePatchDrawable(
+            new NinePatch(ChessApplication.self().getAssetManager().findRegion("dark_pane"),
+                10,10,10,10));
+
+        RdTable content = new RdTable();
+        content.setBackground(panelBg);
+        content.align(Align.topLeft);
+        RdTable accountsContent = new RdTable();
+        accountsContent.align(Align.topLeft);
+
+        RdScrollPane scrollContent = new RdScrollPane(content);
+        RdTable buttons = new RdTable();
+        buttons.align(Align.topLeft);
+
+        ImageButton settings = new ImageButton(ChessAssetManager.current().getSettingsStyle());
+        settings.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                for (AccountView accountView : disposed) {
+                    accountView.dispose();
+                }
+
+                updateAccountDialog(account, dialog, true);
+            }
+        });
+        ImageButton admin = new ImageButton(ChessAssetManager.current().getSearchPeopleStyle());
+        buttons.add(settings).minSize(100).row();
+        buttons.add(admin).minSize(100);
+
+        RdTextArea field = new RdTextArea("", ChessAssetManager.current().getSkin());
+        field.setMaxLength(20);
+        field.setMessageText(strings.get("enter_acc_name"));
+        RdImageTextButton search = new RdImageTextButton(strings.get("search"), "blue");
+
+        content.add(field).expandX().fillX().padRight(5);
+        content.add(search).row();
+        content.add(accountsContent).expand().fill();
+
+        search.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                MultiplayerEngine.self().searchAccounts(field.getText(),
+                    accounts -> {
+                        for (AccountView accountView : disposed) {
+                            accountView.dispose();
+                        }
+
+                        accountsContent.clear();
+                        disposed.clear();
+
+                        for (Account acc : accounts) {
+                            AccountView accountView = new AccountView(acc,
+                                new OnChangeListener() {
+                                    @Override
+                                    public void onChange(Actor actor) {
+                                        seeAccount(acc.getId());
+                                    }
+                                });
+                            accountsContent.add(accountView).expandX()
+                                .align(Align.topLeft).row();
+                            disposed.add(accountView);
+                        }
+                    });
+            }
+        });
+
+        dialog.getContentTable().add(buttons).align(Align.topLeft).pad(7, 7, 7, 0);
+        dialog.getContentTable().add(scrollContent).expand().fill().pad(7, 7, 7, 7);
+        dialog.getLoading().setVisible(false);
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------
+
+    private void addAccountInfo(Account account, RdTable part1) {
+
+        var locale = new Locale(ChessConstants.localData.getLocale().getLanguage(), account.getCountry());
+        var name = new RdLabel(account.getUsername());
+        var status = new RdLabel(getAccountStatus(account));
+        var userName = new RdLabel(account.getFullName());
+        var gender = new RdLabel(SettingsUtil.getGenderText(account.getGender()));
+        var birth = new RdLabel("n/d");
+        if (account.getDateBirth() != 0) birth.setText(birthdayFormatter.format(account.getDateBirth()));
+
+        var country = new RdLabel(locale.getDisplayCountry(ChessConstants.localData.getLocale()));
+        if (account.getCountry().equals("")) country.setText("n/d");
+        var quote = new RdLabel(account.getQuote());
+        quote.setWrap(true);
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_account"))));
+        part1.add(name).padLeft(5).expandX().fillX().row();
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_name"))));
+        part1.add(userName).padLeft(5).expandX().fillX().row();
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_work"))));
+        part1.add(status).padLeft(5).expandX().fillX().row();
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_cake"))));
+        part1.add(birth).padLeft(5).expandX().fillX().row();
+
+        if (account.getGender() != Gender.ND) {
+            part1.add(getGenderImage(account));
+        } else {
+            part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_face"))));
+        }
+        part1.add(gender).padLeft(5).colspan(2).expandX().fillX().row();
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_country"))));
+        part1.add(country).padLeft(5).expandX().fillX().row();
+
+        part1.add(new Image(new TextureRegionDrawable(ChessAssetManager.current().findRegion("iw_quote"))));
+        part1.add(quote).padLeft(5).expandX().fillX().row();
+    }
+
+    private void addLoginPanel(Account account, RdTable part2) {
+        RdLabel loginHint = new RdLabel(strings.get("login") + ": ");
+        RdLabel passwordHint = new RdLabel(strings.get("password"));
+        RdLabel password = new RdLabel("******");
+        password.setAlignment(Align.right);
+
+        LineTable lineTable1 = new LineTable(strings.get("login_op"));
+        lineTable1.add(loginHint).expandX().fillX();
+        lineTable1.add(new RdLabel("[GREEN]" + account.getUsername())).row();
+        lineTable1.add(passwordHint).expandX().fillX();
+        lineTable1.add(password).right().row();
+
+        part2.add(lineTable1).expandX().fillX().row();
+    }
+
+    private void addChangePassword(Account account, RdTable part3, boolean self) {
+        var lineTable2 = new LineTable(strings.get("change_password"));
+
+        var inputPassword = new RdTextArea("", ChessAssetManager.current().getSkin());
+        inputPassword.setMaxLength(20);
+        inputPassword.setPasswordCharacter('*');
+        inputPassword.setPasswordMode(true);
+        inputPassword.setMessageText(strings.get("enter_hint"));
+        var confPassword = new RdTextArea("", ChessAssetManager.current().getSkin());
+        confPassword.setMaxLength(20);
+        confPassword.setPasswordMode(true);
+        confPassword.setPasswordCharacter('*');
+        confPassword.setMessageText(strings.get("enter_hint"));
+        var changePassword = new RdTextButton(strings.get("change"));
+
+        changePassword.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                if (inputPassword.getText().length() < 6) {
+                    ChessApplication.self().showInfo(strings.get("min_password"));
+                    return;
+                }
+                if (!inputPassword.getText().equals(confPassword.getText())) {
+                    ChessApplication.self().showInfo(strings.get("password_mismatch"));
+                    return;
+                }
+
+                account.setPassword(inputPassword.getText());
+                MultiplayerEngine.self().changeAccount(account, requestStatus -> {
+                    if (requestStatus != RequestStatus.DONE) {
+                        ChessApplication.self().showError(strings.get("error_change_password") + requestStatus);
+                    } else {
+                        ChessApplication.self().showAccept(strings.get("done_change_password"));
+                    }
+                });
+
+                if (self) {
+                    ChessConstants.localData.setPassword(inputPassword.getText());
+                }
+            }
+        });
+
+        lineTable2.add(inputPassword).expandX().fillX().row();
+        lineTable2.add(confPassword).padTop(5).expandX().fillX();
+        lineTable2.add(changePassword).padLeft(5).minWidth(250).right();
+        lineTable2.invalidateHierarchy();
+
+        part3.add(lineTable2).expandX().fillX();
+    }
+
+    private void addRankPanel(Account account, RdTable part4) {
+        RdLabel bullet = new RdLabel("[_]" + strings.get("bullet") + "[]: ");
+        bullet.setAlignment(Align.topLeft);
+        RdLabel blitz = new RdLabel("[_]" + strings.get("blitz") + "[]: ");
+        blitz.setAlignment(Align.topLeft);
+        RdLabel rapid = new RdLabel("[_]" + strings.get("rapid") + "[]: ");
+        rapid.setAlignment(Align.topLeft);
+        RdLabel longRank = new RdLabel("[_]" + strings.get("long") + "[]: ");
+        longRank.setAlignment(Align.topLeft);
+
+        part4.add(bullet).expandX().align(Align.left);
+        part4.add(new RdLabel(String.valueOf(account.getBullet()))).row();
+        part4.add(blitz).expandX().align(Align.left);
+        part4.add(new RdLabel(String.valueOf(account.getBlitz()))).row();
+        part4.add(rapid).expandX().align(Align.left);
+        part4.add(new RdLabel(String.valueOf(account.getRapid()))).row();
+        part4.add(longRank).expandX().align(Align.left);
+        part4.add(new RdLabel(String.valueOf(account.getLongRank()))).row();
+    }
+
+    private void addProfilePanel(Account account, RdTable part5, RdDialog dialog, boolean self) {
+        RdTextButton change = new RdTextButton(strings.get("profile"), "blue");
+        RdTextButton view = new RdTextButton(strings.get("see"));
+
+        part5.add(new RdLabel(strings.get("change_profile"))).expandX()
+            .left().minWidth(250).padTop(7);
+        part5.add(change).minWidth(250).fillX().row();
+
+        if (self) {
+            part5.add(new RdLabel(strings.get("see_profile")))
+                .expandX().left();
+            part5.add(view).fillX().row();
+        }
+
+        change.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                showChangeDialog(dialog, account, self);
+            }
+        });
+
+        view.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                RdDialog newDialog = showWatchingDialog(account.getId() == ChessConstants.loggingAcc.getId(), 1000, 2000);
+                updateAccountDialog(account, newDialog, false);
+            }
+        });
     }
 
     private RdDialog fileSelector;
@@ -326,11 +526,9 @@ public class MultiplayerMenuController extends Controller {
         scroll.setOverscroll(false, false);
         scroll.setScrollingDisabled(true, false);
 
-        RdTextArea nameInput = null;
+        RdTextArea nameInput = new RdTextArea(account.getUsername(), ChessAssetManager.current().getSkin());
+        nameInput.setMaxLength(20);
         if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
-
-            nameInput = new RdTextArea(account.getUsername());
-            nameInput.setPrefLines(1);
 
             var label2 = new RdLabel(strings.get("name"));
             label2.setWrap(true);
@@ -340,10 +538,9 @@ public class MultiplayerMenuController extends Controller {
             content.row();
         }
 
-        RdTextArea userNameInput = null;
+        RdTextArea userNameInput = new RdTextArea(account.getFullName(), ChessAssetManager.current().getSkin());
+        userNameInput.setMaxLength(20);
         if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
-            userNameInput = new RdTextArea(account.getFullName());
-            userNameInput.setPrefLines(1);
 
             var label3 = new RdLabel(strings.get("username"));
             label3.setWrap(true);
@@ -355,9 +552,8 @@ public class MultiplayerMenuController extends Controller {
 
         var label4 = new RdLabel(strings.get("quote"));
         label4.setWrap(true);
-        var quote = new RdTextArea(account.getQuote());
-        quote.setPrefLines(1);
-        quote.setMaxLines(2);
+        var quote = new RdTextArea(account.getQuote(), ChessAssetManager.current().getSkin());
+        quote.setMaxLength(50);
 
         content.add(label4).width(350).fillX().padBottom(5);
         content.add(quote).width(450).padBottom(5).expandX().fillX();
@@ -374,10 +570,10 @@ public class MultiplayerMenuController extends Controller {
         content.add(gender).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        var label6 = new RdLabel(strings.get("country"), ChessAssetManager.current().getSkin());
+        RdLabel label6 = new RdLabel(strings.get("country"), ChessAssetManager.current().getSkin());
         label6.setWrap(true);
 
-        var country = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> country = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         country.setItems(SettingsUtil.getDisplayCountries());
         country.setSelected(new Locale("en", account.getCountry())
                 .getDisplayCountry(ChessConstants.localData.getLocale()));
@@ -386,16 +582,16 @@ public class MultiplayerMenuController extends Controller {
         content.add(country).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        var label7 = new RdLabel(strings.get("birthday"), ChessAssetManager.current().getSkin());
+        RdLabel label7 = new RdLabel(strings.get("birthday"), ChessAssetManager.current().getSkin());
         label7.setWrap(true);
 
-        var day = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> day = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         day.setItems("dd", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
                 "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31");
 
-        var month = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> month = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         month.setItems(MONTHS);
-        var year = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> year = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         year.setItems(generateYears());
 
         if (account.getDateBirth() == 0) {
@@ -403,35 +599,63 @@ public class MultiplayerMenuController extends Controller {
             month.setSelectedIndex(0);
             year.setSelectedIndex(0);
         } else {
-            var calendar = Calendar.getInstance();
+            Calendar calendar = Calendar.getInstance();
             calendar.setTime(new Date(account.getDateBirth()));
             day.setSelectedIndex(calendar.get(Calendar.DAY_OF_MONTH));
             month.setSelectedIndex(calendar.get(Calendar.MONTH) + 1);
             year.setSelected(String.valueOf(calendar.get(Calendar.YEAR)));
         }
 
-        var table1 = new RdTable();
-        table1.add(day).expand().fillX().padRight(3);
-        table1.add(month).expandX().fillX().padRight(3);
-        table1.add(year).expandX().fillX();
+        RdTable birthdayTable = new RdTable();
+        birthdayTable.add(day).expand().fillX().padRight(3);
+        birthdayTable.add(month).expandX().fillX().padRight(3);
+        birthdayTable.add(year).expandX().fillX();
 
         content.add(label7).width(350).fillX().padBottom(5);
-        content.add(table1).width(450).padBottom(5).expandX().fillX();
+        content.add(birthdayTable).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        // buttons ----------------------------------------------------------------------------------------------------
+        RdTextArea bullet = new RdTextArea(String.valueOf(account.getBullet()), ChessAssetManager.current().getSkin());
+        bullet.setMaxLength(20);
+        RdTextArea blitz = new RdTextArea(String.valueOf(account.getBlitz()), ChessAssetManager.current().getSkin());
+        blitz.setMaxLength(20);
+        RdTextArea rapid = new RdTextArea(String.valueOf(account.getRapid()), ChessAssetManager.current().getSkin());
+        rapid.setMaxLength(20);
+        RdTextArea longRank = new RdTextArea(String.valueOf(account.getLongRank()), ChessAssetManager.current().getSkin());
+        longRank.setMaxLength(20);
 
-        RdTextArea finalUserNameInput = userNameInput;
-        RdTextArea finalNameInput = nameInput;
+        if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
+            RdLabel label8 = new RdLabel(strings.get("bullet") + ": ");
+            RdLabel label9 = new RdLabel(strings.get("blitz") + ": ");
+            RdLabel label10 = new RdLabel(strings.get("rapid") + ": ");
+            RdLabel label11 = new RdLabel(strings.get("long") + ": ");
+
+            content.add(label8).width(350).fillX().padBottom(5);
+            content.add(bullet).width(450).padBottom(5).expandX().fillX();
+            content.row();
+            content.add(label9).width(350).fillX().padBottom(5);
+            content.add(blitz).width(450).padBottom(5).expandX().fillX();
+            content.row();
+            content.add(label10).width(350).fillX().padBottom(5);
+            content.add(rapid).width(450).padBottom(5).expandX().fillX();
+            content.row();
+            content.add(label11).width(350).fillX().padBottom(5);
+            content.add(longRank).width(450).padBottom(5).expandX().fillX();
+            content.row();
+        }
+
+        // buttons ----------------------------------------------------------------------------------------------------
         var accept = new RdTextButton(strings.get("apply"), "blue");
 
         accept.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                changeDialog.hide();
-
-                if (finalNameInput != null) account.setUsername(finalNameInput.getText());
-                if (finalUserNameInput != null) account.setFullName(finalUserNameInput.getText());
+                if (!isASCII(nameInput.getText())) {
+                    ChessApplication.self().showError(strings.get("login_letters"));
+                    return;
+                }
+                account.setUsername(nameInput.getText());
+                account.setFullName(userNameInput.getText());
 
                 account.setQuote(quote.getText());
                 account.setGender(SettingsUtil.getGender(gender.getSelected().toString()));
@@ -451,6 +675,33 @@ public class MultiplayerMenuController extends Controller {
                     account.setDateBirth(calendar.getTimeInMillis());
                 }
 
+                if (!FLOAT_PATTERN.matcher(bullet.getText()).matches()) {
+                    ChessApplication.self().showError(
+                        strings.format("incorrect_change_rank", strings.get("bullet")));
+                    return;
+                }
+                if (!FLOAT_PATTERN.matcher(blitz.getText()).matches()) {
+                    ChessApplication.self().showError(
+                        strings.format("incorrect_change_rank", strings.get("blitz")));
+                    return;
+                }
+                if (!FLOAT_PATTERN.matcher(rapid.getText()).matches()) {
+                    ChessApplication.self().showError(
+                        strings.format("incorrect_change_rank", strings.get("rapid")));
+                    return;
+                }
+                if (!FLOAT_PATTERN.matcher(longRank.getText()).matches()) {
+                    ChessApplication.self().showError(
+                        strings.format("incorrect_change_rank", strings.get("long")));
+                    return;
+                }
+
+                account.setBullet(Double.parseDouble(bullet.getText()));
+                account.setBlitz(Double.parseDouble(blitz.getText()));
+                account.setRapid(Double.parseDouble(rapid.getText()));
+                account.setLongRank(Double.parseDouble(longRank.getText()));
+
+                changeDialog.hide();
                 if (self) {
                     ChessConstants.loggingAcc = new Account(account);
                     ChessConstants.loggingAcc.setPassword(ChessConstants.localData.getPassword());
@@ -464,7 +715,7 @@ public class MultiplayerMenuController extends Controller {
                     }
                 });
 
-                updateWatchingDialog(account, watchingDialog);
+                updateAccountDialog(account, watchingDialog);
 
             }
         });
@@ -487,6 +738,75 @@ public class MultiplayerMenuController extends Controller {
         ChessApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
+
+    private void showGames(Account account) {
+        showGames(null, account);
+    }
+
+    private void showGames(RdDialog parent, Account account) {
+        RdI18NBundle strings = RdApplication.self().getStrings();
+        RdDialog games = new RdDialog(strings.get("viewing_games"));
+        games.getLoading().setVisible(true);
+
+        RdApplication.self().addDialog(games, dialog -> {
+            var viewport = RdApplication.self().getViewport();
+            if (dialog != null) {
+                dialog.setWidth(Math.min(viewport.getWorldWidth() - 30, 1000));
+                dialog.setHeight(Math.min(viewport.getWorldHeight() - 30, 2000));
+            }
+            WindowUtil.resizeCenter(dialog);
+        });
+
+        RdTable content = new RdTable();
+        content.align(Align.topLeft);
+        RdScrollPane scrollPane = new RdScrollPane(content);
+        games.getContentTable().add(scrollPane)
+            .expand().fill().pad(5, 5, 5, 5);
+
+        games.show(RdApplication.self().getStage());
+        RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        Consumer<List<Match>> onMatches = matches -> {
+            MultiplayerEngine.self().removeOnMatches(idByOnMatches.remove(account.getId()));
+
+            for (Match match : matches) {
+                if (match.getWhitePlayerId() == account.getId()
+                    || match.getBlackPlayerId() == account.getId()) {
+
+                    content.add(
+                            new MultiplayerMatchView(match,
+                                new OnChangeListener() {
+                                    @Override
+                                    public void onChange(Actor actor1) {
+
+                                        SequenceAction seq1 = new SequenceAction();
+                                        seq1.addAction(Actions.run(() -> {
+                                            SequenceAction seq2 = new SequenceAction();
+                                            seq2.addAction(Actions.run(() ->
+                                                RdApplication.self().setScreen(new MultiplayerScenariosActivity(match))));
+
+                                            if (parent == null) {
+                                                RdApplication.self().setScreen(new MultiplayerScenariosActivity(match));
+                                            } else {
+                                                parent.hide(seq2);
+                                            }
+
+                                        }));
+                                        games.hide(seq1);
+
+                                    }
+                                },
+                                null
+                            ))
+                        .expandX().fillX().padBottom(5).row();
+                }
+            }
+            games.getLoading().setVisible(false);
+
+        };
+        MultiplayerEngine.self().addOnMatches(onMatches);
+        idByOnMatches.put(account.getId(), onMatches);
+    }
 
     // ----------------------------------------------------------------------------------------------------------------
 
@@ -596,13 +916,18 @@ public class MultiplayerMenuController extends Controller {
         return years;
     }
 
-    private boolean checkName(String name) {
-        var asci = new ArrayList<>();
-        for (int i = 0x20; i < 0x7B; i++) asci.add((char)i);
-
-        for (char c : name.toCharArray()) {
-            if (!asci.contains(c)) return false;
+    private boolean isASCII(String s) {
+        for (char c : s.toCharArray()) {
+            if (c > 127) return false;
         }
         return true;
+    }
+
+    private boolean isSelf(Account account) {
+        return isSelf(account.getId());
+    }
+
+    private boolean isSelf(long accountId) {
+        return accountId == ChessConstants.loggingAcc.getId();
     }
 }

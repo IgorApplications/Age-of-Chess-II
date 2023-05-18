@@ -4,15 +4,15 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.multiplayer.AccountType;
+import com.iapp.lib.web.AccountType;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.multiplayer.RankType;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.RdImageTextButton;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.RdI18NBundle;
+import com.iapp.lib.web.RankType;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.RdI18NBundle;
 
 public class MultiplayerMatchView extends Table {
 

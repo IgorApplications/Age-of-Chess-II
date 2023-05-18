@@ -4,20 +4,20 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerGameActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
-import com.iapp.ageofchess.chess_engine.*;
 import com.iapp.ageofchess.graphics.MultiplayerBoardView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.ageofchess.multiplayer.Account;
+import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.ageofchess.util.Sounds;
-import com.iapp.rodsher.util.CallListener;
-import com.iapp.rodsher.util.DisposeUtil;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.ageofchess.services.Sounds;
+import com.iapp.lib.chess_engine.*;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.CallListener;
+import com.iapp.lib.util.DisposeUtil;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Optional;
 
@@ -87,7 +87,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         updateAccounts(currentMatch);
         // activity not null!
         // Reads data from the server, can not be disabled!
-        updateMatchListener();
+        launchMatchListener();
     }
 
     public Optional<Color> getUserColor() {
@@ -97,7 +97,6 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     }
 
     public void goToMultiplayerScenario() {
-        stop();
         resetSounds();
 
         startActivity(new MultiplayerMenuActivity(),
@@ -203,6 +202,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         boardView.makeMove(move, castling, updated != null, callback);
     }
 
+    // calls automatically
     @Override
     public void stop() {
         super.stop();
@@ -211,6 +211,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         MultiplayerEngine.self().setOnUpdateMatch(-1, null);
         MultiplayerEngine.self().exitMatch(matchId);
         ChessApplication.self().getAccountPanel().updateTable();
+        RdApplication.self().getLauncher().setOnKeyboard(null);
     }
 
     private void finishGame(Result result) {
@@ -333,12 +334,12 @@ public class MultiplayerGameController extends MultiplayerEngineController {
 
     // --------------------------------------------------------------------------------------------------------------
 
-    private void updateMatchListener() {
+    private void launchMatchListener() {
         if (initMatchListener) return;
         initMatchListener = true;
 
         MultiplayerEngine.self().setOnUpdateMatch(matchId, newMatch -> {
-            var last = currentMatch;
+            Match last = currentMatch;
             if (newMatch != null) {
                 currentMatch = newMatch;
                 update(last);
@@ -351,9 +352,9 @@ public class MultiplayerGameController extends MultiplayerEngineController {
 
         if (first != -1) {
             MultiplayerEngine.self().getAccount(first, account -> {
-                    firstPlayer = account;
-                    update(last);
-                });
+                firstPlayer = account;
+                update(last);
+            });
         } else {
             firstPlayer = null;
         }

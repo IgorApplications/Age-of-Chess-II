@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 
-
 android {
   compileSdk 33
   sourceSets {
@@ -76,6 +75,7 @@ dependencies {
 
   // android appcompat
   implementation 'androidx.appcompat:appcompat:1.6.1'
+  implementation 'net.yslibrary.keyboardvisibilityevent:keyboardvisibilityevent:3.0.0-RC3'
 
 }
 

@@ -6,15 +6,17 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.chess_engine.Result;
+import com.iapp.lib.chess_engine.Result;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
+import com.iapp.ageofchess.graphics.ControlGameView;
 import com.iapp.ageofchess.graphics.MultiplayerBoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
+import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.ui.screens.RdApplication;
 
 class MultiplayerGameActivityH extends MultiplayerGameActivity {
 
@@ -33,8 +35,8 @@ class MultiplayerGameActivityH extends MultiplayerGameActivity {
     public void update() {
         super.update();
 
-        var firstPlayer = controller.getFirstPlayer();
-        var secondPlayer = controller.getSecondPlayer();
+        Account firstPlayer = controller.getFirstPlayer();
+        Account secondPlayer = controller.getSecondPlayer();
 
         String result;
         if (!controller.isInside() && controller.getCurrentMatch().isStarted()) {
@@ -89,28 +91,36 @@ class MultiplayerGameActivityH extends MultiplayerGameActivity {
     public void initActors() {
         super.initActors();
 
+        controlGame = new ControlGameView(controller);
+        controlGame.align(Align.bottom);
+        controlGame.setFillParent(true);
+
+        boolean infinity = controller.getCurrentMatch().getTimeByBlack() != -1
+            && controller.getCurrentMatch().getTimeByWhite() != -1;
+
         var buttons = new Table();
         buttons.align(Align.topLeft);
         buttons.pad(30, 7, 0, 7);
         buttons.setFillParent(true);
         getStage().addActor(buttons);
 
-        buttons.add(menu).size(125).expandX().left();
+        buttons.add(menu).size(125).expandX().left().padTop(infinity ? 100 : 0);
         buttons.row();
 
         var generalTime = new RdTable();
-        generalTime.align(Align.topRight);
+        generalTime.align(Align.topLeft);
         generalTime.setFillParent(true);
         getStage().addActor(generalTime);
 
         var contentTime = new RdTable();
         contentTime.setBackground(new NinePatchDrawable(
-                new NinePatch(ChessApplication.self().getAssetManager().findRegion("dark_pane"),
-                        10,10,10,10)));
-
+                new NinePatch(ChessApplication.self().getAssetManager().findChessRegion("chat_bg"),
+                        5,5,5,5)));
         contentTime.add(whiteTime).row();
         contentTime.add(blackTime).row();
-        generalTime.add(contentTime).pad(5, 5, 5, 5);
+        if (infinity) {
+            generalTime.add(contentTime).pad(5, 5, 5, 5);
+        }
 
         getStage().addActor(controlGame);
         getStage().addActor(chatView);

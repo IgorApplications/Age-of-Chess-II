@@ -8,20 +8,18 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.multiplayer.Account;
-import com.iapp.ageofchess.multiplayer.AccountType;
-import com.iapp.ageofchess.multiplayer.Message;
-import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.util.DisposeUtil;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.lib.web.Account;
+import com.iapp.lib.web.AccountType;
+import com.iapp.lib.web.Message;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.util.DisposeUtil;
+import com.iapp.lib.util.OnChangeListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.function.Consumer;
 
 public class MessageView extends Table implements Disposable {
 

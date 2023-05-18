@@ -1,6 +1,6 @@
 package com.iapp.ageofchess.lwjgl3;
 
-import com.iapp.rodsher.screens.Launcher;
+import com.iapp.lib.ui.screens.Launcher;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

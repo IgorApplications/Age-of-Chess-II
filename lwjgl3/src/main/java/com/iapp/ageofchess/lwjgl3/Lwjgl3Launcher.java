@@ -3,9 +3,10 @@ package com.iapp.ageofchess.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.util.Cheats;
-import com.iapp.ageofchess.util.LaunchMode;
-import com.iapp.rodsher.util.SystemValidator;
+import com.iapp.ageofchess.services.ApplicationMode;
+import com.iapp.ageofchess.services.Cheats;
+import com.iapp.ageofchess.services.ServerMode;
+import com.iapp.lib.util.SystemValidator;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
@@ -16,7 +17,7 @@ public class Lwjgl3Launcher {
 
     private static Lwjgl3Application createApplication() {
         return new Lwjgl3Application(new ChessApplication(
-            new RdLwjgl3Launcher(), LaunchMode.LOCAL, Cheats.DEVELOPER), getDefaultConfiguration());
+            new RdLwjgl3Launcher(), ServerMode.LOCAL, ApplicationMode.DEBUG, Cheats.DEVELOPER), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

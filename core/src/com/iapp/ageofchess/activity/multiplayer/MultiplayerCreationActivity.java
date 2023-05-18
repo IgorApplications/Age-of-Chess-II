@@ -9,18 +9,18 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.CreationActivity;
-import com.iapp.ageofchess.chess_engine.Color;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerCreationController;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.ageofchess.multiplayer.RankType;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.lib.web.RankType;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 public class MultiplayerCreationActivity extends Activity {
 
@@ -80,7 +80,7 @@ public class MultiplayerCreationActivity extends Activity {
         back = new RdImageTextButton(strings.get("back"), "red_screen");
         back.setImage("ib_back");
 
-        name = new RdTextField("");
+        name = new RdTextField("", ChessAssetManager.current().getSkin());
 
         infinity = strings.get("infinity");
         timeByTurn = new RdSelectBox<>(ChessAssetManager.current().getSkin());
@@ -169,6 +169,7 @@ public class MultiplayerCreationActivity extends Activity {
     @Override
     public void show(Stage stage, Activity last) {
         ChessApplication.self().getLauncher().setOnFinish(controller::goToScenario);
+
         Image background = new Image(new TextureRegionDrawable(
             ChessAssetManager.current().findChessRegion("menu_background")));
         background.setFillParent(true);

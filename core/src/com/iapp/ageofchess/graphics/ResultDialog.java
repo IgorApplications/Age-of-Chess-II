@@ -4,12 +4,11 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.utils.Align;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.actors.RdCell;
-import com.iapp.rodsher.actors.RdDialog;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdWindow;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.ui.actors.RdCell;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.util.OnChangeListener;
 
 public class ResultDialog extends RdDialog {
 

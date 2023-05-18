@@ -4,7 +4,6 @@ import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
@@ -13,10 +12,10 @@ import com.iapp.ageofchess.activity.MenuActivity;
 import com.iapp.ageofchess.graphics.AccountPanel;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.*;
-import com.iapp.rodsher.util.*;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.screens.*;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.util.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +23,9 @@ import java.util.Locale;
 
 public class ChessApplication extends RdApplication {
 
-	private final LaunchMode launchMode;
+	private final ServerMode serverMode;
 	private final Cheats cheats;
-
-	private LoggingView loggingView;
+    private final ApplicationMode appMode;
 	private RdI18NBundle strings;
 	private AccountPanel accountPanel;
 
@@ -36,18 +34,25 @@ public class ChessApplication extends RdApplication {
 	private final List<String> displayLanguages = new ArrayList<>();
 	private final List<Locale> countryLocales = new ArrayList<>();
 	private final List<String> countries = new ArrayList<>();
+    private LoggingView loggingView;
+    private boolean initialize;
 
-	public ChessApplication(com.iapp.rodsher.screens.Launcher launcher, LaunchMode launchMode, Cheats cheats) {
+	public ChessApplication(Launcher launcher, ServerMode serverMode,
+                            ApplicationMode appMode, Cheats cheats) {
 		super(launcher, ChessConstants.WORLD_WIDTH, ChessConstants.WORLD_HEIGHT,
-				new ChessAssetManager(), 4);
-		this.launchMode = launchMode;
+				new ChessAssetManager(), 3);
+		this.serverMode = serverMode;
 		this.cheats = cheats;
-
+        this.appMode = appMode;
 	}
 
 	public ChessApplication(Launcher launcher) {
-		this(launcher, LaunchMode.RELEASE, Cheats.USER);
+		this(launcher, ServerMode.SERVER, ApplicationMode.RELEASE, Cheats.USER);
 	}
+
+    public LoggingView getLoggingView() {
+        return loggingView;
+    }
 
 	public List<String> getLanguages() {
 		return languages;
@@ -78,16 +83,12 @@ public class ChessApplication extends RdApplication {
 		return (ChessAssetManager) super.getAssetManager();
 	}
 
-	public LaunchMode getLaunchMode() {
-		return launchMode;
+	public ServerMode getLaunchMode() {
+		return serverMode;
 	}
 
 	public Cheats getCheats() {
 		return cheats;
-	}
-
-	public LoggingView getLoggingView() {
-		return loggingView;
 	}
 
 	public AccountPanel getAccountPanel() {
@@ -107,25 +108,22 @@ public class ChessApplication extends RdApplication {
             "gray_style/textures/logo.png", "gray_style/textures/title_logo.png",
             LoaderMap.self().getTaskLoadDiskMaps(() -> ChessApplication.self().initialize()));
 
-        if (launchMode == LaunchMode.RELEASE) {
-            ChessConstants.serverAPI = "ws://localhost:8082";
-            RdApplication.self().setLogHandle(Files.FileType.External, ChessConstants.LOGS_DIRECTORY);
+        if (serverMode == ServerMode.SERVER) {
+            ChessConstants.serverAPI = "ws://185.104.248.176:8082/ws";
         } else {
-            ChessConstants.serverAPI = "ws://localhost:8082";
+            ChessConstants.serverAPI = "ws://localhost:8082/ws";
         }
 
-		Gdx.app.log("Launch Mode", String.valueOf(launchMode));
-        MultiplayerEngine.self().launchMultiplayerThread();
+        if (appMode == ApplicationMode.RELEASE) {
+            RdApplication.self().setLogHandle(Files.FileType.External, ChessConstants.LOGS_DIRECTORY);
+        }
+
+		Gdx.app.log("Launch Mode", String.valueOf(serverMode));
+        MultiplayerEngine.self().launchMultiplayerEngine();
 	}
 
 	public void updateTitle(WindowGroup group, String text) {
-        //RdApplication.self().getTopContent().add(accountPanel)
-        //    .align(Align.topRight).padRight(100);
-
-		var modeTitle = new RdTable();
-		modeTitle.setBackground(new TextureRegionDrawable(
-				ChessAssetManager.current().findChessRegion("mode_app")));
-		modeTitle.add(new RdLabel("[%125]" + text));
+        // TODO
 	}
 
 	@Override
@@ -146,7 +144,6 @@ public class ChessApplication extends RdApplication {
 
 	@Override
 	public void dispose() {
-        MultiplayerEngine.self().exitMatch();
 		if (ChessConstants.localData.isSaveWindowSize()) {
 			ChessConstants.localData.setWindowSize(
 					new Pair<>(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
@@ -178,7 +175,8 @@ public class ChessApplication extends RdApplication {
 		OnChangeListener.setButtonClick(ChessAssetManager.current().getClickListener());
 
         // single initialize!
-		if (loggingView == null) {
+		if (!initialize) {
+            initialize = true;
 
             accountPanel = new AccountPanel();
             accountPanel.setVisible(false);
@@ -186,13 +184,12 @@ public class ChessApplication extends RdApplication {
 			Runnable task = () -> {
 
 				var langs = new String[]
-						{"ar", "az", "be", "bg", "ca", "cze", "da", "de", "gre",
-						"en", "aus", "gbr", "esperanto", "es", "es(America Latin)", "est",
-						"fa", "fi", "fr", "heb", "?", "cro", "hu", "aeries", "in", "it", "jp",
-						"ge", "kz", "ko", "ku", "lt", "lv", "mkd", "mal", "no",
-						"dut", "pol", "pt_br", "pt", "ro", "ru", "slo", "slv",
-						"al", "sr", "sw", "th", "tagalog", "tk", "uk", "uz",
-						"vi", "ch", "hk", "?"};
+						{"ar", "az", "be", "bg", "cs", "cze", "da", "de", "el",
+						"en", "es", "est", "fa", "fi", "fr", "he", "hr",
+                        "hu", "hy", "id", "it", "ja", "ka", "kk", "ku", "lt",
+                        "lv", "mk", "mal", "no", "dut", "pol", "pt",
+                        "ro", "ru", "slo", "slv", "sq", "sr", "sw", "th", "tl",
+                        "tr", "uk", "uz", "vi", "zh"};
 				for (var lang : langs) {
 					var locale = new Locale(lang);
 					languageLocales.add(locale);
@@ -208,14 +205,13 @@ public class ChessApplication extends RdApplication {
 			};
 			execute(task);
 
-			loggingView = new LoggingView(ChessAssetManager.current().getSkin());
-			loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
-            getStage().addActor(loggingView);
-
-			loggingView.setDefaultToken("[%75]");
+            loggingView = new LoggingView(ChessAssetManager.current().getSkin());
+            loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
+            loggingView.setScale(0.75f);
+            RdApplication.self().getTopContent().add(loggingView).expand().align(Align.topLeft);
 		}
 
-		loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
+        loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
 	}
 
 	public void showAccept(String text) {

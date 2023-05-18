@@ -6,14 +6,12 @@ dependencies {
   // libgdx
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
 
-  // Rodsher & Carballo libraries
+  // Carballo library
   api fileTree(dir: 'libs', include: ['*.jar'])
 
-  // textratypist
-  implementation "com.github.tommyettinger:textratypist:0.8.3"
-
   // websocket
-  implementation "com.github.MrStahlfelge.gdx-websockets:common:1.9.10.3"
+  api "com.github.MrStahlfelge.gdx-websockets:common:1.9.10.3"
 
-  implementation group: 'com.google.code.gson', name: 'gson', version: '2.10'
+  // gson
+  api group: 'com.google.code.gson', name: 'gson', version: '2.10.1'
 }

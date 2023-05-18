@@ -1,7 +1,7 @@
 package com.iapp.ageofchess.ios;
 
 import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
-import com.iapp.rodsher.screens.Launcher;
+import com.iapp.lib.ui.screens.Launcher;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

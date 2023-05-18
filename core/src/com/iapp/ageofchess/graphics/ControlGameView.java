@@ -6,18 +6,17 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.chess_engine.Result;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
-import com.iapp.ageofchess.multiplayer.AccountType;
+import com.iapp.lib.web.AccountType;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.rodsher.actors.RdImageTextButton;
-import com.iapp.rodsher.actors.RdSelectBox;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.RdI18NBundle;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdSelectBox;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.RdI18NBundle;
 
 import java.util.ArrayList;
 
@@ -25,15 +24,25 @@ public class ControlGameView extends Table {
 
     private final RdI18NBundle strings;
     private final MultiplayerGameController controller;
+    private final RdImageTextButton menu;
 
     private RdImageTextButton join, start;
     private RdSelectBox<String> availableColors;
     private RdTable controlContent;
 
+    public ControlGameView(MultiplayerGameController controller, RdImageTextButton menu) {
+        if (controller.getCurrentMatch().isStarted()) setVisible(false);
+        strings = RdApplication.self().getStrings();
+        this.controller = controller;
+        this.menu = menu;
+        initControlTable();
+    }
+
     public ControlGameView(MultiplayerGameController controller) {
         if (controller.getCurrentMatch().isStarted()) setVisible(false);
         strings = RdApplication.self().getStrings();
         this.controller = controller;
+        menu = null;
         initControlTable();
     }
 
@@ -94,13 +103,15 @@ public class ControlGameView extends Table {
         availableColors.setItems(data.toArray(new String[0]));
         join.setText("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
 
-        controlContent.add(join).padRight(30).padLeft(30).minWidth(300);
+        if (menu != null) controlContent.add(menu).padRight(10);
+        controlContent.add(join).minWidth(300);
         if (controller.isCreator() || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
-            controlContent.add(start).minWidth(300).padRight(30);
+            controlContent.add(start).minWidth(300).padLeft(10);
         }
 
         if (!controller.isInside() && !controller.getCurrentMatch().isRandom()) {
-            controlContent.add(availableColors).padRight(30);
+            controlContent.add(availableColors).padLeft(10);
         }
+        controlContent.padLeft(20).padRight(20);
     }
 }

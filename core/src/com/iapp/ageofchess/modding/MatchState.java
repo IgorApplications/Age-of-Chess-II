@@ -1,8 +1,8 @@
 package com.iapp.ageofchess.modding;
 
-import com.iapp.ageofchess.chess_engine.Game;
-import com.iapp.ageofchess.chess_engine.Move;
-import com.iapp.ageofchess.chess_engine.Result;
+import com.iapp.lib.chess_engine.Game;
+import com.iapp.lib.chess_engine.Move;
+import com.iapp.lib.chess_engine.Result;
 
 import java.util.LinkedList;
 

@@ -10,15 +10,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.SettingsUtil;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdScrollPane;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.actors.RdTextField;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdAssetManager;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.chess_engine.Color;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.RdAssetManager;
+import com.iapp.lib.util.OnChangeListener;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -29,7 +27,7 @@ public class ChatView extends RdTable {
     private RdTable titleContent;
     private RdScrollPane scrollMessages;
     private final float maxWidth;
-    private boolean hidden;
+    private boolean hidden = true;
 
     public ChatView(float maxWidth, Consumer<String> onSend) {
         this.maxWidth = maxWidth;
@@ -96,7 +94,8 @@ public class ChatView extends RdTable {
     private void initialize(Consumer<String> onSend) {
 
         var showLobby = new ImageButton(ChessAssetManager.current().getHideChatStyle());
-        var lobbyField = new RdTextField("");
+        var lobbyField = new RdTextArea("", ChessAssetManager.current().getSkin());
+        lobbyField.setMaxLength(300);
         lobbyField.addListener(new InputListener() {
             @Override
             public boolean keyUp(InputEvent event, int keycode) {
@@ -110,6 +109,15 @@ public class ChatView extends RdTable {
             }
         });
 
+        // android virtual keyboard
+        RdApplication.self().getLauncher().setOnKeyboard(
+            aBoolean -> {
+                double k = aBoolean ? 1 : 0;
+                RdApplication.self().getStage().getRoot().setY(
+                    (float) (RdApplication.self().getLauncher().getKeyboardHeight() * k));
+            }
+        );
+
         messagesContent = new RdTable();
         messagesContent.align(Align.topLeft);
 
@@ -121,7 +129,6 @@ public class ChatView extends RdTable {
         scrollMessages.setForceScroll(false, false);
 
         titleContent = new RdTable();
-
         var vertTable = new RdTable();
         vertTable.add(titleContent).row();
         vertTable.add(scrollMessages).width(maxWidth).expandY().fillY().row();
@@ -130,13 +137,13 @@ public class ChatView extends RdTable {
                 new NinePatch(ChessApplication.self().getAssetManager().findChessRegion("chat_bg"),
                         5,5,5,5)));
 
-        add(ChessApplication.self().getAccountPanel().getAvatarView()).size(96, 96);
+        add(ChessApplication.self().getAccountPanel().getAvatarView()).size(128, 128);
         add(ChessApplication.self().getAccountPanel().getControls()).left();
         row();
         add(showLobby).right();
         add(vertTable).expandY().fillY();
 
-        if (hidden) addAction(Actions.moveBy(vertTable.getWidth(), 0.0f, 0.2f));
+        if (hidden) addAction(Actions.moveBy(maxWidth + 10, 0.0f, Float.MIN_VALUE));
         showLobby.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -154,8 +161,8 @@ public class ChatView extends RdTable {
 
     }
 
-    private com.iapp.ageofchess.chess_engine.Color getColorEn(String en) {
-        if (en.contains("black")) return com.iapp.ageofchess.chess_engine.Color.BLACK;
-        return com.iapp.ageofchess.chess_engine.Color.WHITE;
+    private Color getColorEn(String en) {
+        if (en.contains("black")) return Color.BLACK;
+        return Color.WHITE;
     }
 }

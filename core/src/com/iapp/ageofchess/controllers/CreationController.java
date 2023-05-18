@@ -6,11 +6,10 @@ import com.iapp.ageofchess.activity.GameActivity;
 import com.iapp.ageofchess.activity.ScenariosActivity;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.Spinner;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.ui.actors.Spinner;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
 
 public class CreationController extends Controller {
 

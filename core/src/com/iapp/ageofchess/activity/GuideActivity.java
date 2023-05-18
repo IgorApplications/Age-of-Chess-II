@@ -5,20 +5,18 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.GuideController;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
 
 public class GuideActivity extends Activity {
 
@@ -70,7 +68,6 @@ public class GuideActivity extends Activity {
         getStage().addActor(content);
 
         window = new RdWindow("", "screen_window");
-        window.getLoading().setVisible(true);
         window.setMovable(false);
         var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
         window.add(properties).expand().fill();
@@ -94,49 +91,25 @@ public class GuideActivity extends Activity {
 
         TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
 
-        Runnable task = () -> {
-            // TODO не работает нормально загрузка
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        addText(descContent, strings.get("rules"));
+        addText(descContent, strings.get("guide_desc_1"));
+        addText(descContent, strings.get("guide_desc_2"));
+        addText(descContent, strings.get("guide_desc_3"));
+        addText(descContent, strings.get("guide_desc_4"));
+        addText(descContent, strings.get("guide_desc_5"));
+        addText(descContent, strings.get("guide_desc_6"));
+        addText(descContent, strings.get("guide_desc_7"));
+        addText(descContent, strings.get("guide_desc_8"));
+        addText(descContent, strings.get("guide_desc_9"));
+        addText(descContent, strings.get("guide_desc_10"));
+        addText(descContent, strings.get("guide_desc_11"));
+        addText(descContent, strings.get("guide_desc_12"));
 
-            addText(descContent, strings.get("rules"));
-            addText(descContent, strings.get("guide_desc_1"));
-            addText(descContent, strings.get("guide_desc_2"));
-            addText(descContent, strings.get("guide_desc_3"));
-            addText(descContent, strings.get("guide_desc_4"));
-            addText(descContent, strings.get("guide_desc_5"));
-            addText(descContent, strings.get("guide_desc_6"));
-            addText(descContent, strings.get("guide_desc_7"));
-            addText(descContent, strings.get("guide_desc_8"));
-            addText(descContent, strings.get("guide_desc_9"));
-            addText(descContent, strings.get("guide_desc_10"));
-            addText(descContent, strings.get("guide_desc_11"));
-            addText(descContent, strings.get("guide_desc_12"));
+        addText(descContent, strings.get("credits"));
+        addText(descContent, strings.get("guide_desc_13"));
 
-
-            /*for (int j = 0; j < 10_000; j++) {
-                StringBuilder s = new StringBuilder();
-                for (int i = 0; i < 5; i++) {
-                    s.append(i);
-                    s.append("\n");
-                }
-                addText(descContent, s.toString());
-            }*/
-
-            addText(descContent, strings.get("credits"));
-            addText(descContent, strings.get("guide_desc_13"));
-
-            addText(descContent, strings.get("technical_support"));
-            addText(descContent, strings.get("guide_desc_14"));
-
-            RdApplication.postRunnable(() ->
-                window.getLoading().setVisible(false));
-
-        };
-        RdApplication.self().execute(task);
+        addText(descContent, strings.get("technical_support"));
+        addText(descContent, strings.get("guide_desc_14"));
     }
 
     @Override

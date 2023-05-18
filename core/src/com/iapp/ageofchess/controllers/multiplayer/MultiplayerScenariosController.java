@@ -4,27 +4,27 @@ import com.badlogic.gdx.Gdx;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.activity.CreationActivity;
 import com.iapp.ageofchess.activity.multiplayer.*;
-import com.iapp.ageofchess.chess_engine.Color;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.Spinner;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.Spinner;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
 
 public class MultiplayerScenariosController extends Controller {
 
     private final MultiplayerScenariosActivity activity;
     private final Match match;
 
-    public MultiplayerScenariosController(MultiplayerScenariosActivity current, Match match) {
+    public MultiplayerScenariosController(MultiplayerScenariosActivity current, Match oldMatch) {
         super(current);
         activity = current;
-        this.match = match;
+        this.match = oldMatch;
     }
 
     public void goToCreation(MapData mapData, int scenario) {
@@ -32,8 +32,6 @@ public class MultiplayerScenariosController extends Controller {
     }
 
     public void goToGame(MapData mapData) {
-        MultiplayerEngine.self().enterMatch(match.getId());
-
         boolean infinityTimeByTurn = match.getTimeByTurn() == -1;
         boolean infinityTimeGame = match.getTimeByWhite() == -1;
         boolean infinityTurns = match.getMaxTurn() == -1;
@@ -58,8 +56,10 @@ public class MultiplayerScenariosController extends Controller {
         spinner.setSize(400, 100);
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
-                startActivity(MultiplayerGameActivity.newInstance(localMatch, match)));
+        MultiplayerEngine.self().setOnUpdateMatch(match.getId(), updatedMatch ->
+            LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
+                startActivity(MultiplayerGameActivity.newInstance(localMatch, updatedMatch))));
+        MultiplayerEngine.self().enterMatch(match.getId());
     }
 
     public void goToMenu() {

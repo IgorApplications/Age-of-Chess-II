@@ -5,12 +5,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.iapp.ageofchess.chess_engine.Color;
-import com.iapp.ageofchess.chess_engine.TypePiece;
+import com.iapp.lib.chess_engine.Color;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.EditMapController;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.Pair;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.Pair;
 
 import java.util.function.Consumer;
 

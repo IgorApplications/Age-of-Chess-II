@@ -4,17 +4,17 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.StringBuilder;
-import com.iapp.ageofchess.chess_engine.*;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.util.Pair;
-import com.iapp.rodsher.util.Timer;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdLogger;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.chess_engine.*;
+import com.iapp.lib.util.Pair;
+import com.iapp.lib.util.Timer;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdLogger;
 
 import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
@@ -47,6 +47,7 @@ public abstract class EngineController extends Controller {
         this.state = state;
         localMatch = state.getMatch();
         game = state.getGame();
+        lastMoves.addAll(state.getLastMoves());
         result = state.getResult();
         initChessEngine(localMatch.getGameMode());
         whiteEngine.start();
@@ -61,7 +62,6 @@ public abstract class EngineController extends Controller {
 
         var upperColor = localMatch.getUpperColor();
         if (localMatch.isRandomColor()) {
-            System.out.println(upperColor);
             upperColor = getRandomColor();
         }
 

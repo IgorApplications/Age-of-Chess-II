@@ -7,13 +7,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.DataManager;
-import com.iapp.ageofchess.util.ResourcesLoader;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdLogger;
-import com.iapp.rodsher.util.CallListener;
-import com.iapp.rodsher.util.TaskLoad;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.DataManager;
+import com.iapp.ageofchess.services.ResourcesLoader;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.util.CallListener;
+import com.iapp.lib.util.TaskLoad;
 
 public class LoaderMap {
 

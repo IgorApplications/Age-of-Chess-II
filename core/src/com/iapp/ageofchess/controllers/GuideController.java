@@ -1,9 +1,8 @@
 package com.iapp.ageofchess.controllers;
 
 import com.iapp.ageofchess.activity.MenuActivity;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.Controller;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.Controller;
 
 public class GuideController extends Controller {
 

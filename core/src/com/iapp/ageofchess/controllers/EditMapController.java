@@ -19,18 +19,18 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.EditMapActivity;
 import com.iapp.ageofchess.activity.ModdingActivity;
-import com.iapp.ageofchess.chess_engine.Game;
+import com.iapp.lib.chess_engine.Game;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.MapResources;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.DataManager;
-import com.iapp.ageofchess.util.ResourcesLoader;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.*;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.DataManager;
+import com.iapp.ageofchess.services.ResourcesLoader;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,7 +201,7 @@ public class EditMapController extends Controller {
     private void addTextures(PropertyTable properties) {
         var textures = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
         textures.setItems(mapData.getNameTextures());
-        var removeTexture = new RdTextButton(strings.get("remove"), "dark");
+        var removeTexture = new RdTextButton(strings.get("remove"));
         var loadTexture = new RdTextButton(strings.get("load"), "blue");
 
         loadTexture.addListener(new OnChangeListener() {
@@ -254,7 +254,7 @@ public class EditMapController extends Controller {
 
         var mapIcon = new RdLabel(name);
         var loadIcon = new RdTextButton(strings.get("load"), "blue");
-        var removeIcon = new RdTextButton(strings.get("remove"), "dark");
+        var removeIcon = new RdTextButton(strings.get("remove"));
 
         loadIcon.addListener(new OnChangeListener() {
             @Override
@@ -306,7 +306,7 @@ public class EditMapController extends Controller {
         var atlasEl = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
         atlasEl.setItems(getAtlasElements());
 
-        var removeAtlas = new RdTextButton(strings.get("remove"), "dark");
+        var removeAtlas = new RdTextButton(strings.get("remove"));
         var loadAtlas = new RdTextButton(strings.get("load"), "blue");
 
         loadAtlas.addListener(new OnChangeListener() {
@@ -365,11 +365,11 @@ public class EditMapController extends Controller {
 
         var rankScenario = new RdLabel(getRanked(index));
         var createScenario = new RdTextButton(strings.get("create"), "blue");
-        var removeScenario = new RdTextButton(strings.get("remove"), "dark");
+        var removeScenario = new RdTextButton(strings.get("remove"));
 
         var scenarioIcon = new RdLabel(getScenarioIcon(index));
         var loadIcon = new RdTextButton(strings.get("load"), "blue");
-        var removeIcon = new RdTextButton(strings.get("remove"), "dark");
+        var removeIcon = new RdTextButton(strings.get("remove"));
 
         scenariosList.addListener(new OnChangeListener() {
             @Override
@@ -524,18 +524,18 @@ public class EditMapController extends Controller {
         var lang = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
         lang.setItems(ChessApplication.self().getDisplayLanguages().toArray(new String[0]));
         var addLang = new RdTextButton(strings.get("add"), "blue");
-        var removeLang = new RdTextButton(strings.get("remove"), "dark");
+        var removeLang = new RdTextButton(strings.get("remove"));
 
-        var name = new RdTextArea("");
-        name.setPrefLines(2);
+        var name = new RdTextArea("", ChessAssetManager.current().getSkin());
+        //name.setPrefLines(2);
         name.setText(getString(englishKey, "name"));
 
-        var description = new RdTextArea("");
-        description.setPrefLines(4);
+        var description = new RdTextArea("", ChessAssetManager.current().getSkin());
+        //description.setPrefLines(4);
         description.setText(getString(englishKey, "description"));
 
-        var author = new RdTextArea("");
-        author.setPrefLines(2);
+        var author = new RdTextArea("", ChessAssetManager.current().getSkin());
+        //author.setPrefLines(2);
         author.setText(getString(englishKey, "author"));
 
         var created = new RdLabel("");
@@ -552,10 +552,10 @@ public class EditMapController extends Controller {
         stringsScenario.setItems(items);
         int index = getScenarioIndex(stringsScenario);
 
-        var titleScenario = new RdTextArea(getString(mapLang.getSelected(), "title_scenario_" + (index + 1)));
-        titleScenario.setPrefLines(2);
-        var descScenario = new RdTextArea(getString(mapLang.getSelected(), "desc_scenario_" + (index + 1)));
-        descScenario.setPrefLines(4);
+        var titleScenario = new RdTextArea(getString(mapLang.getSelected(), "title_scenario_" + (index + 1)), ChessAssetManager.current().getSkin());
+        //titleScenario.setPrefLines(2);
+        var descScenario = new RdTextArea(getString(mapLang.getSelected(), "desc_scenario_" + (index + 1)), ChessAssetManager.current().getSkin());
+        //descScenario.setPrefLines(4);
 
         stringsScenario.addListener(new OnChangeListener() {
             @Override
@@ -658,12 +658,12 @@ public class EditMapController extends Controller {
     }
 
     private void addSettingsMap(PropertyTable properties) {
-        var mapWidth = new RdTextArea(String.valueOf(mapData.getWidth()));
-        var mapHeight = new RdTextArea(String.valueOf(mapData.getHeight()));
-        var padLeft = new RdTextArea(String.valueOf(mapData.getPadLeft()));
-        var padRight = new RdTextArea(String.valueOf(mapData.getPadRight()));
-        var padBottom = new RdTextArea(String.valueOf(mapData.getPadBottom()));
-        var padTop = new RdTextArea(String.valueOf(mapData.getPadTop()));
+        var mapWidth = new RdTextArea(String.valueOf(mapData.getWidth()), ChessAssetManager.current().getSkin());
+        var mapHeight = new RdTextArea(String.valueOf(mapData.getHeight()), ChessAssetManager.current().getSkin());
+        var padLeft = new RdTextArea(String.valueOf(mapData.getPadLeft()), ChessAssetManager.current().getSkin());
+        var padRight = new RdTextArea(String.valueOf(mapData.getPadRight()), ChessAssetManager.current().getSkin());
+        var padBottom = new RdTextArea(String.valueOf(mapData.getPadBottom()), ChessAssetManager.current().getSkin());
+        var padTop = new RdTextArea(String.valueOf(mapData.getPadTop()), ChessAssetManager.current().getSkin());
 
         properties.add(new PropertyTable.Title(strings.get("map_settings")));
         properties.add(new PropertyTable.Element(strings.get("width_board"), mapWidth));
@@ -841,7 +841,7 @@ public class EditMapController extends Controller {
             mapData.setMapIcon(null);
             mapData.setMapIconPath(null);
 
-            int index1 = findIndex(resources.getTextureNames(), icon.getOriginalText().toString()
+            int index1 = findIndex(resources.getTextureNames(), icon.getText()
                     + (extension.length > 1 ? "." + extension[1] : ""));
             if (index1 == -1) {
                 Gdx.app.error("removeMapIcon", "Texture with the same name was not found in the resources");

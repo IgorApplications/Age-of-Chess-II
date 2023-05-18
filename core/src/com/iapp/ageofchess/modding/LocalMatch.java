@@ -1,11 +1,10 @@
 package com.iapp.ageofchess.modding;
 
-import com.iapp.ageofchess.chess_engine.Color;
-import com.iapp.ageofchess.multiplayer.RankType;
+import com.iapp.lib.chess_engine.Color;
+import com.iapp.lib.web.RankType;
 import com.iapp.ageofchess.multiplayer.TurnMode;
-import com.iapp.ageofchess.util.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessAssetManager;
 
-import java.math.BigInteger;
 import java.util.Calendar;
 import java.util.Objects;
 import java.util.TimeZone;

@@ -15,8 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.chess_engine.Result;
-import com.iapp.ageofchess.chess_engine.TypePiece;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.GameController;
 import com.iapp.ageofchess.graphics.BoardView;
 import com.iapp.ageofchess.graphics.ResultDialog;
@@ -24,14 +24,15 @@ import com.iapp.ageofchess.graphics.SelectionDialog;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdLogger;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.GrayAssetManager;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -226,9 +227,9 @@ public abstract class GameActivity extends Activity {
     private void updateFelledPieces() {
 
         var data = controller.getFelledPieces();
-        var blackSign = controller.getMatch().getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK ?
+        var blackSign = controller.getMatch().getUpperColor() == com.iapp.lib.chess_engine.Color.BLACK ?
                 " +" : " -";
-        var whiteSign = controller.getMatch().getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK ?
+        var whiteSign = controller.getMatch().getUpperColor() == com.iapp.lib.chess_engine.Color.BLACK ?
                 " -" : " +";
 
         blackPawn.setText(data[0] == 0 ? "0" : blackSign + data[0]);
@@ -261,7 +262,7 @@ public abstract class GameActivity extends Activity {
         whiteQueen = new RdLabel("0");
         whiteScore = new RdLabel(strings.get("total") + " 0");
 
-        if (controller.getMatch().getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK) {
+        if (controller.getMatch().getUpperColor() == com.iapp.lib.chess_engine.Color.BLACK) {
             blackPawn.setColor(Color.GREEN);
             blackRook.setColor(Color.GREEN);
             blackKnight.setColor(Color.GREEN);

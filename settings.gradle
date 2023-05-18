@@ -1,1 +1,1 @@
-include 'ios', 'teavm', 'lwjgl3', 'core', 'android'
+include 'ios', 'teavm', 'lwjgl3', 'core', 'android', 'server'

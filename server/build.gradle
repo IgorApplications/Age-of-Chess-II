@@ -1,0 +1,32 @@
+plugins {
+  id 'org.springframework.boot' version '2.7.8'
+  id 'java'
+}
+
+version = '1.0.2'
+group = 'org.gradle.samples'
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_11
+}
+
+repositories {
+  mavenCentral()
+}
+
+sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
+project.ext.mainClassName = 'com.iapp.ageofchess.server.AgeOfChessServerApplication'
+eclipse.project.name = appName + '-server'
+
+dependencies {
+  implementation platform('org.springframework.boot:spring-boot-dependencies:2.7.8')
+
+  implementation 'org.springframework.boot:spring-boot-starter'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-websocket'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
+  implementation group: 'org.postgresql', name: 'postgresql'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc'
+  implementation group: 'org.springframework.security', name: 'spring-security-crypto'
+
+  implementation project(':core')
+}

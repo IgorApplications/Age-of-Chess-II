@@ -10,9 +10,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdTable;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
 
 public class LevelView extends ImageButton {
 

@@ -4,47 +4,54 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.chess_engine.Result;
-import com.iapp.ageofchess.chess_engine.TypePiece;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
 import com.iapp.ageofchess.graphics.*;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.ageofchess.multiplayer.Account;
+import com.iapp.lib.ui.screens.GrayAssetManager;
+import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.multiplayer.RankType;
-import com.iapp.ageofchess.util.*;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Activity;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.screens.RdLogger;
-import com.iapp.rodsher.util.OnChangeListener;
-import com.iapp.rodsher.util.TransitionEffects;
-import com.iapp.rodsher.util.WindowUtil;
+import com.iapp.lib.web.RankType;
+import com.iapp.ageofchess.services.*;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.actors.RdDialogBuilder;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.TransitionEffects;
+import com.iapp.lib.util.WindowUtil;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public abstract class MultiplayerGameActivity extends Activity {
 
+    private final DecimalFormat rankFormat;
     private static final Vector3 spriteTouchPoint = new Vector3();
     static boolean verticallyMode;
+    private boolean exit = true;
 
     private MultiplayerGameActivity oldState;
     final MultiplayerGameController controller;
-    private ScrollPane scroll;
     private float coefficientX, coefficientY;
 
     // labels
@@ -66,13 +73,12 @@ public abstract class MultiplayerGameActivity extends Activity {
     RdDialog menuDialog, statisticDialog;
 
     Table content;
-    RdImageTextButton menu;
+    RdImageTextButton menu, controlMenu;
+    Action onStart;
 
     Image blackout;
     private AtomicBoolean handleInfoBlackout = new AtomicBoolean(false),
             handleSelectionBlackout = new AtomicBoolean(false);
-    private RdLabel blackPawn, blackRook, blackKnight, blackBishop, blackQueen, blackScore,
-        whitePawn, whiteRook, whiteKnight, whiteBishop, whiteQueen, whiteScore;
 
     public static MultiplayerGameActivity newInstance(LocalMatch localMatch, Match match) {
         verticallyMode = Gdx.graphics.getWidth() <= Gdx.graphics.getHeight();
@@ -101,21 +107,21 @@ public abstract class MultiplayerGameActivity extends Activity {
     MultiplayerGameActivity(LocalMatch localMatch, Match match) {
         this.controller = new MultiplayerGameController(this, localMatch, match);
         initialize();
+        rankFormat = new DecimalFormat("#.##");
+        rankFormat.setRoundingMode(RoundingMode.CEILING);
     }
 
     MultiplayerGameActivity(MultiplayerGameActivity oldState, MultiplayerGameController controller) {
         this.controller = controller;
         this.oldState = oldState;
         initialize();
+        rankFormat = new DecimalFormat("#.##");
+        rankFormat.setRoundingMode(RoundingMode.CEILING);
     }
 
     @Override
     public void show(Stage stage, Activity last) {
         TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
-    }
-
-    public void onMadeMove() {
-       updateFelledPieces();
     }
 
     @Override
@@ -125,11 +131,17 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     @Override
+    public void dispose() {
+        super.dispose();
+        if (exit) controller.stop();
+    }
+
+    @Override
     public void resize(int width, int height) {
         super.resize(width, height);
         if (verticallyMode != (width <= height) && width != 0 && height != 0) {
+            exit = false;
             RdApplication.self().setScreen(newInstance(this, controller));
-            dispose();
         }
 
         WindowUtil.resizeCenter(menuDialog);
@@ -139,7 +151,6 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         if (infoDialog != null) infoSprite.setBounds(infoDialog.getX(), infoDialog.getY(), infoDialog.getWidth(), infoDialog.getHeight());
         if (selectionDialog != null) selectionSprite.setBounds(selectionDialog.getX(), selectionDialog.getY(), selectionDialog.getWidth(), selectionDialog.getHeight());
-        if (scroll != null) scroll.setFadeScrollBars(true);
     }
 
     @Override
@@ -159,10 +170,6 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         chatView = new ChatView(700, message ->
             MultiplayerEngine.self().sendLobbyMessage(controller.getMatchId(), message));
-
-        controlGame = new ControlGameView(controller);
-        controlGame.align(Align.bottom);
-        controlGame.setFillParent(true);
 
         if (restoreState()) {
             return;
@@ -184,7 +191,10 @@ public abstract class MultiplayerGameActivity extends Activity {
         menu = new RdImageTextButton("");
         menu.setImage("iw_menu");
         menu.getLabelCell().reset();
-        initFelledPieces();
+
+        controlMenu = new RdImageTextButton("");
+        controlMenu.setImage("iw_menu");
+        controlMenu.getLabelCell().reset();
 
         timeByTurnLabel = new RdLabel(controller.getTimeByTurn());
         turnsLabel = new RdLabel(controller.getTurn() + ". " + controller.defineColorMove());
@@ -192,11 +202,8 @@ public abstract class MultiplayerGameActivity extends Activity {
         blackTime = new RdLabel(controller.getBlackTime());
 
         showInfoDialog();
-        updateFelledPieces();
     }
 
-    // обрезание данных с сервера на сервере, автар противника
-    // смена кнопок (до начала/после начала)
     public void update() {
         boolean updateLobby = lastSize != controller.getCurrentMatch().getLobby().size();
         lastSize = controller.getCurrentMatch().getLobby().size();
@@ -207,7 +214,10 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         if (controlGame != null) {
             if (controller.getCurrentMatch().isStarted()) {
-                controlGame.addAction(Actions.moveBy(0.0f, -900, 5));
+                SequenceAction sequenceAction = new SequenceAction();
+                sequenceAction.addAction(Actions.moveBy(0.0f, -900, 5));
+                sequenceAction.addAction(Actions.run(() -> controlGame.setVisible(false)));
+                controlGame.addAction(sequenceAction);
             }
             controlGame.updateControlContent();
         }
@@ -230,7 +240,7 @@ public abstract class MultiplayerGameActivity extends Activity {
         if (!userColor.isPresent() || controller.getCurrentMatch().isAlternately()) return;
         var color = userColor.get();
 
-        if (color == com.iapp.ageofchess.chess_engine.Color.WHITE) whiteTime.setColor(Color.GREEN);
+        if (color == com.iapp.lib.chess_engine.Color.WHITE) whiteTime.setColor(Color.GREEN);
         else blackTime.setColor(Color.GREEN);
         if (color == controller.getColorMove()) timeByTurnLabel.setColor(Color.GREEN);
 
@@ -238,8 +248,8 @@ public abstract class MultiplayerGameActivity extends Activity {
         if (!controller.getCurrentMatch().isStarted()) return;
 
         if (controller.isFewTimeByTurn() && controller.getColorMove() == color) timeByTurnLabel.setColor(Color.RED);
-        if (controller.isFewBlackTime() && color == com.iapp.ageofchess.chess_engine.Color.BLACK) blackTime.setColor(Color.RED);
-        if (controller.isFewWhiteTime() && color == com.iapp.ageofchess.chess_engine.Color.WHITE) whiteTime.setColor(Color.RED);
+        if (controller.isFewBlackTime() && color == com.iapp.lib.chess_engine.Color.BLACK) blackTime.setColor(Color.RED);
+        if (controller.isFewWhiteTime() && color == com.iapp.lib.chess_engine.Color.WHITE) whiteTime.setColor(Color.RED);
 
         if ((controller.isFewTimeByTurn()
                 || controller.isFewBlackTime() || controller.isFewWhiteTime())) {
@@ -259,74 +269,6 @@ public abstract class MultiplayerGameActivity extends Activity {
         } else {
             cell.width(rectSize / coefficientY);
             cell.height(rectSize);
-        }
-    }
-
-    private void updateFelledPieces() {
-        var data = controller.getFelledPieces();
-        var blackSign = controller.getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK ?
-                " +" : " -";
-        var whiteSign = controller.getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK ?
-                " -" : " +";
-
-        blackPawn.setText(data[0] == 0 ? "0" : blackSign + data[0]);
-        blackRook.setText(data[1] == 0 ? "0" : blackSign + data[1]);
-        blackKnight.setText(data[2] == 0 ? "0" : blackSign + data[2]);
-        blackBishop.setText(data[3] == 0 ? "0" : blackSign + data[3]);
-        blackQueen.setText(data[4] == 0 ? "0" : blackSign + data[4]);
-        blackScore.setText(strings.get("total") + " " + (data[5] == 0 ? "0" : blackSign + data[5]));
-
-        whitePawn.setText(data[6] == 0 ? "0" : whiteSign + data[6]);
-        whiteRook.setText(data[7] == 0 ? "0" : whiteSign + data[7]);
-        whiteKnight.setText(data[8] == 0 ? "0" : whiteSign + data[8]);
-        whiteBishop.setText(data[9] == 0 ? "0" : whiteSign + data[9]);
-        whiteQueen.setText(data[10] == 0 ? "0" : whiteSign + data[10]);
-        whiteScore.setText(strings.get("total") + " " + (data[11] == 0 ? "0" : whiteSign + data[11]));
-    }
-
-    private void initFelledPieces() {
-        blackPawn = new RdLabel("0");
-        blackRook = new RdLabel("0");
-        blackKnight = new RdLabel("0");
-        blackBishop = new RdLabel("0");
-        blackQueen = new RdLabel("0");
-        blackScore = new RdLabel(strings.get("total") + " 0");
-
-        whitePawn = new RdLabel("0");
-        whiteRook = new RdLabel("0");
-        whiteKnight = new RdLabel("0");
-        whiteBishop = new RdLabel("0");
-        whiteQueen = new RdLabel("0");
-        whiteScore = new RdLabel(strings.get("total") + " 0");
-
-        if (controller.getUpperColor() == com.iapp.ageofchess.chess_engine.Color.BLACK) {
-            blackPawn.setColor(Color.GREEN);
-            blackRook.setColor(Color.GREEN);
-            blackKnight.setColor(Color.GREEN);
-            blackBishop.setColor(Color.GREEN);
-            blackQueen.setColor(Color.GREEN);
-            blackScore.setColor(Color.GREEN);
-
-            whitePawn.setColor(Color.RED);
-            whiteRook.setColor(Color.RED);
-            whiteKnight.setColor(Color.RED);
-            whiteBishop.setColor(Color.RED);
-            whiteQueen.setColor(Color.RED);
-            whiteScore.setColor(Color.RED);
-        } else {
-            blackPawn.setColor(Color.RED);
-            blackRook.setColor(Color.RED);
-            blackKnight.setColor(Color.RED);
-            blackBishop.setColor(Color.RED);
-            blackQueen.setColor(Color.RED);
-            blackScore.setColor(Color.RED);
-
-            whitePawn.setColor(Color.GREEN);
-            whiteRook.setColor(Color.GREEN);
-            whiteKnight.setColor(Color.GREEN);
-            whiteBishop.setColor(Color.GREEN);
-            whiteQueen.setColor(Color.GREEN);
-            whiteScore.setColor(Color.GREEN);
         }
     }
 
@@ -352,23 +294,9 @@ public abstract class MultiplayerGameActivity extends Activity {
         blackTime = oldState.blackTime;
         fewTime = oldState.fewTime;
 
-        blackPawn = oldState.blackPawn;
-        blackRook = oldState.blackRook;
-        blackKnight = oldState.blackKnight;
-        blackBishop = oldState.blackBishop;
-        blackQueen = oldState.blackQueen;
-        blackScore = oldState.blackScore;
-
         //chatView = oldState.chatView;
         menu = oldState.menu;
         //controlGame = oldState.controlGame;
-
-        whitePawn = oldState.whitePawn;
-        whiteRook = oldState.whiteRook;
-        whiteKnight = oldState.whiteKnight;
-        whiteBishop = oldState.whiteBishop;
-        whiteQueen = oldState.whiteQueen;
-        whiteScore = oldState.whiteScore;
 
         content = new Table();
         content.setFillParent(true);
@@ -422,6 +350,7 @@ public abstract class MultiplayerGameActivity extends Activity {
             menu.getListeners().removeIndex(menu.getListeners().size - 1);
         }
         menu.addListener(onMenu);
+        controlMenu.addListener(onMenu);
     }
 
     private void handleBlackout() {
@@ -529,10 +458,10 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         var label2 = new RdLabel("[GREEN]" + rankType);
         var label3 = new RdLabel("1. [_]" + first.getFullName() + "[_]" + ": "
-                + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
+                + "[GREEN]+" +  getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
         var label4 = new RdLabel("2. [_]" + second.getFullName() + "[_]" + ": "
-                + "[RED]-" + controller.getCurrentMatch().getRankMinus());
+                + "[RED]-" + getRankMinus());
 
         dialog.getContentTable().add(label2).expandX().fillX().row();
         dialog.getContentTable().add(label3).expandX().fillX().row();
@@ -546,10 +475,10 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("2. [_]" + first.getFullName() + "[_]" + ": "
-                + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
+                + "[GREEN]+" + getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
         var label3 = new RdLabel("2. [_]" + second.getFullName() + "[_]" + ": "
-                + "[GREEN]+" + controller.getCurrentMatch().getRankMinus()
+                + "[GREEN]+" + getRankMinus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
 
         dialog.getContentTable().add(label1).expandX().fillX().row();
@@ -564,87 +493,26 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("1. [_]" + first.getFullName() + "[_]" + ": "
-                + "[GREEN]+" + controller.getCurrentMatch().getRankPlus()
+                + "[GREEN]+" + getRankPlus()
                 + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
         var label3 = new RdLabel("2. [_]" + second.getFullName() + "[_]" + ": "
-                + "[RED]-" + controller.getCurrentMatch().getRankMinus());
+                + "[RED]-" + getRankMinus());
 
         dialog.getContentTable().add(label1).expandX().fillX().row();
         dialog.getContentTable().add(label2).expandX().fillX().row();
         dialog.getContentTable().add(label3).expandX().fillX().row();
     }
 
-    public void showFelledPiecesDialog() {
-        statisticDialog = new RdDialog(strings.get("taken_pieces"), ChessAssetManager.current().getSkin());
-        statisticDialog.setOnCancel(new OnChangeListener() {
-            @Override
-            public void onChange(Actor actor) {
-                statisticDialog.hide();
-                statisticDialog = null;
-            }
-        });
-        statisticDialog.getIcon().setDrawable(new TextureRegionDrawable(
-                ChessAssetManager.current().findRegion("ib_info")));
-        statisticDialog.getIcon().setScaling(Scaling.fit);
+    private String getRankPlus() {
+        double rank = controller.getCurrentMatch().getRankPlus();
+        if (rank < 0.01) return "0.01";
+        return rankFormat.format(rank);
+    }
 
-        var blackPawnTxt = controller.getRegion("black_pawn");
-        var blackRookTxt = controller.getRegion("black_rook");
-        var blackKnightTxt = controller.getRegion("black_knight");
-        var blackBishopTxt = controller.getRegion("black_bishop");
-        var blackQueenTxt = controller.getRegion("black_queen");
-
-        var whitePawnTxt = controller.getRegion("white_pawn");
-        var whiteRookTxt = controller.getRegion("white_rook");
-        var whiteKnightTxt = controller.getRegion("white_knight");
-        var whiteBishopTxt = controller.getRegion("white_bishop");
-        var whiteQueenTxt = controller.getRegion("white_queen");
-
-        var scrollContent = new Table();
-        scrollContent.align(Align.topLeft);
-        scroll = new ScrollPane(scrollContent, ChessAssetManager.current().getSkin());
-        scroll.setScrollingDisabled(false, true);
-
-        statisticDialog.getContentTable().align(Align.topLeft);
-        statisticDialog.getContentTable().add(scroll).expand().fillX().align(Align.topLeft);
-
-        scrollContent.add(blackQueen);
-        scrollContent.add(new Image(blackQueenTxt)).size(100, 100);
-        scrollContent.add(blackBishop);
-        scrollContent.add(new Image(blackBishopTxt)).size(100, 100);
-        scrollContent.add(blackKnight);
-        scrollContent.add(new Image(blackKnightTxt)).size(100, 100);
-        scrollContent.add(blackRook);
-        scrollContent.add(new Image(blackRookTxt)).size(100, 100);
-        scrollContent.add(blackPawn);
-        scrollContent.add(new Image(blackPawnTxt)).size(100, 100);
-
-        scrollContent.row();
-        scrollContent.add(whiteQueen);
-        scrollContent.add(new Image(whiteQueenTxt)).size(100, 100);
-        scrollContent.add(whiteBishop);
-        scrollContent.add(new Image(whiteBishopTxt)).size(100, 100);
-        scrollContent.add(whiteKnight);
-        scrollContent.add(new Image(whiteKnightTxt)).size(100, 100);
-        scrollContent.add(whiteRook);
-        scrollContent.add(new Image(whiteRookTxt)).size(100, 100);
-        scrollContent.add(whitePawn);
-        scrollContent.add(new Image(whitePawnTxt)).size(100, 100);
-
-        scrollContent.row();
-        var blackScoreTable = new Table();
-        blackScoreTable.add(blackScore).colspan(9);
-        blackScoreTable.add(new Image(blackPawnTxt)).size(100, 100);
-        scrollContent.add(blackScoreTable).left().colspan(10);
-
-        scrollContent.row();
-        var whiteScoreTable = new Table();
-        whiteScoreTable.add(whiteScore).colspan(9);
-        whiteScoreTable.add(new Image(whitePawnTxt)).size(100, 100);
-        scrollContent.add(whiteScoreTable).left().colspan(10);
-
-        statisticDialog.show(getStage());
-        statisticDialog.setSize(800, 550);
-        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    private String getRankMinus() {
+        double rank = controller.getCurrentMatch().getRankMinus();
+        if (rank < 0.01) return "0.01";
+        return rankFormat.format(rank);
     }
 
     private void showInfoDialog() {
@@ -695,7 +563,9 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     private void initialize() {
-        coefficientX = controller.getLocalMatch().getMatchData().getWidth() / controller.getLocalMatch().getMatchData().getHeight();
-        coefficientY = controller.getLocalMatch().getMatchData().getWidth() / controller.getLocalMatch().getMatchData().getHeight();
+        coefficientX = controller.getLocalMatch().getMatchData().getWidth()
+            / controller.getLocalMatch().getMatchData().getHeight();
+        coefficientY = controller.getLocalMatch().getMatchData().getWidth()
+            / controller.getLocalMatch().getMatchData().getHeight();
     }
 }

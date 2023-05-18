@@ -4,12 +4,14 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.iapp.ageofchess.chess_engine.Color;
-import com.iapp.ageofchess.chess_engine.TypePiece;
+import com.iapp.lib.chess_engine.Color;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerEngineController;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.actors.RdDialog;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
 
 import java.util.function.Consumer;
 
@@ -93,12 +95,9 @@ public class MultiplayerSelectionDialog extends RdDialog {
             }
         });
 
-        padTop(50);
-        getTitleTable().clear();
-        getTitleTable().align(Align.center).columnDefaults(2);
-        getTitleLabel().setAlignment(Align.center);
-        getTitleTable().add(getTitleLabel()).expandX().fillX().center();
-
+        RdLabel title = new RdLabel(RdApplication.self().getStrings().get("turn_pawn"));
+        title.setAlignment(Align.center);
+        add(title).expandX().fillX().center().colspan(2).row();
         add(queen).expand().fill().bottom();
         add(rook).expand().fill().bottom().row();
         add(bishop).expand().fill().bottom();

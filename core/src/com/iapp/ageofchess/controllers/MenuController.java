@@ -1,7 +1,6 @@
 package com.iapp.ageofchess.controllers;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -12,12 +11,12 @@ import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.*;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.*;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.OnChangeListener;
 
 public class MenuController extends Controller {
 
@@ -43,6 +42,13 @@ public class MenuController extends Controller {
         loginDialog = new RdDialog(strings.get("login"), ChessAssetManager.current().getSkin());
         loginDialog.removeActor(loginDialog.getButtonTable());
         loginDialog.padBottom(3);
+        loginDialog.setOnCancel(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                activity.hideBlackout();
+                loginDialog.hide();
+            }
+        });
 
         var content = new Table();
         var scroll = new RdScrollPane(content);
@@ -96,12 +102,12 @@ public class MenuController extends Controller {
 
         var label1 = new RdLabel(strings.get("login_name"));
         var label2 = new RdLabel(strings.get("password"));
-        var field1 = new RdTextArea("");
-        field1.setPrefLines(1);
+        var field1 = new RdTextArea("", ChessAssetManager.current().getSkin());
+        field1.setMaxLength(20);
         field1.setMessageText(strings.get("enter_hint"));
 
-        var field2 = new RdTextArea("");
-        field2.setPrefLines(1);
+        var field2 = new RdTextArea("", ChessAssetManager.current().getSkin());
+        field2.setMaxLength(20);
         field2.setMessageText(strings.get("enter_hint"));
         field2.setPasswordMode(true);
         field2.setPasswordCharacter('*');
@@ -136,18 +142,18 @@ public class MenuController extends Controller {
         var label4 = new RdLabel(strings.get("conf_password"));
 
         var userName = new RdTextArea("");
-        userName.setPrefLines(1);
+        userName.setMaxLength(20);
         userName.setMessageText(strings.get("enter_hint"));
         var login = new RdTextArea("");
-        login.setPrefLines(1);
+        login.setMaxLength(20);
         login.setMessageText(strings.get("enter_hint"));
         var password1 = new RdTextArea("");
-        password1.setPrefLines(1);
+        password1.setMaxLength(20);
         password1.setMessageText(strings.get("enter_hint"));
         password1.setPasswordMode(true);
         password1.setPasswordCharacter('*');
         var password2 = new RdTextArea("");
-        password2.setPrefLines(1);
+        password2.setMaxLength(20);
         password2.setMessageText(strings.get("enter_hint"));
         password2.setPasswordMode(true);
         password2.setPasswordCharacter('*');
@@ -210,6 +216,7 @@ public class MenuController extends Controller {
 
     private void login(String name, String password) {
 
+        System.out.println(name + ", " + password);
         activity.showBlackout();
         MultiplayerEngine.self().login(name, password,
                 account -> {

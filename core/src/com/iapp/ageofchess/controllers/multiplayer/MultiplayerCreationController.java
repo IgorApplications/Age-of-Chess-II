@@ -9,13 +9,9 @@ import com.iapp.ageofchess.activity.multiplayer.MultiplayerScenariosActivity;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.rodsher.actors.Spinner;
-import com.iapp.rodsher.screens.Controller;
-import com.iapp.rodsher.screens.RdApplication;
-
-import java.util.function.Consumer;
+import com.iapp.lib.ui.actors.Spinner;
+import com.iapp.lib.ui.screens.Controller;
+import com.iapp.lib.ui.screens.RdApplication;
 
 public class MultiplayerCreationController extends Controller {
 
@@ -40,7 +36,7 @@ public class MultiplayerCreationController extends Controller {
     public void goToGame(LocalMatch localMatch, Match match) {
         MultiplayerEngine.self().enterMatch(match.getId());
 
-        var spinner = new Spinner(strings.get("loading"), ChessAssetManager.current().getSkin());
+        var spinner = new Spinner(strings.get("loading"));
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);

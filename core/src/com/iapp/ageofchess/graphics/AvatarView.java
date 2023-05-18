@@ -7,11 +7,11 @@ import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
-import com.iapp.ageofchess.multiplayer.Account;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.ageofchess.util.LoadAvatarUtil;
-import com.iapp.rodsher.actors.AnimatedImage;
-import com.iapp.rodsher.util.DisposeUtil;
+import com.iapp.lib.web.Account;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.LoadAvatarUtil;
+import com.iapp.lib.ui.actors.AnimatedImage;
+import com.iapp.lib.util.DisposeUtil;
 
 import java.util.Arrays;
 

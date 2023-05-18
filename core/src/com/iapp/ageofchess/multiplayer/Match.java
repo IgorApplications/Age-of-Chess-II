@@ -1,9 +1,10 @@
 package com.iapp.ageofchess.multiplayer;
 
-import com.iapp.ageofchess.chess_engine.Move;
-import com.iapp.ageofchess.chess_engine.Result;
-import com.iapp.ageofchess.chess_engine.TypePiece;
-import com.iapp.rodsher.util.Pair;
+import com.iapp.lib.chess_engine.Move;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
+import com.iapp.lib.util.Pair;
+import com.iapp.lib.web.RankType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,11 +82,11 @@ public class Match {
         return lobby;
     }
 
-    public void setRankPlus(long rankPlus) {
+    public void setRankPlus(double rankPlus) {
         this.rankPlus = rankPlus;
     }
 
-    public void setRankMinus(long rankMinus) {
+    public void setRankMinus(double rankMinus) {
         this.rankMinus = rankMinus;
     }
 

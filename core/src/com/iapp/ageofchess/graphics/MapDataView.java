@@ -7,10 +7,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.rodsher.actors.RdImageTextButton;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.actors.RdTable;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
+import com.iapp.lib.util.OnChangeListener;
 
 public class MapDataView extends Table {
 

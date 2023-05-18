@@ -3,21 +3,21 @@ package com.iapp.ageofchess.controllers;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.iapp.ageofchess.activity.GameActivity;
 import com.iapp.ageofchess.activity.ScenariosActivity;
-import com.iapp.ageofchess.chess_engine.Color;
-import com.iapp.ageofchess.chess_engine.Move;
-import com.iapp.ageofchess.chess_engine.Result;
-import com.iapp.ageofchess.chess_engine.TypePiece;
+import com.iapp.lib.chess_engine.Color;
+import com.iapp.lib.chess_engine.Move;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.graphics.BoardView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
 import com.iapp.ageofchess.multiplayer.TurnMode;
-import com.iapp.ageofchess.util.ChessConstants;
-import com.iapp.ageofchess.util.Sounds;
-import com.iapp.rodsher.screens.RdApplication;
-import com.iapp.rodsher.util.CallListener;
-import com.iapp.rodsher.util.DisposeUtil;
-import com.iapp.rodsher.util.Timer;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.Sounds;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.CallListener;
+import com.iapp.lib.util.DisposeUtil;
+import com.iapp.lib.util.Timer;
 
 public class GameController extends EngineController {
 

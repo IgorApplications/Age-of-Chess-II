@@ -1,21 +1,16 @@
 package com.iapp.ageofchess.graphics;
 
 import com.badlogic.gdx.Files;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.github.tommyettinger.textra.TextraLabel;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.ageofchess.util.ChessAssetManager;
-import com.iapp.rodsher.actors.RdImageTextButton;
-import com.iapp.rodsher.actors.RdLabel;
-import com.iapp.rodsher.util.OnChangeListener;
+import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.util.OnChangeListener;
 
 public class EditMapDataView extends Table {
 
