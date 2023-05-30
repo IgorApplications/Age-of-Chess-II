@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.EditMapController;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.graphics.ModdingView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.MapResources;
@@ -111,6 +112,10 @@ public class EditMapActivity extends Activity {
 
     @Override
     public void initActors() {
+        if (ChessConstants.chatView != null) {
+            ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY_GAMES);
+        }
+        ChessApplication.self().getLineContent().setVisible(false);
         Image background = new Image(new TextureRegionDrawable(
             controller.getRegion("background")));
         background.setFillParent(true);

@@ -4,6 +4,7 @@ import java.util.Date;
 
 public class Punishment {
 
+    private long id;
     private long moderatorId;
     private String cause;
     private Flag type;
@@ -13,12 +14,21 @@ public class Punishment {
 
     public Punishment() {}
 
-    public Punishment(long moderatorId, String cause, Flag type, boolean active) {
+    public Punishment(long id, long moderatorId, String cause, Flag type, boolean active) {
+        this.id = id;
         this.moderatorId = moderatorId;
         this.cause = cause;
         this.type = type;
         this.active = active;
         this.receivedTime = new Date().getTime();
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public long getId() {
+        return id;
     }
 
     public long getModerator() {

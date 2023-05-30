@@ -82,9 +82,10 @@ public class SettingsActivity extends Activity {
 
         reset = new RdTextButton(strings.get("reset"), ChessAssetManager.current().getSkin(), "blue");
 
-        // -------------
+        // ---------------------------------------------------------------------------------------------------------
 
         name = new RdTextField("", ChessAssetManager.current().getSkin());
+        name.setMaxLength(15);
         pieceColor = new RdSelectionButton(ChessAssetManager.current().getSkin(),
                 new String[]{strings.get("white"), strings.get("black")});
 
@@ -323,7 +324,7 @@ public class SettingsActivity extends Activity {
             panel.align(Align.topLeft);
             panel.setFillParent(true);
             getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
+            panel.add(ChessConstants.accountPanel)
                 .expandX().fillX();
         }
 

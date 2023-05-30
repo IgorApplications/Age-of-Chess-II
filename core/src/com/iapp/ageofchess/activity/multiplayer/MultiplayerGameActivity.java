@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -16,31 +15,36 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.lib.chess_engine.Result;
-import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
 import com.iapp.ageofchess.graphics.*;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.lib.ui.screens.GrayAssetManager;
-import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
-import com.iapp.lib.web.RankType;
-import com.iapp.ageofchess.services.*;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.ageofchess.services.Sounds;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.lib.ui.actors.RdDialog;
 import com.iapp.lib.ui.actors.RdDialogBuilder;
 import com.iapp.lib.ui.actors.RdImageTextButton;
 import com.iapp.lib.ui.actors.RdLabel;
 import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.GrayAssetManager;
 import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.ui.screens.RdLogger;
+import com.iapp.lib.ui.widgets.BoardView;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
+import com.iapp.lib.web.Account;
+import com.iapp.lib.web.RankType;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public abstract class MultiplayerGameActivity extends Activity {
@@ -58,12 +62,9 @@ public abstract class MultiplayerGameActivity extends Activity {
     RdLabel timeByTurnLabel, turnsLabel, whiteTime, blackTime;
     boolean fewTime;
 
-    ChatView chatView;
     ControlGameView controlGame;
-    private int lastSize;
-
     // game board
-    MultiplayerBoardView gameBoard;
+    BoardView gameBoard;
 
     // dialog objects
     Sprite infoSprite, selectionSprite;
@@ -74,7 +75,6 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     Table content;
     RdImageTextButton menu, controlMenu;
-    Action onStart;
 
     Image blackout;
     private AtomicBoolean handleInfoBlackout = new AtomicBoolean(false),
@@ -121,7 +121,16 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
+        ChessApplication.self().getLineContent().setVisible(false);
         TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
+    }
+
+    @Override
+    public void show(Activity last) {
+        if (!(last instanceof MultiplayerGameActivity)) {
+            ChessConstants.chatView.updateMode(ChatView.Mode.GAMES);
+        }
+        super.show(last);
     }
 
     @Override
@@ -168,16 +177,13 @@ public abstract class MultiplayerGameActivity extends Activity {
         getStage().addActor(background);
         background.setScaling(Scaling.fill);
 
-        chatView = new ChatView(700, message ->
-            MultiplayerEngine.self().sendLobbyMessage(controller.getMatchId(), message));
-
         if (restoreState()) {
             return;
         }
 
         infoSprite = new Sprite();
         selectionSprite = new Sprite();
-        gameBoard = new MultiplayerBoardView(controller, getStage());
+        gameBoard = new BoardView(controller);
         controller.setBoardView(gameBoard);
 
         content = new Table();
@@ -205,12 +211,8 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     public void update() {
-        boolean updateLobby = lastSize != controller.getCurrentMatch().getLobby().size();
-        lastSize = controller.getCurrentMatch().getLobby().size();
-        if (updateLobby) {
-            chatView.updateMessages(controller.getCurrentMatch().getLobby(),
-                "[GREEN]# " + strings.get("online") + controller.getCurrentMatch().getEntered().size());
-        }
+        ChessConstants.chatView.updateGameMessages(controller.getCurrentMatch().getLobbyMessages());
+        ChessConstants.chatView.updateGameOnline(controller.getCurrentMatch().getEntered().size());
 
         if (controlGame != null) {
             if (controller.getCurrentMatch().isStarted()) {
@@ -262,7 +264,7 @@ public abstract class MultiplayerGameActivity extends Activity {
         }
     }
 
-    void resizeBoard(Cell<MultiplayerBoardView> cell, float rectSize) {
+    void resizeBoard(Cell<BoardView> cell, float rectSize) {
         if (coefficientX > coefficientY) {
             cell.width(rectSize);
             cell.height(rectSize / coefficientX);
@@ -297,6 +299,7 @@ public abstract class MultiplayerGameActivity extends Activity {
         //chatView = oldState.chatView;
         menu = oldState.menu;
         //controlGame = oldState.controlGame;
+        controlMenu = oldState.controlMenu;
 
         content = new Table();
         content.setFillParent(true);
@@ -307,7 +310,7 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     @Override
     public void initListeners() {
-        var onMenu = new OnChangeListener() {
+        OnChangeListener onMenu = new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 blackout.setVisible(true);
@@ -316,21 +319,15 @@ public abstract class MultiplayerGameActivity extends Activity {
                 menuDialog = new RdDialogBuilder()
                         .title(strings.get("game_exit"))
                         .text(strings.get("game_exit_question"))
-                        .cancel(strings.get("cancel"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                blackout.setVisible(false);
-                                gameBoard.addUnblocked();
-                                menuDialog.hide();
-                                menuDialog = null;
-                            }
+                        .cancel(strings.get("cancel"),
+                            (dialog, s) -> {
+                            blackout.setVisible(false);
+                            gameBoard.addUnblocked();
+                            menuDialog.hide();
+                            menuDialog = null;
                         })
-                        .accept(strings.get("exit"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                controller.goToMultiplayerScenario();
-                            }
-                        })
+                        .accept(strings.get("exit"), (dialog, s) ->
+                            controller.goToMultiplayerScenario())
                         .build(ChessAssetManager.current().getSkin(), "input");
 
                 menuDialog.getIcon().setDrawable(new TextureRegionDrawable(
@@ -348,6 +345,7 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         if (oldState != null) {
             menu.getListeners().removeIndex(menu.getListeners().size - 1);
+            controlMenu.getListeners().removeIndex(controlMenu.getListeners().size - 1);
         }
         menu.addListener(onMenu);
         controlMenu.addListener(onMenu);
@@ -391,11 +389,17 @@ public abstract class MultiplayerGameActivity extends Activity {
         resultDialog.getContentTable().align(Align.topLeft).pad(100, 10, 0, 85);
 
         RdLabel label1;
-        if (controller.getCurrentMatch().getTimeByTurn() <= 0) {
+        Match current = controller.getCurrentMatch();
+        // -1 is infinity!
+        if (current.getTimeByTurn() != -1 && current.getTimeByTurn() <= 0) {
             label1 = new RdLabel(strings.get("finish_time_by_turn"));
-        } else if (controller.getCurrentMatch().getTimeByWhite() <= 0) {
+        // -1 is infinity!
+        } else if ((current.getTimeByWhite() != -1 && current.getTimeByWhite() <= 0)
+            || (current.getTimeByBlack() != -1 && current.getTimeByBlack() <= 0)) {
             label1 = new RdLabel(strings.get("finish_player_time"));
-        } else if (controller.getCurrentMatch().getMaxTurn() <= controller.getTurn()) {
+        // -1 is infinity!
+        } else if (controller.getCurrentMatch().getMaxTurn() != -1 &&
+            controller.getCurrentMatch().getMaxTurn() <= controller.getTurn()) {
             label1 = new RdLabel(strings.get("finish_moves"));
         } else if (result == Result.VICTORY) {
             label1 = new RdLabel(strings.get("finish_victory"));
@@ -444,7 +448,7 @@ public abstract class MultiplayerGameActivity extends Activity {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
-                Gdx.app.error("multiplayer selection dialog", RdLogger.getDescription(e));
+                Gdx.app.error("multiplayer selection dialog", RdLogger.self().getDescription(e));
             }
             handleSelectionBlackout.set(true);
         };
@@ -537,7 +541,7 @@ public abstract class MultiplayerGameActivity extends Activity {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
-                Gdx.app.error("multiplayer info 200 millis", RdLogger.getDescription(e));
+                Gdx.app.error("multiplayer info 200 millis", RdLogger.self().getDescription(e));
             }
             handleInfoBlackout.set(true);
         };
@@ -548,7 +552,7 @@ public abstract class MultiplayerGameActivity extends Activity {
             try {
                 Thread.sleep(1500);
             } catch (InterruptedException e) {
-                Gdx.app.error("multiplayer info 1500 millis", RdLogger.getDescription(e));
+                Gdx.app.error("multiplayer info 1500 millis", RdLogger.self().getDescription(e));
             }
             handleInfoBlackout.set(false);
             RdApplication.postRunnable(() -> {
@@ -559,7 +563,7 @@ public abstract class MultiplayerGameActivity extends Activity {
                 }
             });
         };
-        new Thread(timer).start();
+        RdApplication.self().execute(timer);
     }
 
     private void initialize() {

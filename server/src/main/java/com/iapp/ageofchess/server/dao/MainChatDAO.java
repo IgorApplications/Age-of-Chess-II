@@ -16,11 +16,20 @@ import java.util.List;
 @Component
 public class MainChatDAO {
 
+    private static final int maxRows = 200;
+    private static final int returnRows = 70;
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public MainChatDAO(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public void clearOldMessages() {
+        // TODO
+        //jdbcTemplate.update("DELETE FROM Message " +
+          //  "WHERE id < (SELECT MAX(id) - 200 FROM (SELECT * FROM Message) tmp)",
+            //maxRows);
     }
 
     /** sends a message */
@@ -34,7 +43,8 @@ public class MainChatDAO {
 
     /** reads all messages */
     public List<Message> readMessages() {
-        return jdbcTemplate.query("SELECT * FROM Message", new MessageMapper());
+        return jdbcTemplate.query("SELECT * FROM Message LIMIT " + returnRows,
+            new MessageMapper());
     }
 
     /** get message by id */

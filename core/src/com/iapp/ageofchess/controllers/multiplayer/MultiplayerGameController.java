@@ -1,10 +1,10 @@
 package com.iapp.ageofchess.controllers.multiplayer;
 
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerGameActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
-import com.iapp.ageofchess.graphics.MultiplayerBoardView;
+import com.iapp.lib.ui.widgets.BoardView;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.lib.web.Account;
@@ -14,7 +14,6 @@ import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.SettingsUtil;
 import com.iapp.ageofchess.services.Sounds;
 import com.iapp.lib.chess_engine.*;
-import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.CallListener;
 import com.iapp.lib.util.DisposeUtil;
 
@@ -23,7 +22,7 @@ import java.util.Optional;
 
 public class MultiplayerGameController extends MultiplayerEngineController {
 
-    private MultiplayerBoardView boardView;
+    private BoardView boardView;
     private MultiplayerGameActivity activity;
     private final long matchId;
 
@@ -35,6 +34,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         super(activity, localMatch, match);
         this.matchId = match.getId();
         currentMatch = match;
+        ChessConstants.chatView.setMatchId(this.currentMatch.getId());
     }
 
     public boolean isInside() {
@@ -63,7 +63,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         return matchId;
     }
 
-    public void setBoardView(MultiplayerBoardView boardView) {
+    public void setBoardView(BoardView boardView) {
         this.boardView = boardView;
 
         if (currentMatch.getResult() != Result.NONE || (currentMatch.getBlackPlayerId() != ChessConstants.loggingAcc.getId()
@@ -151,6 +151,11 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     }
 
     @Override
+    public void makeMove(Move move, TypePiece updated) {
+        makeMove(move, updated, true);
+    }
+
+    @Override
     public void makeMove(Move move, TypePiece updated, boolean self) {
 
         var castling = isCastleMove(move);
@@ -210,8 +215,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
 
         MultiplayerEngine.self().setOnUpdateMatch(-1, null);
         MultiplayerEngine.self().exitMatch(matchId);
-        ChessApplication.self().getAccountPanel().updateTable();
-        RdApplication.self().getLauncher().setOnKeyboard(null);
+        ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY);
     }
 
     private void finishGame(Result result) {

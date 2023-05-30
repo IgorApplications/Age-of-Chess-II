@@ -1,6 +1,7 @@
 package com.iapp.lib.util;
 
 import com.badlogic.gdx.utils.Null;
+import com.iapp.lib.ui.actors.RdDialog;
 import com.iapp.lib.ui.actors.RdWindow;
 import com.iapp.lib.ui.screens.RdApplication;
 
@@ -19,5 +20,9 @@ public final class WindowUtil {
         window.setPosition(
                 RdApplication.self().getStage().getWidth() / 2 - window.getWidth() / 2,
                 RdApplication.self().getStage().getHeight() / 2 - window.getHeight() / 2);
+    }
+
+    public static boolean isHidden(@Null RdDialog dialog) {
+        return dialog == null || dialog.isHidden();
     }
 }

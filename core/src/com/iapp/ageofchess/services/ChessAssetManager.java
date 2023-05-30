@@ -63,15 +63,17 @@ public class ChessAssetManager extends GrayAssetManager {
 
     private Texture grayLine, blackTexture, darkTexture, whiteTexture, overWhiteTexture,
             downWhiteTexture, greenTexture, overGreenTexture, downGreenTexture, transpBlackTexture,
-            darkRed, goldTexture, redTexture, darkGrayTexture;
+            darkRed, goldTexture, redTexture;
     private Texture levelUp, levelOver, levelDown, closedLevelUp;
 
     private RdDialog.RdDialogStyle selectionStyle, resultStyle, infoStyle;
     private Button.ButtonStyle cancelStyle;
     private ImageButton.ImageButtonStyle levelStyle, closedLevelStyle,
-        selectedStyle, avatarStyle, deleteStyle, hideChatStyle, gamesStyle,
-        profileStyle, settingsStyle, loginStyle, logoutStyle, adminStyle, searchPeopleStyle;
+        selectedStyle, avatarStyle, deleteStyle, hideChatStyle, chatLobbyUp,
+        chatLobbyDown, gamesStyle, profileStyle, settingsStyle, loginStyle,
+        logoutStyle, adminStyle, searchPeopleStyle, serverStyle;
     private RdImageTextButton.RdImageTextButtonStyle coinsStyle;
+    private RdImageTextButton.RdImageTextButtonStyle modeChatStyle;
 
     private CallListener clickListener;
 
@@ -89,6 +91,22 @@ public class ChessAssetManager extends GrayAssetManager {
 
     public List<MapData> getDataMaps() {
         return dataMaps;
+    }
+
+    public ImageButton.ImageButtonStyle getServerStyle() {
+        return serverStyle;
+    }
+
+    public ImageButton.ImageButtonStyle getChatLobbyUp() {
+        return chatLobbyUp;
+    }
+
+    public ImageButton.ImageButtonStyle getChatLobbyDown() {
+        return chatLobbyDown;
+    }
+
+    public RdImageTextButton.RdImageTextButtonStyle getModeChatStyle() {
+        return modeChatStyle;
     }
 
     public ImageButton.ImageButtonStyle getAdminStyle() {
@@ -129,10 +147,6 @@ public class ChessAssetManager extends GrayAssetManager {
 
     public ImageButton.ImageButtonStyle getDeleteStyle() {
         return deleteStyle;
-    }
-
-    public Texture getDarkGrayTexture() {
-        return darkGrayTexture;
     }
 
     public Texture getGrayLine() {
@@ -341,9 +355,6 @@ public class ChessAssetManager extends GrayAssetManager {
         goldTexture = TextureUtil.create(10, 10, Color.GOLD);
         redTexture = TextureUtil.create(10, 10, Color.RED);
 
-        darkGrayTexture = TextureUtil.create(5, 5,
-            new Color(Color.rgba8888(1f, 1f, 1f, 1)));
-
         initAppStyles();
         clickListener = () -> Sounds.self().playClick();
     }
@@ -420,6 +431,28 @@ public class ChessAssetManager extends GrayAssetManager {
         hideChatStyle.imageUp = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_up"));
         hideChatStyle.imageOver = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_over"));
         hideChatStyle.imageDown = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_down"));
+
+        chatLobbyUp = new ImageButton.ImageButtonStyle(getSkin().get(ImageButton.ImageButtonStyle.class));
+        chatLobbyUp.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_up"));
+
+        chatLobbyDown = new ImageButton.ImageButtonStyle(getSkin().get(ImageButton.ImageButtonStyle.class));
+        chatLobbyDown.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_down"));
+
+        modeChatStyle = new RdImageTextButton.RdImageTextButtonStyle();
+        modeChatStyle.up = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_up"),
+            35, 10, 10, 10));
+        modeChatStyle.over = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_over"),
+            35, 10, 10, 10));
+        modeChatStyle.down = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
+            35, 10, 10, 10));
+        modeChatStyle.checked = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
+            35, 10, 10, 10));
+        modeChatStyle.font = RdAssetManager.current().getSkin().get(Font.class);
+        modeChatStyle.fontColor = Color.WHITE;
 
         gamesStyle = generateAccountStyle(findRegion("iw_menu"), findRegion("iw_menu_down"));
         profileStyle = generateAccountStyle(findRegion("iw_account"), findRegion("iw_account_down"));

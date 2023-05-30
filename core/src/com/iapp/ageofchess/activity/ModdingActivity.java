@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.ModdingController;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.graphics.EditMapDataView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.TypeMap;
@@ -26,6 +27,7 @@ import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class ModdingActivity extends Activity {
 
@@ -48,6 +50,10 @@ public class ModdingActivity extends Activity {
 
     @Override
     public void initActors() {
+        if (ChessConstants.chatView != null) {
+            ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY);
+        }
+        ChessApplication.self().getLineContent().setVisible(true);
         Image background = new Image(new TextureRegionDrawable(
             ChessAssetManager.current().findChessRegion("menu_background")));
         background.setFillParent(true);
@@ -97,7 +103,7 @@ public class ModdingActivity extends Activity {
             panel.align(Align.topLeft);
             panel.setFillParent(true);
             getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
+            panel.add(ChessConstants.accountPanel)
                 .expandX().fillX();
         }
 
@@ -156,21 +162,18 @@ public class ModdingActivity extends Activity {
     }
 
     private void showDeleteMap(MapData mapData) {
-        deleteMap = new RdDialogBuilder()
+        RdDialog deleteMap = new RdDialogBuilder()
                 .title(strings.get("confirmation"))
                 .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        Runnable task = () -> DataManager.self().removeMapData(mapData);
-                        RdApplication.self().execute(task);
+                .accept(strings.get("accept"), (dialog, s) -> {
+                    Runnable task = () -> DataManager.self().removeMapData(mapData);
+                    RdApplication.self().execute(task);
 
-                        // equals by link
-                        ChessAssetManager.current().getDataMaps().remove(mapData);
-                        properties.getContent().clear();
-                        addMaps(ChessAssetManager.current().getDataMaps());
-                        deleteMap.hide();
-                    }
+                    // equals by link
+                    ChessAssetManager.current().getDataMaps().remove(mapData);
+                    properties.getContent().clear();
+                    addMaps(ChessAssetManager.current().getDataMaps());
+                    dialog.hide();
                 })
                 .text(strings.get("conf_del_map"))
                 .build(ChessAssetManager.current().getSkin(), "input");

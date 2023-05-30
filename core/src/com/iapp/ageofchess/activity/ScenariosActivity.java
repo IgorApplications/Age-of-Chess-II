@@ -11,7 +11,8 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.controllers.ScenarioController;
+import com.iapp.ageofchess.controllers.ScenariosController;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.graphics.LevelView;
 import com.iapp.ageofchess.graphics.MapDataView;
 import com.iapp.ageofchess.graphics.ScenarioView;
@@ -29,21 +30,23 @@ import com.iapp.lib.util.WindowUtil;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class ScenariosActivity extends Activity {
 
-    private final ScenarioController controller;
+    private final ScenariosController controller;
     private final Array<RdDialog> badScenarios = new Array<>();
     private RdImageTextButton back, savedGames;
     private WindowGroup windowGroup;
     private RdDialog scenarios;
 
     public ScenariosActivity() {
-        this.controller = new ScenarioController(this);
+        this.controller = new ScenariosController(this);
     }
 
     @Override
     public void initActors() {
+        if (ChessConstants.chatView != null) ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY);
         back = new RdImageTextButton(strings.get("back"), "red_screen");
         back.setImage("ib_back");
 
@@ -70,6 +73,7 @@ public class ScenariosActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
+        ChessApplication.self().getLineContent().setVisible(true);
         Image background = new Image(new TextureRegionDrawable(
             ChessAssetManager.current().findChessRegion("menu_background")));
         background.setFillParent(true);
@@ -81,7 +85,7 @@ public class ScenariosActivity extends Activity {
             panel.align(Align.topLeft);
             panel.setFillParent(true);
             getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
+            panel.add(ChessConstants.accountPanel)
                 .expandX().fillX();
         }
 
@@ -161,15 +165,15 @@ public class ScenariosActivity extends Activity {
                         .expandX().fillX().left().padBottom(5).row();
 
             } catch (Throwable t) {
-                Gdx.app.error("showScenario", RdLogger.getDescription(t));
+                Gdx.app.error("showScenario", RdLogger.self().getDescription(t));
 
                 int index = badScenarios.size;
                 var badScenario = new RdDialogBuilder()
                         .title(strings.get("error"))
-                        .text(RdLogger.getDescription(t))
-                        .accept(strings.get("accept"), new OnChangeListener() {
+                        .text(RdLogger.self().getDescription(t))
+                        .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
                             @Override
-                            public void onChange(Actor actor) {
+                            public void accept(RdDialog dialog, String s) {
                                 badScenarios.get(index).hide();
                                 badScenarios.removeValue(badScenarios.get(index), true);
                             }

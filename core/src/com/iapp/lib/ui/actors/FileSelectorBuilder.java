@@ -173,7 +173,7 @@ public class FileSelectorBuilder {
 
         dialog.getContentTable().align(Align.topLeft);
         dialog.getContentTable().add(pathParent)
-                .expandX().fillX().row();
+                .expandX().fillX().padRight(8).row();
         dialog.getContentTable().add(scrollPane).expand().fill();
         dialog.getButtonTable().add(accept).expandX().fillX();
         if (!cancelText.equals("")) {

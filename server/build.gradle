@@ -3,7 +3,7 @@ plugins {
   id 'java'
 }
 
-version = '1.0.2'
+version = '2.0.1'
 group = 'org.gradle.samples'
 
 java {
@@ -27,6 +27,7 @@ dependencies {
   implementation group: 'org.postgresql', name: 'postgresql'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc'
   implementation group: 'org.springframework.security', name: 'spring-security-crypto'
+  implementation "org.springframework.boot:spring-boot-devtools"
 
   implementation project(':core')
 }

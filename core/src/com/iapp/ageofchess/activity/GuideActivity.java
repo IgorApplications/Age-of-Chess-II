@@ -54,15 +54,6 @@ public class GuideActivity extends Activity {
         background.setScaling(Scaling.fill);
         getStage().addActor(background);
 
-        if (ChessConstants.loggingAcc != null) {
-            RdTable panel = new RdTable();
-            panel.align(Align.topLeft);
-            panel.setFillParent(true);
-            getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
-                .expandX().fillX();
-        }
-
         var content = new RdTable();
         content.setFillParent(true);
         getStage().addActor(content);

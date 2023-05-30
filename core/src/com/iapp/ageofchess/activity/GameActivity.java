@@ -5,26 +5,30 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.lib.chess_engine.Result;
-import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.GameController;
-import com.iapp.ageofchess.graphics.BoardView;
+import com.iapp.lib.ui.widgets.BoardView;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.graphics.ResultDialog;
 import com.iapp.ageofchess.graphics.SelectionDialog;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
-import com.iapp.ageofchess.services.*;
+import com.iapp.ageofchess.services.Cheats;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.chess_engine.Result;
+import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
 import com.iapp.lib.ui.screens.GrayAssetManager;
@@ -35,6 +39,7 @@ import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public abstract class GameActivity extends Activity {
@@ -46,6 +51,7 @@ public abstract class GameActivity extends Activity {
     final GameController controller;
     private ScrollPane scroll;
     private float coefX, coefY;
+    private boolean exit = false;
 
     BoardView gameBoard;
 
@@ -66,6 +72,7 @@ public abstract class GameActivity extends Activity {
         whitePawn, whiteRook, whiteKnight, whiteBishop, whiteQueen, whiteScore;
 
     public static GameActivity newInstance(MatchState state) {
+        if (ChessConstants.chatView != null) ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY_GAMES);
         verticallyMode = Gdx.graphics.getWidth() <= Gdx.graphics.getHeight();
         GameActivity activity;
         if (verticallyMode) {
@@ -74,11 +81,11 @@ public abstract class GameActivity extends Activity {
             activity = new GameActivityH(state);
         }
 
-
         return activity;
     }
 
     public static GameActivity newInstance(LocalMatch localMatch) {
+        if (ChessConstants.chatView != null) ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY_GAMES);
         verticallyMode = Gdx.graphics.getWidth() <= Gdx.graphics.getHeight();
         GameActivity activity;
         if (verticallyMode) {
@@ -120,6 +127,7 @@ public abstract class GameActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
+        ChessApplication.self().getLineContent().setVisible(false);
         TransitionEffects.alphaShow(stage.getRoot(), ChessConstants.localData.getScreenDuration());
     }
 
@@ -133,19 +141,21 @@ public abstract class GameActivity extends Activity {
     public void render(float delta) {
         super.render(delta);
         handleBlackout();
+        blackout.setTouchable(Touchable.disabled);
     }
 
     @Override
     public void dispose() {
         super.dispose();
+        if (exit) controller.stop();
     }
 
     @Override
     public void resize(int width, int height) {
         super.resize(width, height);
         if (verticallyMode != (width <= height) && width != 0 && height != 0) {
+            exit = false;
             RdApplication.self().setScreen(newInstance(this, controller));
-            dispose();
         }
 
         WindowUtil.resizeCenter(menuDialog);
@@ -167,6 +177,7 @@ public abstract class GameActivity extends Activity {
 
     @Override
     public Actor hide(SequenceAction action, Activity next) {
+        if (next instanceof GameActivity) return null;
         TransitionEffects.alphaHide(action, ChessConstants.localData.getScreenDuration());
         return getStage().getRoot();
     }
@@ -179,10 +190,27 @@ public abstract class GameActivity extends Activity {
         getStage().addActor(background);
         background.setScaling(Scaling.fill);
 
-        if (restoreState()) return;
+        if (restoreState()) {
+            menu = new RdImageTextButton("");
+            menu.setImage("iw_menu");
+            menu.getLabelCell().reset();
+            replay = new RdImageTextButton("");
+            replay.setImage("iw_replay");
+            replay.getLabelCell().reset();
+            undo = new RdImageTextButton("");
+            undo.setImage("iw_undo");
+            undo.getLabelCell().reset();
+            hint = new RdImageTextButton("");
+            hint.setImage("iw_hint");
+            hint.getLabelCell().reset();
+            info = new RdImageTextButton("");
+            info.setImage("iw_help");
+            info.getLabelCell().reset();
+            return;
+        }
         infoSprite = new Sprite();
         selectionSprite = new Sprite();
-        gameBoard = new BoardView(controller, getStage());
+        gameBoard = new BoardView(controller);
         controller.setBoardView(gameBoard);
 
         content = new Table();
@@ -328,18 +356,26 @@ public abstract class GameActivity extends Activity {
         content.setFillParent(true);
         getStage().addActor(content);
 
-        menu = oldState.menu;
-        replay = oldState.replay;
-        undo = oldState.undo;
-        hint = oldState.hint;
-        info = oldState.info;
+        //   menu = oldState.menu;
+        //        replay = oldState.replay;
+        //        undo = oldState.undo;
+        //        hint = oldState.hint;
+        //        info = oldState.info;
 
         return true;
     }
 
     @Override
     public void initListeners() {
-        var onMenu = new OnChangeListener() {
+        //if (oldState != null) {
+        //            menu.getListeners().removeIndex(menu.getListeners().size - 1);
+        //            replay.getListeners().removeIndex(replay.getListeners().size - 1);
+        //            info.getListeners().removeIndex(info.getListeners().size - 1);
+        //            hint.getListeners().removeIndex(hint.getListeners().size - 1);
+        //            undo.getListeners().removeIndex(undo.getListeners().size - 1);
+        //        }
+
+        OnChangeListener onMenu = new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 blackout.setVisible(true);
@@ -348,21 +384,15 @@ public abstract class GameActivity extends Activity {
                 menuDialog = new RdDialogBuilder()
                         .title(strings.get("game_exit"))
                         .text(strings.get("game_exit_question"))
-                        .cancel(strings.get("cancel"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                blackout.setVisible(false);
-                                gameBoard.addUnblocked();
-                                menuDialog.hide();
-                                menuDialog = null;
-                            }
+                        .cancel(strings.get("cancel"),
+                            (dialog, s) -> {
+                            blackout.setVisible(false);
+                            gameBoard.addUnblocked();
+                            menuDialog.hide();
+                            menuDialog = null;
                         })
-                        .accept(strings.get("exit"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                controller.goToScenario();
-                            }
-                        })
+                        .accept(strings.get("exit"),
+                            (dialog, s) -> controller.goToScenario())
                         .build(ChessAssetManager.current().getSkin(), "input");
 
                 menuDialog.getIcon().setDrawable(new TextureRegionDrawable(
@@ -377,16 +407,7 @@ public abstract class GameActivity extends Activity {
             if (menuDialog == null) onMenu.onChange(null);
         });
 
-
-        if (oldState != null) {
-            menu.getListeners().removeIndex(menu.getListeners().size - 1);
-            replay.getListeners().removeIndex(replay.getListeners().size - 1);
-            info.getListeners().removeIndex(info.getListeners().size - 1);
-            hint.getListeners().removeIndex(hint.getListeners().size - 1);
-            undo.getListeners().removeIndex(undo.getListeners().size - 1);
-        }
         menu.addListener(onMenu);
-
         replay.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -396,21 +417,13 @@ public abstract class GameActivity extends Activity {
                 replayDialog = new RdDialogBuilder()
                         .title(strings.get("start_game_again"))
                         .text(strings.get("restart_game_question"))
-                        .cancel(strings.get("cancel"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                blackout.setVisible(false);
-                                gameBoard.addUnblocked();
-                                replayDialog.hide();
-                                replayDialog = null;
-                            }
+                        .cancel(strings.get("cancel"), (dialog, s) -> {
+                            blackout.setVisible(false);
+                            gameBoard.addUnblocked();
+                            replayDialog.hide();
                         })
-                        .accept(strings.get("replay"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
-                                controller.restart();
-                            }
-                        })
+                        .accept(strings.get("replay"),
+                            (dialog, s) -> controller.restart())
                         .build(ChessAssetManager.current().getSkin(), "input");
 
                 replayDialog.getIcon().setDrawable(new TextureRegionDrawable(
@@ -460,7 +473,6 @@ public abstract class GameActivity extends Activity {
                 if (handleInfoBlackout.get() && !infoSprite.getBoundingRectangle().contains(spriteTouchPoint.x, spriteTouchPoint.y)) {
                     if (infoDialog != null) {
                         infoDialog.hide();
-                        infoDialog = null;
                         gameBoard.addUnblocked();
                     }
                 }
@@ -474,6 +486,13 @@ public abstract class GameActivity extends Activity {
     }
 
     public void showResultDialog(Result result) {
+        //  denied
+        if (result == Result.VICTORY) return;
+        showResultDialog(result, true);
+    }
+
+    public void showResultDialog(Result result, boolean isRanked) {
+        if (resultDialog != null) return;
         var titlePair = SettingsUtil.defineResult(result);
 
         resultDialog = new ResultDialog(titlePair.getKey(), titlePair.getValue(),
@@ -482,7 +501,6 @@ public abstract class GameActivity extends Activity {
             @Override
             public void onChange(Actor actor) {
                 resultDialog.hide();
-                resultDialog = null;
             }
         });
         resultDialog.getContentTable().align(Align.topLeft).pad(150, 10, 0, 85);
@@ -491,6 +509,10 @@ public abstract class GameActivity extends Activity {
         else if (result == Result.DRAWN) showDrawn(resultDialog);
         else if (result == Result.LOSE) showLose(resultDialog);
         else throw new IllegalArgumentException("unknown game mode");
+        if (!isRanked) {
+            RdLabel reference = new RdLabel("[GREEN]" + strings.get("ref_non_ranked"));
+            resultDialog.getContentTable().add(reference).expandX().left();
+        }
 
         resultDialog.show(getStage());
         resultDialog.setSize(900, 900);
@@ -509,7 +531,6 @@ public abstract class GameActivity extends Activity {
             selectionDialog.hide();
             blackout.setVisible(false);
             if (typePiece != null) selectionListener.accept(typePiece);
-            selectionDialog = null;
             handleSelectionBlackout.set(false);
         });
 
@@ -523,7 +544,7 @@ public abstract class GameActivity extends Activity {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
-                Gdx.app.error("selection dialog", RdLogger.getDescription(e));
+                Gdx.app.error("selection dialog", RdLogger.self().getDescription(e));
             }
             handleSelectionBlackout.set(true);
         };
@@ -648,7 +669,6 @@ public abstract class GameActivity extends Activity {
             @Override
             public void onChange(Actor actor) {
                 statisticDialog.hide();
-                statisticDialog = null;
             }
         });
         statisticDialog.getIcon().setDrawable(new TextureRegionDrawable(
@@ -737,7 +757,7 @@ public abstract class GameActivity extends Activity {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
-                Gdx.app.error("info dialog 200 millis", RdLogger.getDescription(e));
+                Gdx.app.error("info dialog 200 millis", RdLogger.self().getDescription(e));
             }
             handleInfoBlackout.set(true);
         };
@@ -748,18 +768,17 @@ public abstract class GameActivity extends Activity {
             try {
                 Thread.sleep(1500);
             } catch (InterruptedException e) {
-                Gdx.app.error("info dialog 1500 millis", RdLogger.getDescription(e));
+                Gdx.app.error("info dialog 1500 millis", RdLogger.self().getDescription(e));
             }
             handleInfoBlackout.set(false);
             Gdx.app.postRunnable(() -> {
                 if (infoDialog != null) {
                     infoDialog.hide();
-                    infoDialog = null;
                     gameBoard.addUnblocked();
                 }
             });
         };
-        new Thread(timer).start();
+        RdApplication.self().execute(timer);
     }
 
     private void initialize() {

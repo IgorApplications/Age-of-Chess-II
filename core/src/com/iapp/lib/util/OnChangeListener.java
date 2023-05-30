@@ -1,6 +1,7 @@
 package com.iapp.lib.util;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Event;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -45,8 +46,8 @@ public abstract class OnChangeListener extends InputListener {
             try {
                 onChange(e.getListenerActor());
             } catch (Throwable t) {
-                Gdx.app.error("handle", RdLogger.getDescription(t));
-                RdLogger.showFatalScreen(t);
+                Gdx.app.error("handle", RdLogger.self().getDescription(t));
+                RdLogger.self().showFatalScreen(t);
             }
         }
         return result;

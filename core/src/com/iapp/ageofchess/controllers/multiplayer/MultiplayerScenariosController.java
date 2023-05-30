@@ -1,6 +1,8 @@
 package com.iapp.ageofchess.controllers.multiplayer;
 
 import com.badlogic.gdx.Gdx;
+import com.iapp.ageofchess.ChessApplication;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.activity.CreationActivity;
 import com.iapp.ageofchess.activity.multiplayer.*;
@@ -36,7 +38,7 @@ public class MultiplayerScenariosController extends Controller {
         boolean infinityTimeGame = match.getTimeByWhite() == -1;
         boolean infinityTurns = match.getMaxTurn() == -1;
 
-        var builder = new LocalMatch.GameBuilder(match.getName(), Color.BLACK, mapData)
+        LocalMatch.GameBuilder builder = new LocalMatch.GameBuilder(match.getName(), Color.BLACK, mapData)
                 .flippedPieces(ChessConstants.localData.isFlippedPieces())
                 .turnMode(match.getTurnMode())
                 .timeByGame(Math.min(match.getTimeByWhite(), match.getTimeByBlack()))
@@ -48,18 +50,31 @@ public class MultiplayerScenariosController extends Controller {
                 .matchInfo(ChessConstants.localData.isMatchDescription())
                 .gameMode(GameMode.MULTIPLAYER)
                 .rankType(match.getRankType());
-        var localMatch = new LocalMatch(CreationActivity.generateMatchId(), builder);
+        LocalMatch localMatch = new LocalMatch(CreationActivity.generateMatchId(), builder);
 
-        var spinner = new Spinner(strings.get("loading"), ChessAssetManager.current().getSkin());
+        Spinner spinner = new Spinner(strings.get("loading"), ChessAssetManager.current().getSkin());
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);
         activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
+        MultiplayerEngine.self().enterMatch(match.getId(),
+            () -> {},
+            error -> {
+
+                spinner.hide();
+                // error entry into match
+                ChessApplication.self().showError(strings.format("error_enter", error));
+
+            }
+        );
+
+        // successful entry into the match
         MultiplayerEngine.self().setOnUpdateMatch(match.getId(), updatedMatch ->
-            LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () ->
-                startActivity(MultiplayerGameActivity.newInstance(localMatch, updatedMatch))));
-        MultiplayerEngine.self().enterMatch(match.getId());
+            LoaderMap.self().loadIntoRam(localMatch.getMatchData(), () -> {
+                ChessConstants.chatView.updateMode(ChatView.Mode.GAMES);
+                startActivity(MultiplayerGameActivity.newInstance(localMatch, updatedMatch));
+            }));
     }
 
     public void goToMenu() {

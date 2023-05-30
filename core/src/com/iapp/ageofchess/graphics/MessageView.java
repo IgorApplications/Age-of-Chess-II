@@ -23,7 +23,7 @@ import java.util.Date;
 
 public class MessageView extends Table implements Disposable {
 
-    private static final SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy hh:mm",
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm",
             ChessConstants.localData.getLocale());
     private final AvatarView avatarView;
 

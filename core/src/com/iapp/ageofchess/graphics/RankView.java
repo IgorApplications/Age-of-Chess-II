@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
+import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.web.Account;
 import com.iapp.lib.web.RankType;
 import com.iapp.lib.ui.actors.RdLabel;
@@ -23,18 +24,16 @@ public class RankView extends RdTable implements Disposable {
     private static final Color RED = Color.RED;
     private static final Color VIOLET = new Color(Color.rgba8888(0.34f, 0f, 1f, 1));
 
-    private final MultiplayerMenuController controller;
     private final AccountView accountView;
     private final double rank;
     private final int number;
 
-    public RankView(int number, Account account, RankType rankType, MultiplayerMenuController controller) {
-        this.controller = controller;
+    public RankView(int number, Account account, RankType rankType) {
         accountView = new AccountView(account,
             new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    controller.seeAccount(account.getId());
+                    ChessConstants.accountController.seeAccount(account.getId());
                 }
         });
         rank = getRank(account, rankType);

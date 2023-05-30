@@ -17,12 +17,14 @@ import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MultiplayerGamesActivity extends Activity {
@@ -87,7 +89,7 @@ public class MultiplayerGamesActivity extends Activity {
         panel.align(Align.topLeft);
         panel.setFillParent(true);
         getStage().addActor(panel);
-        panel.add(ChessApplication.self().getAccountPanel())
+        panel.add(ChessConstants.accountPanel)
             .expandX().fillX();
 
         var window = new RdWindow("","screen_window");
@@ -142,14 +144,13 @@ public class MultiplayerGamesActivity extends Activity {
             }, new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    confMatch = ChessApplication.self().showConf(strings.get("conf_remove_match"),
-                            new OnChangeListener() {
-                        @Override
-                        public void onChange(Actor actor) {
+                    ChessApplication.self().showConf(strings.get("conf_remove_match"),
+                        (dialog, s) -> {
                             confMatch.hide();
-                            MultiplayerEngine.self().removeMatch(match.getId());
-                        }
-                    });
+                            MultiplayerEngine.self().removeMatch(match.getId(),
+                                error -> ChessApplication.self().showError(strings.format("error_remove_match",
+                                    error)));
+                        });
                 }
             });
 

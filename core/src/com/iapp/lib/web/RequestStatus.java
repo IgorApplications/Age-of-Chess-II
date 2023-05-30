@@ -8,5 +8,9 @@ public enum RequestStatus {
     NOT_FOUND,
     INCORRECT_DATA,
     SOCKET_NOT_FOUND,
-    UPDATE_FROM_SERVER
+    UPDATE_FROM_SERVER,
+    LEGACY,
+    BANNED,
+    MUTED,
+    WARNED
 }

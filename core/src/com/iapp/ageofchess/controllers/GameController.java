@@ -7,7 +7,7 @@ import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.chess_engine.Move;
 import com.iapp.lib.chess_engine.Result;
 import com.iapp.lib.chess_engine.TypePiece;
-import com.iapp.ageofchess.graphics.BoardView;
+import com.iapp.lib.ui.widgets.BoardView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
@@ -49,7 +49,7 @@ public class GameController extends EngineController {
     public void setActivity(GameActivity activity) {
         this.activity = activity;
 
-        if (checkNotRankScenario()) return;
+        finishGame(result);
         if (localMatch.getGameMode() != GameMode.TWO_PLAYERS
                 && getMatch().getUpperColor() == getColorMove()) {
             boardView.setBlockedMove(true);
@@ -327,13 +327,14 @@ public class GameController extends EngineController {
     }
 
     private void finishGame(Result result) {
+        if (result == Result.NONE) return;
         boardView.setBlockedMove(true);
-        activity.showResultDialog(result);
-
+        boolean isRanked = localMatch.getMatchData().isRatingScenario(localMatch.getNumberScenario());
+        activity.showResultDialog(result, isRanked);
 
         if ((result == Result.VICTORY || result == Result.BLACK_VICTORY || result == Result.WHITE_VICTORY)
                 // if is ranked match!
-                && localMatch.getMatchData().isRatingScenario(localMatch.getNumberScenario())) {
+                && isRanked) {
             ChessConstants.localData.getBestResultByLevel().put(localMatch.getGameMode(), getTurn());
 
             if (ChessConstants.localData.getUserLevel() != GameMode.GRADMASTER) {
@@ -438,25 +439,5 @@ public class GameController extends EngineController {
         } else {
             whiteTimer.resume();
         }
-    }
-
-    private boolean checkNotRankScenario() {
-        // modding scenarios
-        if (state == null) {
-            var checkKing = getCheckKing();
-            result = defineResult();
-            boardView.updateCheck();
-
-            if (checkKing != null && getColor(checkKing.getKey(), checkKing.getValue()) != getColorMove()) {
-                finishGame(defineResult(getColor(checkKing.getKey(), checkKing.getValue())));
-                return true;
-            }
-
-            if (result != Result.NONE) {
-                finishGame(result);
-                return true;
-            }
-        }
-        return false;
     }
 }

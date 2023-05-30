@@ -192,9 +192,9 @@ public class RdSelectBox<T> extends Widget implements Disableable {
         }
 
         T selected = selection.first();
-        if (selected != null && !title.getText().equals(selected.toString())) {
+        if (selected != null && !title.getOriginalText().toString().equals(selected.toString())) {
             title.setText(selected.toString());
-            title.setScale(style.scale);
+            title.setDefaultToken("[%" + style.scale * 100 + "]");
         }
 
         if (bg != null) {

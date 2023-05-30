@@ -47,7 +47,6 @@ public class DataManager {
 
         if (mapResources.getTextures() != null && mapResources.getTextureNames() != null) {
             for (int i = 0; i < mapResources.getTextureNames().length; i++) {
-                System.out.println(Arrays.toString(mapResources.getTextureNames()));
                 folderHandle.child(mapResources.getTextureNames()[i])
                         .writeBytes(mapResources.getTextures()[i], false);
             }
@@ -110,7 +109,7 @@ public class DataManager {
             localData.getReferences().removeIf(ref -> ref.getMatch() == null);
             return localData;
         } catch (Throwable t) {
-            Gdx.app.error("readLocalData", RdLogger.getDescription(t));
+            Gdx.app.error("readLocalData", RdLogger.self().getDescription(t));
             return new LocalData();
         }
     }

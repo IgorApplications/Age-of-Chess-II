@@ -189,7 +189,7 @@ public class RdList<T> extends Widget implements Cullable {
             var item = items.get(i);
             var label = new RdLabel(item.toString(),
                     new RdLabel.RdLabelStyle(style.font, null));
-            label.setScale(style.scale);
+            label.setDefaultToken("[%" + style.scale * 100 + "]");
             labels[i] = label;
 
             itemHeight = Math.max(labels[i].getPrefHeight(), itemHeight);
@@ -274,7 +274,7 @@ public class RdList<T> extends Widget implements Cullable {
                 }
 
                 var label = labels[i];
-                label.setColor(labelColor);
+                label.layout.setBaseColor(labelColor);
                 label.setPosition(x + textOffsetX + itemHeight * coefficient,
                         y + itemY - itemHeight / 2);
                 label.setWidth(textWidth);

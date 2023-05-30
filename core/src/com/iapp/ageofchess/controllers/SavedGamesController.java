@@ -21,6 +21,8 @@ import com.iapp.lib.ui.screens.Controller;
 import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
 
+import java.util.function.BiConsumer;
+
 public class SavedGamesController extends Controller {
 
     private final SavedGamesActivity activity;
@@ -59,9 +61,9 @@ public class SavedGamesController extends Controller {
                 .title(strings.get("confirmation"))
                 .text(strings.get("question_clear_game"))
                 .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new OnChangeListener() {
+                .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
                     @Override
-                    public void onChange(Actor actor){
+                    public void accept(RdDialog dialog, String s) {
                         ChessConstants.localData.getReferences().remove(ref);
                         activity.updateSavedGames();
                         question.hide();

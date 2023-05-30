@@ -7,12 +7,15 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Null;
 import com.github.tommyettinger.textra.Font;
 import com.github.tommyettinger.textra.TypingLabel;
+import com.iapp.lib.ui.screens.GrayAssetManager;
 import com.iapp.lib.ui.screens.RdAssetManager;
 
 /**
  * @version 1.0
  * */
 public class RdLabel extends TypingLabel {
+
+    private String lastText;
 
     public RdLabel(String text, RdLabelStyle style) {
         super(text, valueOf(style), style.font);
@@ -24,6 +27,10 @@ public class RdLabel extends TypingLabel {
         super(text, valueOf(style), style.font, markup);
         skipToTheEnd();
         replaceScale(style.scale);
+    }
+
+    public RdLabel(String text, boolean markup) {
+        this(text, RdAssetManager.current().getSkin().get("default", RdLabelStyle.class), markup);
     }
 
     public RdLabel(String text, Skin skin, String name) {
@@ -42,7 +49,8 @@ public class RdLabel extends TypingLabel {
 
     @Override
     public void setText(String newText) {
-        if (getOriginalText().toString().equals(newText)) return;
+        if (newText.equals(lastText)) return;
+        lastText = newText;
         super.setText(newText);
         skipToTheEnd();
     }

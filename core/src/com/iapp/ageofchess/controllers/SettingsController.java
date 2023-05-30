@@ -19,6 +19,7 @@ import com.iapp.lib.util.Pair;
 import com.iapp.lib.util.RdI18NBundle;
 
 import java.util.Locale;
+import java.util.function.BiConsumer;
 
 public class SettingsController extends Controller {
 
@@ -80,9 +81,9 @@ public class SettingsController extends Controller {
                 .title(strings.get("confirmation"))
                 .text(strings.get("reset_question"))
                 .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new OnChangeListener() {
+                .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
                     @Override
-                    public void onChange(Actor actor) {
+                    public void accept(RdDialog dialog, String s) {
                         ChessConstants.localData = new LocalData();
                         ChessConstants.localData.setLocale(Locale.getDefault());
                         ChessApplication.self().initialize();

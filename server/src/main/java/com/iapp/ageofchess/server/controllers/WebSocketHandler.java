@@ -1,18 +1,14 @@
 package com.iapp.ageofchess.server.controllers;
 
 import com.google.gson.Gson;
-import com.iapp.lib.web.Account;
-import com.iapp.lib.web.AccountType;
-import com.iapp.lib.web.Login;
 import com.iapp.ageofchess.multiplayer.Match;
-import com.iapp.lib.web.BinaryRequests;
-import com.iapp.lib.web.RequestStatus;
-import com.iapp.lib.web.SocketRequest;
-import com.iapp.lib.web.SocketResult;
+import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.util.Pair;
+import com.iapp.lib.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.devtools.restart.Restarter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -20,10 +16,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
@@ -33,12 +26,13 @@ import java.util.stream.Collectors;
 @Component
 public class WebSocketHandler extends AbstractWebSocketHandler {
 
+    private static final long ACCOUNT_UPDATE_TIME = 30 * 60 * 1000;
+    private static final long MAIN_CHAT_UPDATE_TIME = 60 * 1000;
     private static final Logger websocketLogger = LoggerFactory.getLogger(WebSocketHandler.class);
     private static final Object MUTEX = new Object();
 
     private final Gson gson = new Gson();
     private final ExecutorService service = Executors.newSingleThreadExecutor();
-    private long lastUpdateTop;
 
     private final AccountController accountController;
     private final MainChatController mainChatController;
@@ -86,7 +80,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             }
 
             if (request.getRequest().startsWith("/api/v1/accounts")) {
-                var res = requireFromAccounts(
+                SocketResult res = requireFromAccounts(
                         session,
                         request.getRequest().replaceAll("/api/v1/accounts", ""),
                         request);
@@ -95,7 +89,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 return;
             } else if (request.getRequest().startsWith("/api/v1/mainChat")) {
 
-                var res = requireFromMainChat(
+                SocketResult res = requireFromMainChat(
                         session,
                         request.getRequest().replaceAll("/api/v1/mainChat", ""),
                         request);
@@ -104,12 +98,18 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 return;
             } else if (request.getRequest().startsWith("/api/v1/games")) {
 
-                var res = requireFromGames(
+                SocketResult res = requireFromGames(
                         session,
                         request.getRequest().replaceAll("/api/v1/games", ""),
                         request);
                 updateClient(session, res);
 
+                return;
+            } else if (request.getRequest().startsWith("/api/v1/server")) {
+                requireFromServer(
+                    session,
+                    request.getRequest().replaceAll("/api/v1/server", ""),
+                    request);
                 return;
             }
 
@@ -123,10 +123,9 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws Exception {
-
         try {
 
-            var data = message.getPayload().array();
+            byte[] data = message.getPayload().array();
             switch (data[0]) {
 
                 case 0: {
@@ -168,6 +167,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
 
         Account account = logins.get(session.getId());
+        boolean update = false;
         if (account != null) {
             for (Match match : gamesController.getGames()) {
                 if (canExitAndUpdate(account.getId(), match.getId(), session.getId())) {
@@ -177,37 +177,74 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
             if (getSession(account.getId()).size() == 1) {
                 countSessionEntered.remove(account.getId());
+                mainChatController.sendDisconnect(account);
+                update = true;
             }
         }
 
         sessions.remove(session.getId());
         logins.remove(session.getId());
+
+        if (update) {
+            updateMainLobbyForClients();
+        }
+    }
+
+    private SocketResult requireFromServer(WebSocketSession session, String serverReq, SocketRequest socketRequest) {
+        String[] params = socketRequest.getParameters();
+        Account loginAcc = logins.get(session.getId());
+        if (loginAcc != null) socketRequest.setId(loginAcc.getId());
+
+        switch (serverReq) {
+            case "/restart": {
+                if (loginAcc == null || loginAcc.getType().ordinal() < AccountType.EXECUTOR.ordinal()) {
+                    return new SocketResult(RequestStatus.DENIED, socketRequest);
+                }
+                Restarter.getInstance().restart();
+            }
+        }
+        return new SocketResult(RequestStatus.SOCKET_NOT_FOUND, socketRequest);
     }
 
     private SocketResult requireFromAccounts(WebSocketSession session, String accountReq, SocketRequest socketRequest) {
-        var params = socketRequest.getParameters();
-        var loginAcc = logins.get(session.getId());
+        String[] params = socketRequest.getParameters();
+        Account loginAcc = logins.get(session.getId());
         if (loginAcc != null) socketRequest.setId(loginAcc.getId());
 
         switch (accountReq) {
 
-            case "/login":
+            case "/online": {
+                return new SocketResult(RequestStatus.DONE, String.valueOf(getOnline()), socketRequest);
+            }
+
+            case "/login": {
 
                 var ip = session.getRemoteAddress() != null ?
-                        session.getRemoteAddress().toString() : "null";
+                    session.getRemoteAddress().toString() : "null";
                 var login = gson.fromJson(params[2], Login.class);
                 login.setIp(ip);
 
                 var res = accountController.login(
-                        params[0], params[1], login);
+                    params[0], params[1], login);
 
                 if (res.getKey() == RequestStatus.DONE) {
+                    // blocked users are prevented from logging in
+                    if (res.getValue().isBanned()) {
+                        return new SocketResult(RequestStatus.BANNED, socketRequest);
+                    }
+
                     res.getValue().setOnlineNow(true);
                     logins.put(session.getId(), res.getValue());
+                    updateMainChatForClients(socketRequest);
+
+                    if (getSession(res.getValue().getId()).size() == 1) {
+                        mainChatController.sendConnect(res.getValue());
+                        updateMainLobbyForClients();
+                    }
                 }
-                updateMainChatForClients(socketRequest);
 
                 return new SocketResult(res.getKey(), gson.toJson(res.getValue()), socketRequest);
+            }
 
             case "/signup": {
 
@@ -289,6 +326,21 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 return new SocketResult(pair.getKey(), gson.toJson(pair.getValue()), socketRequest);
             }
 
+            case "/punish": {
+                if (loginAcc == null) return new SocketResult(RequestStatus.DENIED, socketRequest);
+                long id = Long.parseLong(params[0]);
+                Punishment punishment = gson.fromJson(params[1], Punishment.class);
+                return new SocketResult(accountController.punish(loginAcc, id, punishment), socketRequest);
+            }
+
+            case "/makeInactive": {
+                if (loginAcc == null) return new SocketResult(RequestStatus.DENIED, socketRequest);
+                long punishableId = Long.parseLong(params[0]);
+                long punishmentId = Long.parseLong(params[1]);
+                return new SocketResult(accountController.makeInactive(loginAcc, punishableId, punishmentId),
+                    socketRequest);
+            }
+
         }
 
         return new SocketResult(RequestStatus.SOCKET_NOT_FOUND, socketRequest);
@@ -301,6 +353,11 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
         switch (mainChatReq) {
 
+            case "/list": {
+                return new SocketResult(RequestStatus.DONE, gson.toJson(
+                    getListCommand(logins.values())), socketRequest);
+            }
+
             case "/readAll": {
 
                 var pair = mainChatController.readAll();
@@ -311,6 +368,8 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             case "/send": {
 
                 if (loginAcc == null) return new SocketResult(RequestStatus.DENIED, socketRequest);
+                if (loginAcc.isMuted()) return new SocketResult(RequestStatus.MUTED, socketRequest);
+
                 var result = mainChatController.send(loginAcc.getId(), params[0]);
                 if (result == RequestStatus.DONE) {
                     updateMainChatForClients(socketRequest);
@@ -328,6 +387,24 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 return new SocketResult(result2, socketRequest);
             }
 
+            case "/sendLobby": {
+                if (loginAcc == null) return new SocketResult(RequestStatus.DENIED, socketRequest);
+                if (loginAcc.isMuted()) return new SocketResult(RequestStatus.MUTED, socketRequest);
+                RequestStatus requestStatus = mainChatController.sendMainLobby(loginAcc, params[0]);
+
+                if (requestStatus == RequestStatus.DONE) {
+                    updateMainLobbyForClients();
+                }
+                return new SocketResult(requestStatus, socketRequest);
+            }
+
+            case "/readLobby": {
+                List<LobbyMessage> lobby = mainChatController.readMainLobby();
+                // transmission of the number of people in the network, to reduce requests to the server
+                lobby.add(0, new LobbyMessage(-1, -1, String.valueOf(getOnline())));
+                return new SocketResult(RequestStatus.DONE,
+                    gson.toJson(lobby), socketRequest);
+            }
         }
 
         return new SocketResult(RequestStatus.SOCKET_NOT_FOUND, socketRequest);
@@ -339,6 +416,19 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
         if (loginAcc != null) socketRequest.setId(loginAcc.getId());
 
         switch (gamesReq) {
+
+            case "/list": {
+                Pair<RequestStatus, Match> result = gamesController.getMatch(Long.parseLong(params[0]));
+                if (result.getKey() != RequestStatus.DONE) return new SocketResult(result.getKey(), socketRequest);
+                System.out.println(getListCommand(
+                    getLoginAccounts(result.getValue().getEntered())
+                ));
+
+                return new SocketResult(RequestStatus.DONE,
+                    gson.toJson(getListCommand(
+                        getLoginAccounts(result.getValue().getEntered())
+                    )), socketRequest);
+            }
 
             case "/getGames": {
                 return new SocketResult(RequestStatus.DONE,
@@ -356,6 +446,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 if (loginAcc == null)
                     return new SocketResult(RequestStatus.DENIED, socketRequest);
 
+                // make enter too
                 var pair = gamesController.create(loginAcc.getId(), params[0]);
                 if (pair.getKey() == RequestStatus.DONE) {
 
@@ -368,8 +459,8 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
             // entered
             case "/sendMessage": {
-                if (loginAcc == null)
-                    return new SocketResult(RequestStatus.DENIED, socketRequest);
+                if (loginAcc == null) return new SocketResult(RequestStatus.DENIED, socketRequest);
+                if (loginAcc.isMuted()) return new SocketResult(RequestStatus.MUTED, socketRequest);
 
                 long matchId = Long.parseLong(params[0]);
                 var sendMessageRes = gamesController.sendMessage(loginAcc.getId(),
@@ -512,9 +603,10 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 synchronized (MUTEX) {
                     session.sendMessage(new TextMessage(gson.toJson(result)));
                 }
-            } catch (IOException e) {
+            } catch (Throwable t) {
                 removeClient(session.getId());
-                websocketLogger.error(e + " Error update client, session id = " + session.getId());
+                websocketLogger.error("Error update client, session id = " + session.getId()
+                    + ", " + RdLogger.self().getDescription(t));
             }
         }
     }
@@ -524,9 +616,10 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             synchronized (MUTEX) {
                 session.sendMessage(new TextMessage(gson.toJson(result)));
             }
-        } catch (IOException e) {
+        } catch (Throwable t) {
             removeClient(session.getId());
-            websocketLogger.error(e + " Error update client, session id = " + session.getId());
+            websocketLogger.error("Error update client, session id = " + session.getId()
+                + ", " + RdLogger.self().getDescription(t));
         }
 
     }
@@ -536,9 +629,10 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             synchronized (MUTEX) {
                 session.sendMessage(new BinaryMessage(result));
             }
-        } catch (IOException e) {
+        } catch (Throwable t) {
             removeClient(session.getId());
-            websocketLogger.error(e + " Error update client, session id = " + session.getId());
+            websocketLogger.error("Error update client, session id = " + session.getId()
+                + ", " + RdLogger.self().getDescription(t));
         }
     }
 
@@ -584,25 +678,6 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
     }
 
-    private void updateJoinedUsers(long matchId, SocketRequest req) {
-        var match = gamesController.getMatch(matchId);
-        if (match.getKey() != RequestStatus.DONE) {
-            websocketLogger.error("match not found to update joined, matchId = " + match);
-            return;
-        }
-
-        for (var id : List.of(match.getValue().getWhitePlayerId(), match.getValue().getBlackPlayerId())) {
-            var sessions = getSession(id);
-
-            for (var session : sessions) {
-                updateClient(session, new SocketResult(RequestStatus.UPDATE_FROM_SERVER,
-                        gson.toJson(match.getValue()), req));
-            }
-        }
-
-
-    }
-
     public List<WebSocketSession> getSession(long accountId) {
         return logins.entrySet().stream()
                 .filter(entry -> entry.getValue().getId() == accountId)
@@ -620,6 +695,8 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private void launchParallel() {
 
         service.execute(() -> {
+
+            long lastUpdateAccounts = -1, lastUpdateMainChat = -1;
             while (true) {
 
                 try {
@@ -630,13 +707,19 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                     gamesController.updateGames();
 
                     // every 30 minutes
-                    if (System.currentTimeMillis() - lastUpdateTop > 30 * 60 * 1000) {
-                        accountController.updateTop();
-                        lastUpdateTop = System.currentTimeMillis();
+                    if (System.currentTimeMillis() - lastUpdateAccounts > ACCOUNT_UPDATE_TIME) {
+                        accountController.update();
+                        lastUpdateAccounts = System.currentTimeMillis();
+                    }
+
+                    // every 1 minute
+                    if (System.currentTimeMillis() - lastUpdateMainChat > MAIN_CHAT_UPDATE_TIME) {
+                        mainChatController.update();
+                        lastUpdateMainChat = System.currentTimeMillis();
                     }
 
                 } catch (Throwable t) {
-                    websocketLogger.error("launchParallel ", t);
+                    websocketLogger.error("launchParallel - " + RdLogger.self().getDescription(t));
                 }
 
             }
@@ -663,5 +746,39 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
         boolean res = sessions.isEmpty();
         if (res) countSessionEntered.get(accId).remove(matchId);
         return res;
+    }
+
+    private void updateMainLobbyForClients() {
+        List<LobbyMessage> lobby = mainChatController.readMainLobby();
+        lobby.add(0, new LobbyMessage(-1, -1, String.valueOf(getOnline())));
+        updateClients(new SocketResult(RequestStatus.UPDATE_FROM_SERVER, gson.toJson(lobby),
+            new SocketRequest("/api/v1/mainChat/sendLobby")));
+    }
+
+    private int getOnline() {
+        Set<Long> accountSet = new HashSet<>();
+        for (Account account : logins.values()) {
+            accountSet.add(account.getId());
+        }
+        return accountSet.size();
+    }
+
+    private List<LobbyMessage> getListCommand(Iterable<Account> accounts) {
+        List<LobbyMessage> messages = new ArrayList<>();
+        for (Account account : accounts) {
+            messages.add(new LobbyMessage(-1, account.getId(), account.getFullName()));
+        }
+        return messages;
+    }
+
+    private List<Account> getLoginAccounts(List<Long> ids) {
+        List<Account> accounts = new ArrayList<>();
+        for (Account account : logins.values()) {
+            if (ids.contains(account.getId())) {
+                accounts.add(account);
+            }
+
+        }
+        return accounts;
     }
 }

@@ -50,5 +50,7 @@ public interface Launcher {
         return 0;
     }
 
-    default void setOnKeyboard(Consumer<Boolean> onKeyboard) {}
+    default void addOnKeyboard(Consumer<Boolean> onKeyboard) {}
+
+    default void googleLogin() {}
 }

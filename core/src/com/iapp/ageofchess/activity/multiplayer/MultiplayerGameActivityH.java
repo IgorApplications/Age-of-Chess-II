@@ -9,8 +9,9 @@ import com.iapp.ageofchess.ChessApplication;
 import com.iapp.lib.chess_engine.Result;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
 import com.iapp.ageofchess.graphics.ControlGameView;
-import com.iapp.ageofchess.graphics.MultiplayerBoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
+import com.iapp.lib.ui.widgets.BoardView;
+import com.iapp.lib.util.WindowUtil;
 import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.services.ChessConstants;
@@ -18,9 +19,10 @@ import com.iapp.lib.ui.actors.RdLabel;
 import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.ui.screens.RdApplication;
 
-class MultiplayerGameActivityH extends MultiplayerGameActivity {
+class
+MultiplayerGameActivityH extends MultiplayerGameActivity {
 
-    private Cell<MultiplayerBoardView> boardCell;
+    private Cell<BoardView> boardCell;
     private RdLabel playerInfo;
 
     public MultiplayerGameActivityH(LocalMatch localMatch, Match match) {
@@ -123,7 +125,6 @@ class MultiplayerGameActivityH extends MultiplayerGameActivity {
         }
 
         getStage().addActor(controlGame);
-        getStage().addActor(chatView);
         getStage().addActor(blackout);
 
         var player = controller.getSecondPlayer();
@@ -136,10 +137,11 @@ class MultiplayerGameActivityH extends MultiplayerGameActivity {
         content.align(Align.center);
         boardCell = content.add(gameBoard).colspan(3);
 
-        if (selectionDialog != null && selectionDialog.hasParent()) getStage().addActor(selectionDialog);
-        if (resultDialog != null && resultDialog.hasParent()) getStage().addActor(resultDialog);
-        if (infoDialog != null && infoDialog.hasParent()) getStage().addActor(infoDialog);
-        if (menuDialog != null && menuDialog.hasParent()) getStage().addActor(menuDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(selectionDialog);
+        if (!WindowUtil.isHidden(resultDialog))    getStage().addActor(resultDialog);
+        if (!WindowUtil.isHidden(infoDialog))      getStage().addActor(infoDialog);
+        if (!WindowUtil.isHidden(menuDialog))      getStage().addActor(menuDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(statisticDialog);
 
         controller.setActivity(this);
         updateLabels();

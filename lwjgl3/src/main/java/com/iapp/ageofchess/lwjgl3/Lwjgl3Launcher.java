@@ -17,7 +17,7 @@ public class Lwjgl3Launcher {
 
     private static Lwjgl3Application createApplication() {
         return new Lwjgl3Application(new ChessApplication(
-            new RdLwjgl3Launcher(), ServerMode.LOCAL, ApplicationMode.DEBUG, Cheats.DEVELOPER), getDefaultConfiguration());
+            new RdLwjgl3Launcher(), ServerMode.LOCAL, ApplicationMode.DEBUG, Cheats.USER), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

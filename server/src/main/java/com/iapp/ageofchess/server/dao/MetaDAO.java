@@ -2,10 +2,7 @@ package com.iapp.ageofchess.server.dao;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.iapp.lib.web.Flag;
-import com.iapp.lib.web.Login;
-import com.iapp.lib.web.Punishment;
-import com.iapp.lib.web.RequestStatus;
+import com.iapp.lib.web.*;
 import com.iapp.lib.util.DataChecks;
 import com.iapp.lib.util.Pair;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,13 +22,12 @@ public class MetaDAO {
 
     private final JdbcTemplate jdbcTemplate;
     private final Gson gson;
-    private final long maxTimeLogin;
+    // 24 hours
+    private static final long MAX_TIME_STORED_LOGIN = 24 * 60 * 60 * 1000;
 
     public MetaDAO(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         gson = new Gson();
-        // 24 hours
-        maxTimeLogin = 24 * 60 * 60 * 1000;
     }
 
     public Pair<RequestStatus, Set<Flag>> getFlags(long accountId) {
@@ -58,7 +55,7 @@ public class MetaDAO {
 
         List<Login> result = new ArrayList<>();
         for (Login el : logins) {
-            if (System.currentTimeMillis() - el.getTime() <= maxTimeLogin) {
+            if (System.currentTimeMillis() - el.getTime() <= MAX_TIME_STORED_LOGIN) {
                 result.add(el);
             }
         }
@@ -81,6 +78,8 @@ public class MetaDAO {
         List<List<Punishment>> general = getPunishments(accountId);
         if (DataChecks.isBadList(general)) return DataChecks.getBadStatus(general);
         List<Punishment> punishments = general.get(0);
+        // IMPORTANT!!!
+        punishment.setId(getNewID(punishments));
         punishments.add(punishment);
 
         jdbcTemplate.update("UPDATE Account SET punishments=? WHERE id=?",
@@ -108,5 +107,13 @@ public class MetaDAO {
         return jdbcTemplate.query("SELECT * FROM Account Where id=?",
                 new Object[]{accountId},
                 (rs, rowNum) -> rs.getBytes("avatar"));
+    }
+
+    private long getNewID(List<Punishment> punishments) {
+        long maxId = -1;
+        for (Punishment punishment : punishments) {
+            maxId = Math.max(punishment.getId(), maxId);
+        }
+        return maxId + 1;
     }
 }

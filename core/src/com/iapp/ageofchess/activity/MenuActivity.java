@@ -26,6 +26,9 @@ import com.iapp.lib.ui.screens.SplashActivity;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
+import com.iapp.lib.web.AccountType;
+
+import java.util.function.BiConsumer;
 
 public class MenuActivity extends Activity {
 
@@ -33,7 +36,7 @@ public class MenuActivity extends Activity {
     private RdTable content;
     private Image title;
     private RdImageTextButton multiplayer, singlePlayer, modding, settings, guide, exit;
-    private ImageButton login;
+    private ImageButton login, server;
     private RdDialog loginDialog;
     private Image blackout;
 
@@ -93,6 +96,9 @@ public class MenuActivity extends Activity {
             login = new ImageButton(ChessAssetManager.current().getLoginStyle());
         } else {
             login = new ImageButton(ChessAssetManager.current().getLogoutStyle());
+            if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
+                server = new ImageButton(ChessAssetManager.current().getAdminStyle());
+            }
         }
 
         if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
@@ -106,7 +112,6 @@ public class MenuActivity extends Activity {
         blackout.setFillParent(true);
         blackout.setVisible(false);
         blackout.setTouchable(Touchable.disabled);
-        getStage().addActor(blackout);
     }
 
     @Override
@@ -169,8 +174,12 @@ public class MenuActivity extends Activity {
                     });
 
                 } else {
+
+                    RdApplication.self().getTopActors().remove(ChessConstants.chatView);
+                    RdApplication.self().getStage().getActors().removeValue(ChessConstants.chatView, true);
                     ChessConstants.loggingAcc = null;
-                    ChessApplication.self().getAccountPanel().setVisible(false);
+                    ChessConstants.chatView = null;
+                    if (server != null) server.setVisible(false);
 
                     MultiplayerEngine.self().resetConnection();
                     login.setStyle(ChessAssetManager.current().getLoginStyle());
@@ -178,6 +187,21 @@ public class MenuActivity extends Activity {
 
             }
         });
+
+        if (server != null) {
+            server.addListener(new OnChangeListener() {
+                @Override
+                public void onChange(Actor actor) {
+                    ChessApplication.self().showConf(
+                        strings.get("restart"), strings.get("restart_conf"),
+                        (dialog, s) -> {
+                            dialog.hide();
+                            MultiplayerEngine.self().restartServer();
+                        });
+
+                }
+            });
+        }
 
         if (exit != null) {
             exit.addListener(new OnChangeListener() {
@@ -193,17 +217,10 @@ public class MenuActivity extends Activity {
     @Override
     public void show(Stage stage, Activity last) {
         stage.addActor(content);
+        getStage().addActor(blackout);
+
         RdTable buttons = new RdTable();
         buttons.align(Align.center);
-
-        if (ChessConstants.loggingAcc != null) {
-            RdTable panel = new RdTable();
-            panel.align(Align.topLeft);
-            panel.setFillParent(true);
-            getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
-                .expandX().fillX();
-        }
 
         buttons.add(multiplayer).fillX().minWidth(400).row();
         buttons.add(singlePlayer).fillX().minWidth(400).row();
@@ -212,9 +229,13 @@ public class MenuActivity extends Activity {
         buttons.add(guide).fillX().minWidth(400).row();
         if (exit != null) buttons.add(exit).fillX().minWidth(400).row();
 
+        RdTable commands = new RdTable();
+        commands.add(login).minSize(100).row();
+        commands.add(server).minSize(100).padTop(3);
+
         var table = new RdTable();
         table.align(Align.topLeft);
-        table.add(login).align(Align.topLeft).minSize(100);
+        table.add(commands).align(Align.topLeft);
         table.add(buttons).expandX().align(Align.center)
             .fillX().padRight(75);
 

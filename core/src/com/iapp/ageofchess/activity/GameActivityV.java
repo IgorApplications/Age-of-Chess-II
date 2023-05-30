@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.controllers.GameController;
-import com.iapp.ageofchess.graphics.BoardView;
+import com.iapp.lib.ui.widgets.BoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
 import com.iapp.ageofchess.services.ChessAssetManager;
@@ -15,6 +15,7 @@ import com.iapp.ageofchess.services.SettingsUtil;
 import com.iapp.ageofchess.services.Sounds;
 import com.iapp.lib.ui.actors.RdLabel;
 import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.WindowUtil;
 
 class GameActivityV extends GameActivity {
 
@@ -115,15 +116,20 @@ class GameActivityV extends GameActivity {
         content.row();
         content.add(buttons).padTop(10).center();
 
-        if (selectionDialog != null) getStage().addActor(selectionDialog);
-        if (resultDialog != null) getStage().addActor(resultDialog);
-        if (infoDialog != null) getStage().addActor(infoDialog);
-        if (menuDialog != null) getStage().addActor(menuDialog);
-        if (replayDialog != null) getStage().addActor(replayDialog);
-        if (statisticDialog != null) getStage().addActor(statisticDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(selectionDialog);
+        if (!WindowUtil.isHidden(resultDialog))    getStage().addActor(resultDialog);
+        if (!WindowUtil.isHidden(infoDialog))      getStage().addActor(infoDialog);
+        if (!WindowUtil.isHidden(menuDialog))      getStage().addActor(menuDialog);
+        if (!WindowUtil.isHidden(replayDialog))    getStage().addActor(replayDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(statisticDialog);
 
         controller.setActivity(this);
         updateLabels();
+    }
+
+    @Override
+    public void initListeners() {
+        super.initListeners();
     }
 
     private void updateLabels() {

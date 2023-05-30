@@ -4,6 +4,7 @@ import com.iapp.ageofchess.activity.multiplayer.MultiplayerGamesActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerScenariosActivity;
 import com.iapp.ageofchess.multiplayer.Match;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.lib.ui.screens.Controller;
 
 public class MultiplayerGamesController extends Controller {

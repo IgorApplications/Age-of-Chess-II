@@ -25,6 +25,7 @@ import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.util.*;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class MultiplayerScenariosActivity extends Activity {
 
@@ -71,7 +72,7 @@ public class MultiplayerScenariosActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
-        if (last instanceof MultiplayerCreationActivity) {
+        if (last instanceof MultiplayerCreationActivity || last instanceof MultiplayerMenuActivity) {
             ChessApplication.self().getLauncher().setOnFinish(controller::goToMenu);
         } else {
             ChessApplication.self().getLauncher().setOnFinish(controller::goToGames);
@@ -87,7 +88,7 @@ public class MultiplayerScenariosActivity extends Activity {
         panel.align(Align.topLeft);
         panel.setFillParent(true);
         getStage().addActor(panel);
-        panel.add(ChessApplication.self().getAccountPanel())
+        panel.add(ChessConstants.accountPanel)
             .expandX().fillX();
 
         var window = new RdWindow("","screen_window");
@@ -169,19 +170,17 @@ public class MultiplayerScenariosActivity extends Activity {
                         .expandX().fillX().left().padBottom(5).row();
 
             } catch (Throwable t) {
-                Gdx.app.error("showScenario", RdLogger.getDescription(t));
+                Gdx.app.error("showScenario", RdLogger.self().getDescription(t));
 
                 int index = badScenarios.size;
                 var badScenario = new RdDialogBuilder()
                         .title(strings.get("error"))
-                        .text(RdLogger.getDescription(t))
-                        .accept(strings.get("accept"), new OnChangeListener() {
-                            @Override
-                            public void onChange(Actor actor) {
+                        .text(RdLogger.self().getDescription(t))
+                        .accept(strings.get("accept"),
+                            (dialog, s) -> {
                                 badScenarios.get(index).hide();
                                 badScenarios.removeValue(badScenarios.get(index), true);
-                            }
-                        })
+                            })
                         .build(ChessAssetManager.current().getSkin(), "input");
 
                 badScenarios.add(badScenario);

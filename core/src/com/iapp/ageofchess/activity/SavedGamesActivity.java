@@ -77,7 +77,7 @@ public class SavedGamesActivity extends Activity {
             panel.align(Align.topLeft);
             panel.setFillParent(true);
             getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
+            panel.add(ChessConstants.accountPanel)
                 .expandX().fillX();
         }
 

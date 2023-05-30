@@ -207,6 +207,18 @@ public class Account {
         this.onlineNow = onlineNow;
     }
 
+    public boolean isWarned() {
+        return flags.contains(Flag.WARN);
+    }
+
+    public boolean isMuted() {
+        return flags.contains(Flag.MUTE);
+    }
+
+    public boolean isBanned() {
+        return flags.contains(Flag.BAN);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

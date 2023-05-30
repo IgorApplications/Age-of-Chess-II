@@ -42,7 +42,6 @@ public class LoadAvatarUtil {
 
             var login = account.getLogin();
             Image online;
-            System.out.println(account);
             if (login.getSystem().contains("android")
                     || login.getSystem().contains("ios")) {
 

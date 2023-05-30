@@ -21,6 +21,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -38,12 +39,20 @@ import java.util.function.Consumer;
  * 1 (result get avatar): [0] - request, [1] - RequestStatus ordinal, [2] - id size, [2:n] - id, [n+1:] - avatar
  *
  * */
-public class MultiplayerEngine {
+public class MultiplayerEngine implements Client {
 
     private WebSocket socket;
 
     private final Gson gson;
     private final AtomicBoolean initEngine = new AtomicBoolean(false);
+
+    /** punish callbacks */
+    private volatile Consumer<String> onPunishError;
+    private volatile Consumer<String> onInactivePunishError;
+
+    /** returns a list of users who are online or in a match */
+    private volatile Consumer<List<LobbyMessage>> onMainLobbyList;
+    private volatile Consumer<List<LobbyMessage>> onGameLobbyList;
 
     /** returns the status of an attempt to connect to the server */
     private volatile BiConsumer<Boolean, String> onTryConnect;
@@ -51,6 +60,7 @@ public class MultiplayerEngine {
     /** login listeners */
     private volatile Consumer<Account> loginAccount;
     private volatile Consumer<String> loginError;
+    private final AtomicLong loginTime = new AtomicLong(-1);
 
     /** signup listeners */
     private volatile CallListener onSignup;
@@ -75,6 +85,10 @@ public class MultiplayerEngine {
     private volatile Pair<List<Message>, Map<Long, Account>> lastMessages;
     private volatile Consumer<Pair<List<Message>, Map<Long, Account>>> mainChatMessages;
 
+    /** listener main lobby */
+    private volatile Consumer<List<LobbyMessage>> onMainLobby;
+    private volatile List<LobbyMessage> lastMainLobby;
+
     /** listener on update games */
     private final List<Consumer<List<Match>>> listOnMatches = RdApplication.self().getLauncher().copyOnWriteArrayList();
     private volatile List<Match> lastMatches;
@@ -84,9 +98,14 @@ public class MultiplayerEngine {
     private final Map<Long, List<Consumer<byte[]>>> onAvatars = RdApplication.self().getLauncher().concurrentHashMap();
     private volatile Consumer<RequestStatus> onChangeAvatar;
 
+    /** enter & remove match listeners */
+    private volatile CallListener onSuccessEnter;
+    private volatile Consumer<String> onErrorEnter;
+    private volatile Consumer<String> onErrorRemoveMatch;
+
     /** current entered match */
     private volatile Consumer<Match> createdMatch;
-    private volatile Consumer<Match> enteredMatch;
+    private volatile Consumer<Match> onUpdateMatch;
     private volatile Consumer<String> createdError;
     private volatile long matchId;
     private volatile Match lastMatch;
@@ -101,7 +120,12 @@ public class MultiplayerEngine {
         gson = new Gson();
     }
 
-    // account requests -----------------------------------------------------------------------------------------------
+    // server requests -------------------------------------------------------------------------------------------------
+
+    public void restartServer() {
+        // only developers
+        socket.send(new SocketRequest("/api/v1/server/restart"));
+    }
 
     public void tryConnect(BiConsumer<Boolean, String> onTryConnect) {
         if (socket.isOpen()) {
@@ -111,6 +135,8 @@ public class MultiplayerEngine {
         }
     }
 
+    // account requests -----------------------------------------------------------------------------------------------
+
     /** updates online and gets the user */
     public void login(String name, String password, Consumer<Account> loginAccount,
                       Consumer<String> loginError) {
@@ -118,6 +144,7 @@ public class MultiplayerEngine {
 
         this.loginAccount = loginAccount;
         this.loginError = loginError;
+        loginTime.set(RdApplication.self().getLauncher().currentMillis());
 
         var login = new Login("",
             ChessConstants.localData.getLocale().getLanguage(),
@@ -195,7 +222,40 @@ public class MultiplayerEngine {
         socket.send(new SocketRequest("/api/v1/accounts/long"));
     }
 
+    public void punish(long punishableId, Punishment punishment, Consumer<String> onPunishError) {
+        this.onPunishError = onPunishError;
+        socket.send(new SocketRequest("/api/v1/accounts/punish",
+            String.valueOf(punishableId), gson.toJson(punishment)));
+    }
+
+    public void makeInactivePunish(long punishableId, long punishId, Consumer<String> onInactivePunishError) {
+        this.onInactivePunishError = onInactivePunishError;
+        socket.send(new SocketRequest("/api/v1/accounts/makeInactive",
+            String.valueOf(punishableId), String.valueOf(punishId)));
+    }
+
     // main chat ------------------------------------------------------------------------------------------------------
+
+    @Override
+    public void requireMainLobbyList(Consumer<List<LobbyMessage>> onMainLobbyList) {
+        this.onMainLobbyList = onMainLobbyList;
+        socket.send(new SocketRequest("/api/v1/mainChat/list"));
+    }
+
+    @Override
+    public void sendMainLobbyMessage(String message) {
+        socket.send(new SocketRequest("/api/v1/mainChat/sendLobby", message));
+    }
+
+    public void setOnMainLobby(Consumer<List<LobbyMessage>> onMainLobby) {
+        this.onMainLobby = onMainLobby;
+        if (onMainLobby == null) return;
+        if (lastMainLobby == null) {
+            socket.send(new SocketRequest("/api/v1/mainChat/readLobby"));
+        } else {
+            onMainLobby.accept(new ArrayList<>(lastMainLobby));
+        }
+    }
 
     public void setOnMainChatMessages(Consumer<Pair<List<Message>, Map<Long, Account>>> mainChatMessages) {
         this.mainChatMessages = mainChatMessages;
@@ -218,6 +278,11 @@ public class MultiplayerEngine {
     }
 
     // match requests -------------------------------------------------------------------------------------------------
+    @Override
+    public void requireGameLobbyList(long matchId, Consumer<List<LobbyMessage>> onGameLobbyList) {
+        this.onGameLobbyList = onGameLobbyList;
+        socket.send(new SocketRequest("/api/v1/games/list", String.valueOf(matchId)));
+    }
 
     public void addOnMatches(Consumer<List<Match>> onMatches) {
         listOnMatches.add(onMatches);
@@ -233,7 +298,12 @@ public class MultiplayerEngine {
         listOnMatches.remove(onMatches);
     }
 
-    public void removeMatch(long matchId) {
+    public void removeMatch(long matchId, Consumer<String> onErrorRemoveMatch) {
+        if (!socket.isOpen()) {
+            onErrorRemoveMatch.accept("no connection");
+            return;
+        }
+        this.onErrorRemoveMatch = onErrorRemoveMatch;
         socket.send(new SocketRequest("/api/v1/games/removeMatch", String.valueOf(matchId)));
     }
 
@@ -260,7 +330,14 @@ public class MultiplayerEngine {
         socket.send(new SocketRequest("/api/v1/games/create", gson.toJson(match)));
     }
 
-    public void enterMatch(long matchId) {
+    public void enterMatch(long matchId, CallListener done, Consumer<String> error) {
+        if (!socket.isOpen()) {
+            error.accept("no connection");
+            return;
+        }
+
+        onSuccessEnter = done;
+        onErrorEnter = error;
         socket.send(new SocketRequest("/api/v1/games/enter", String.valueOf(matchId)));
     }
 
@@ -282,15 +359,15 @@ public class MultiplayerEngine {
 
     public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate) {
         this.matchId = matchId;
-        enteredMatch = onUpdate;
+        onUpdateMatch = onUpdate;
     }
 
     public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate, boolean realtime) {
         this.matchId = matchId;
-        enteredMatch = onUpdate;
-        if (realtime && enteredMatch != null && lastMatch != null
+        onUpdateMatch = onUpdate;
+        if (realtime && onUpdateMatch != null && lastMatch != null
             && (this.matchId == matchId || this.matchId == -1)) {
-            enteredMatch.accept(lastMatch);
+            onUpdateMatch.accept(lastMatch);
         }
     }
 
@@ -298,7 +375,8 @@ public class MultiplayerEngine {
         socket.send(new SocketRequest("/api/v1/games/start", String.valueOf(matchId)));
     }
 
-    public void sendLobbyMessage(long matchId, String message) {
+    @Override
+    public void sendGameLobbyMessage(long matchId, String message) {
         socket.send(new SocketRequest("/api/v1/games/sendMessage", String.valueOf(matchId), message));
     }
 
@@ -320,6 +398,12 @@ public class MultiplayerEngine {
             public boolean onOpen(WebSocket webSocket) {
                 Gdx.app.log("Websocket Open", webSocket.getUrl());
 
+                if (ChessConstants.chatView != null) {
+                    ChessConstants.chatView.clearMessages();
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("restored"));
+                }
+
                 if (onTryConnect != null) {
                     BiConsumer<Boolean, String> localConnect = onTryConnect;
                     onTryConnect = null;
@@ -332,6 +416,10 @@ public class MultiplayerEngine {
             @Override
             public boolean onClose(WebSocket webSocket, int closeCode, String reason) {
                 Gdx.app.log("Websocket Close", "reason - " + reason + ", closeCode - " + closeCode);
+                if (ChessConstants.chatView != null) {
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("error"));
+                }
                 return false;
             }
 
@@ -399,7 +487,7 @@ public class MultiplayerEngine {
 
             @Override
             public boolean onError(WebSocket webSocket, Throwable error) {
-                Gdx.app.error("Websocket onError", RdLogger.getDescription(error));
+                Gdx.app.error("Websocket onError", error.toString());
 
                 if (onTryConnect != null) {
                     BiConsumer<Boolean, String> localConnect = onTryConnect;
@@ -418,6 +506,7 @@ public class MultiplayerEngine {
 
         // main chat update
         if (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
+
             parseJson(socketRes.getResult(), new TypeToken<Pair<List<Message>, Map<Long, Account>>>() {}.getType(),
                 (Consumer<Pair<List<Message>, Map<Long, Account>>>) res -> {
                     lastMessages = res;
@@ -428,10 +517,12 @@ public class MultiplayerEngine {
         }
 
         switch (reqAccounts) {
+
             case "/login": {
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     parseJson(socketRes.getResult(), Account.class, loginAccount, loginError);
+                    loginTime.set(-1);
                 } else {
                     RdApplication.postRunnable(() ->
                         loginError.accept(socketRes.getStatus().toString()));
@@ -567,6 +658,30 @@ public class MultiplayerEngine {
                 break;
             }
 
+            case "/punish": {
+
+                if (socketRes.getStatus() != RequestStatus.DONE) {
+                    RdApplication.postRunnable(() ->
+                        onPunishError.accept(socketRes.toString()));
+                }
+
+                break;
+            }
+
+            case "/makeInactive": {
+
+                if (socketRes.getStatus() != RequestStatus.DONE) {
+                    RdApplication.postRunnable(() ->
+                        onInactivePunishError.accept(socketRes.toString()));
+                }
+
+                break;
+            }
+
+            default: {
+                Gdx.app.error("client unknown accounts request", socketRes.getRequest());
+            }
+
         }
 
     }
@@ -574,7 +689,7 @@ public class MultiplayerEngine {
     private void onMessageMainChat(String reqMainChat, SocketResult socketRes) {
 
         if (reqMainChat.equals("/readAll") || (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER
-            && (reqMainChat.equals("/send") || reqMainChat.equals("/remove")) )) {
+            && (reqMainChat.equals("/send") || reqMainChat.equals("/remove")))) {
 
             if (socketRes.getStatus() == RequestStatus.DONE
                 || socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
@@ -591,21 +706,69 @@ public class MultiplayerEngine {
             }
 
         }
+        else if (reqMainChat.equals("/readLobby") || (socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER
+            && reqMainChat.equals("/sendLobby"))) {
 
-        else if (reqMainChat.equals("/send")) {
+            if (socketRes.getStatus() == RequestStatus.DONE
+                || socketRes.getStatus() == RequestStatus.UPDATE_FROM_SERVER) {
+
+                parseJson(socketRes.getResult(), new TypeToken<List<LobbyMessage>>() {}.getType(),
+                    (Consumer<List<LobbyMessage>>) result -> {
+                        lastMainLobby = result;
+                        if (onMainLobby != null) {
+                            RdApplication.postRunnable(() ->
+                                onMainLobby.accept(new ArrayList<>(result)));
+                        }
+                });
+
+            } else {
+                Gdx.app.error("error read main lobby", socketRes.getStatus().toString());
+            }
+
+        } else if (reqMainChat.equals("/send")) {
 
             if (socketRes.getStatus() != RequestStatus.DONE) {
                 Gdx.app.error("error send message", socketRes.getStatus().toString());
             }
 
         }
+        else if (reqMainChat.equals("/sendLobby")) {
 
+            if (socketRes.getStatus() != RequestStatus.DONE) {
+                Gdx.app.error("error send lobby", socketRes.getStatus().toString());
+                if (socketRes.getStatus() == RequestStatus.BANNED) {
+                    ChessConstants.chatView.updateLocalLobbyMessages("self_banned");
+                } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA || socketRes.getStatus() == RequestStatus.DENIED) {
+                    ChessConstants.chatView.updateLocalLobbyMessages("denied");
+                } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND) {
+                    ChessConstants.chatView.updateLocalLobbyMessages("unknown");
+                }
+            }
+
+        }
         else if (reqMainChat.equals("/remove")) {
 
             if (socketRes.getStatus() != RequestStatus.DONE) {
                 Gdx.app.error("error remove message", socketRes.getStatus().toString());
             }
 
+        }
+        else if (reqMainChat.equals("/list")) {
+
+            if (socketRes.getStatus() == RequestStatus.DONE) {
+                RdApplication.postRunnable(() -> {
+                    if (onMainLobbyList != null) {
+                        parseJson(socketRes.getResult(), new TypeToken<List<LobbyMessage>>() {}.getType(),
+                            onMainLobbyList);
+                    }
+                });
+            } else {
+                Gdx.app.error("error list command", socketRes.getStatus().toString());
+            }
+
+        }
+        else {
+            Gdx.app.error("client unknown main chat request", socketRes.getRequest());
         }
 
     }
@@ -632,8 +795,8 @@ public class MultiplayerEngine {
                     // > 1 sessions
                     if (match.getId() != matchId) return;
                     lastMatch = match;
-                    if (enteredMatch != null)
-                        enteredMatch.accept(match);
+                    if (onUpdateMatch != null)
+                        onUpdateMatch.accept(match);
                 });
 
             }
@@ -691,6 +854,13 @@ public class MultiplayerEngine {
                 case "/sendMessage": {
                     if (socketRes.getStatus() != RequestStatus.DONE) {
                         Gdx.app.error("error send message in match", socketRes.getStatus().toString());
+                        if (socketRes.getStatus() == RequestStatus.BANNED) {
+                            ChessConstants.chatView.updateLocalGameMessages("self_banned");
+                        } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA || socketRes.getStatus() == RequestStatus.DENIED) {
+                            ChessConstants.chatView.updateLocalGameMessages("denied");
+                        } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND) {
+                            ChessConstants.chatView.updateLocalGameMessages("unknown");
+                        }
                     }
 
                     break;
@@ -707,6 +877,13 @@ public class MultiplayerEngine {
                 case "/enter": {
                     if (socketRes.getStatus() != RequestStatus.DONE) {
                         Gdx.app.error("error enter match", socketRes.getStatus().toString());
+                        String res = socketRes.getResult() != null ? socketRes.getResult() : "";
+                        if (onErrorEnter != null) {
+                            RdApplication.postRunnable(() ->
+                                onErrorEnter.accept(socketRes.getStatus() + res));
+                        }
+                    } else {
+                        RdApplication.postRunnable(onSuccessEnter::call);
                     }
                 }
 
@@ -745,9 +922,34 @@ public class MultiplayerEngine {
                 case "/removeMatch": {
                     if (socketRes.getStatus() != RequestStatus.DONE) {
                         Gdx.app.error("error remove match", socketRes.getStatus().toString());
+
+                        if (onErrorRemoveMatch != null) {
+                            String res = socketRes.getResult() != null ? socketRes.getResult() : "";
+                            RdApplication.postRunnable(() ->
+                                onErrorRemoveMatch.accept(socketRes.getStatus() + res));
+                        }
                     }
 
                     break;
+                }
+
+                case "/list": {
+
+                    if (socketRes.getStatus() == RequestStatus.DONE) {
+                        if (onGameLobbyList != null) {
+                            RdApplication.postRunnable(() ->
+                                parseJson(socketRes.getResult(), new TypeToken<List<LobbyMessage>>() {}.getType(),
+                                    onGameLobbyList));
+                        }
+                    } else {
+                        Gdx.app.error("error list command", socketRes.getStatus().toString());
+                    }
+
+                    break;
+                }
+
+                default: {
+                    Gdx.app.error("client unknown games request", socketRes.getRequest());
                 }
 
             }
@@ -788,8 +990,8 @@ public class MultiplayerEngine {
             RdApplication.postRunnable(() -> onResult.accept(data));
 
         } catch (Throwable t) {
-            Gdx.app.error("parseJson", RdLogger.getDescription(t));
-            RdApplication.postRunnable(() -> onError.accept(RdLogger.getDescription(t)));
+            Gdx.app.error("parseJson", RdLogger.self().getDescription(t));
+            RdApplication.postRunnable(() -> onError.accept(RdLogger.self().getDescription(t)));
         }
     }
 
@@ -801,6 +1003,10 @@ public class MultiplayerEngine {
             AtomicBoolean reset = new AtomicBoolean(false);
 
             while (true) {
+
+                if (loginTime.get() != -1 && RdApplication.self().getLauncher().currentMillis() - loginTime.get() > 15_000) {
+                    loginError.accept("Timeout");
+                }
 
                 if (!socket.isConnecting() && !socket.isOpen()) {
                     Gdx.app.log("multiplayerThread","Try connect");
@@ -821,7 +1027,7 @@ public class MultiplayerEngine {
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
-                    Gdx.app.error("multiplayerThread fatal", RdLogger.getDescription(e));
+                    Gdx.app.error("multiplayerThread fatal", RdLogger.self().getDescription(e));
                 }
 
             }

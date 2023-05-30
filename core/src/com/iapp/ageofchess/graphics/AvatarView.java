@@ -27,7 +27,7 @@ public class AvatarView extends ImageButton implements Disposable {
     public AvatarView(ImageButtonStyle style) {
         super(style);
         avatar = ChessAssetManager.current().getSkin().get("logo_anim", AnimatedImage.class);
-        loadingBg = new TextureRegionDrawable(ChessAssetManager.current().getDarkGrayTexture());
+        loadingBg = new TextureRegionDrawable(ChessAssetManager.current().getWhiteTexture());
     }
 
     public AvatarView(AvatarView avatarView) {

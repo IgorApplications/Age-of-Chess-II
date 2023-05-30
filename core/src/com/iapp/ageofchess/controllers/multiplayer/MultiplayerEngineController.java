@@ -13,7 +13,7 @@ import com.iapp.lib.util.Pair;
 
 import java.util.LinkedList;
 
-public abstract class MultiplayerEngineController extends Controller {
+public abstract class MultiplayerEngineController extends Controller implements Chess2dController {
 
     private static final java.util.Map<Integer, Character> verticalInt = java.util.Map.of(
             0, 'a', 1, 'b',
@@ -79,6 +79,36 @@ public abstract class MultiplayerEngineController extends Controller {
                     move.getMoveX(), 7 - move.getMoveY()));
         }
         return graphicMoves;
+    }
+
+    @Override
+    public float getPadLeft() {
+        return localMatch.getMatchData().getPadLeft();
+    }
+
+    @Override
+    public float getPadRight() {
+        return localMatch.getMatchData().getPadRight();
+    }
+
+    @Override
+    public float getPadBottom() {
+        return localMatch.getMatchData().getPadBottom();
+    }
+
+    @Override
+    public float getPadTop() {
+        return localMatch.getMatchData().getPadTop();
+    }
+
+    @Override
+    public float getWidth() {
+        return localMatch.getMatchData().getWidth();
+    }
+
+    @Override
+    public float getHeight() {
+        return localMatch.getMatchData().getHeight();
     }
 
     public byte[][] getMatrix() {
@@ -175,7 +205,7 @@ public abstract class MultiplayerEngineController extends Controller {
         return game.isKing(type);
     }
 
-    void makeMove(Move move, TypePiece updated, boolean server) {
+    void makeMove(Move move, TypePiece updated, boolean self) {
         game.makeMove(Move.valueOf(move.getPieceX(), 7 - move.getPieceY(),
                 move.getMoveX(), 7 - move.getMoveY()));
     }

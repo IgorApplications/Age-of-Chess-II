@@ -4,18 +4,20 @@ import com.iapp.lib.chess_engine.Move;
 import com.iapp.lib.chess_engine.Result;
 import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.lib.util.Pair;
+import com.iapp.lib.web.Lobby;
+import com.iapp.lib.web.LobbyMessage;
 import com.iapp.lib.web.RankType;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Match {
 
     private long id;
     private String name;
     private long sponsored;
-    private final List<Long> entered = new ArrayList<>();
+    private final List<Long> entered = new CopyOnWriteArrayList<>();
     private long creatorId;
     private long whitePlayerId;
     private long blackPlayerId;
@@ -28,13 +30,14 @@ public class Match {
     private boolean started;
     private Result result = Result.NONE;
     private String fen;
-    private List<Pair<Move, TypePiece>> moves = new ArrayList<>();
+    private List<Pair<Move, TypePiece>> moves = new CopyOnWriteArrayList<>();
     private long finishTime = -1, createdTime = -1;
     private RankType rankType;
     private double rankPlus, rankMinus;
     private boolean random;
-    private final List<String> lobby = new ArrayList<>();
+    private final List<LobbyMessage> lobbyMessages = new CopyOnWriteArrayList<>();
     private boolean alternately;
+    private transient Lobby lobby;
 
     public Match() {}
 
@@ -62,6 +65,14 @@ public class Match {
         this.fen = fen;
     }
 
+    public Lobby getLobby() {
+        return lobby;
+    }
+
+    public void setLobby(Lobby lobby) {
+        this.lobby = lobby;
+    }
+
     public void setAlternately(boolean alternately) {
         this.alternately = alternately;
     }
@@ -78,8 +89,8 @@ public class Match {
         this.random = random;
     }
 
-    public List<String> getLobby() {
-        return lobby;
+    public List<LobbyMessage> getLobbyMessages() {
+        return lobbyMessages;
     }
 
     public void setRankPlus(double rankPlus) {
@@ -276,7 +287,7 @@ public class Match {
                 ", rankPlus=" + rankPlus +
                 ", rankMinus=" + rankMinus +
                 ", random=" + random +
-                ", lobby=" + lobby +
+                ", lobby=" + lobbyMessages +
                 ", alternately=" + alternately +
                 '}';
     }

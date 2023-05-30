@@ -3,6 +3,8 @@ package com.iapp.lib.ui.actors;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.utils.Align;
 import com.github.tommyettinger.textra.Font;
 import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.ui.screens.RdLogger;
@@ -12,13 +14,10 @@ import com.iapp.lib.ui.screens.RdLogger;
  * @author Igor Ivanov
  * @version 1.0
  * */
-public class LoggingView extends RdLabel {
+public class LoggingView extends Table {
 
-    /** Text to the right of FPS */
-    private String endFPS = "";
-    /** Text to the right of RAM */
-    private String endRAM = "Mb";
     private final LoggingViewStyle style;
+    private RdLabel fps, ram;
 
     public LoggingView() {
         this(RdAssetManager.current().getSkin());
@@ -28,48 +27,47 @@ public class LoggingView extends RdLabel {
         this(skin.get(LoggingViewStyle.class));
     }
 
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
+        super.draw(batch, parentAlpha);
+        fps.setText(String.valueOf(RdLogger.self().getFPS()));
+        ram.setText(RdLogger.self().getRAM() + "Mb");
+    }
+
     public LoggingView(Skin skin, String styleName) {
         this(skin.get(styleName, LoggingViewStyle.class));
     }
 
     public LoggingView(LoggingViewStyle style) {
-        super("", style);
         this.style = style;
+        init();
     }
 
-    /** returns text to the right of FPS */
-    public String getEndFPS() {
-        return endFPS;
-    }
+    private void init() {
+        align(Align.topLeft);
+        fps = new RdLabel("");
+        fps.setDefaultToken("[%75]");
+        fps.setColor(style.colorFPS);
+        ram = new RdLabel("");
+        ram.setDefaultToken("[%75]");
+        ram.setColor(style.colorRAM);
 
-    /** sets text to the right of FPS */
-    public void setEndFPS(String endFPS) {
-        this.endFPS = endFPS;
-    }
+        String strVersion = String.valueOf(RdLogger.self().getVersion());
+        RdLabel version = new RdLabel(strVersion.charAt(0) + "." + strVersion.substring(1, 3)
+            + "." + strVersion.substring(3));
+        version.setDefaultToken("[%75]");
+        RdLabel time = new RdLabel(RdLogger.self().getTime());
+        time.setDefaultToken("[%75]");
 
-    /** returns  text to the right of RAM */
-    public String getEndRAM() {
-        return endRAM;
-    }
+        RdTable column1 = new RdTable();
+        column1.add(fps).padRight(10);
+        column1.add(ram);
+        RdTable column2 = new RdTable();
+        column2.add(version).padRight(10);
+        column2.add(time);
 
-    /** sets text to the right of RAM */
-    public void setEndRAM(String endRAM) {
-        this.endRAM = endRAM;
-    }
-
-    private long last;
-
-    @SuppressWarnings("DefaultLocale")
-    @Override
-    public void draw(Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
-        setWrap(false);
-        if (System.currentTimeMillis() - last > 100) {
-            setText(String.format("[%s]%d%s [%s]%d%s",
-                    getHex(style.colorFPS), RdLogger.getFPS(), endFPS,
-                    getHex(style.colorRAM), RdLogger.getRAM(), endRAM));
-            last = System.currentTimeMillis();
-        }
+        add(column1).expand().align(Align.topLeft).row();
+        add(column2).expandX().align(Align.topLeft);
     }
 
     public static class LoggingViewStyle extends RdLabel.RdLabelStyle {

@@ -2,17 +2,18 @@ package com.iapp.ageofchess.activity;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.ageofchess.controllers.GameController;
-import com.iapp.ageofchess.graphics.BoardView;
+import com.iapp.lib.ui.widgets.BoardView;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.SettingsUtil;
 import com.iapp.ageofchess.services.Sounds;
 import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.WindowUtil;
 
 class GameActivityH extends GameActivity {
 
@@ -71,28 +72,37 @@ class GameActivityH extends GameActivity {
     public void initActors() {
         super.initActors();
 
-        var buttons = new Table();
-        buttons.align(Align.top);
-        buttons.pad(30, 7, 0, 7);
-        buttons.setFillParent(true);
-
-        var generalTime = new Table();
+        RdTable generalTime = new RdTable();
         whiteTime = new RdLabel(controller.getWhiteTime());
         blackTime = new RdLabel(controller.getBlackTime());
         generalTime.add(whiteTime).row();
         generalTime.add(blackTime).row();
 
+        RdTable buttons = new RdTable();
+        buttons.align(Align.top);
+        buttons.pad(30, 7, 0, 7);
+        buttons.setFillParent(true);
+
         getStage().addActor(buttons);
         getStage().addActor(blackout);
 
-        buttons.add(menu).size(125).expandX().left();
-        buttons.add(undo).size(125).expandX().right();
-        buttons.row();
-        buttons.add(replay).size(125).expandX().left();
-        buttons.add(hint).size(125).expandX().right();
-        buttons.row();
-        buttons.add(generalTime).width(125).expandX().left();
-        buttons.add(info).size(125).expandX().right();
+        RdTable column1 = new RdTable();
+        RdTable column2 = new RdTable();
+
+        buttons.add(column1).left().top();
+        if (ChessConstants.chatView != null) {
+            buttons.add(column2).expand().align(Align.topRight).padRight(125);
+        } else {
+            buttons.add(column2).expand().align(Align.topRight);
+        }
+
+        column1.add(menu).size(125).row();
+        column1.add(replay).size(125).row();
+        column1.add(generalTime).width(125).row();
+
+        column2.add(undo).size(125).row();
+        column2.add(hint).size(125).row();
+        column2.add(info).size(125).row();
 
         timeByTurnLabel = new RdLabel(controller.getTimeByTurn());
         var gameModeLabel = new RdLabel(SettingsUtil.defineGameMode(controller.getMatch().getGameMode()).toUpperCase());
@@ -105,14 +115,20 @@ class GameActivityH extends GameActivity {
         content.align(Align.center);
         boardCell = content.add(gameBoard).colspan(3);
 
-        if (selectionDialog != null && selectionDialog.hasParent()) getStage().addActor(selectionDialog);
-        if (resultDialog != null && resultDialog.hasParent()) getStage().addActor(resultDialog);
-        if (infoDialog != null && infoDialog.hasParent()) getStage().addActor(infoDialog);
-        if (menuDialog != null && menuDialog.hasParent()) getStage().addActor(menuDialog);
-        if (replayDialog != null && replayDialog.hasParent()) getStage().addActor(replayDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(selectionDialog);
+        if (!WindowUtil.isHidden(resultDialog))    getStage().addActor(resultDialog);
+        if (!WindowUtil.isHidden(infoDialog))      getStage().addActor(infoDialog);
+        if (!WindowUtil.isHidden(menuDialog))      getStage().addActor(menuDialog);
+        if (!WindowUtil.isHidden(replayDialog))    getStage().addActor(replayDialog);
+        if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(statisticDialog);
 
         controller.setActivity(this);
         updateLabels();
+    }
+
+    @Override
+    public void initListeners() {
+        super.initListeners();
     }
 
     private void updateLabels() {

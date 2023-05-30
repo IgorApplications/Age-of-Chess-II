@@ -19,7 +19,7 @@ import com.iapp.lib.ui.screens.RdLogger;
 import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
 
-public abstract class EngineController extends Controller {
+public abstract class EngineController extends Controller implements Chess2dController {
 
     private static final char[] piecesFen = {
             'K', 'Q', 'B', 'N', 'R', 'P',
@@ -204,6 +204,43 @@ public abstract class EngineController extends Controller {
         return game.isCage(type);
     }
 
+    @Override
+    public void makeMove(Move move, TypePiece updated) {
+        lastMoves.add(move);
+        game.makeMove(Move.valueOf(move.getPieceX(), 7 - move.getPieceY(),
+            move.getMoveX(), 7 - move.getMoveY()));
+    }
+
+    @Override
+    public float getPadLeft() {
+        return localMatch.getMatchData().getPadLeft();
+    }
+
+    @Override
+    public float getPadRight() {
+        return localMatch.getMatchData().getPadRight();
+    }
+
+    @Override
+    public float getPadBottom() {
+        return localMatch.getMatchData().getPadBottom();
+    }
+
+    @Override
+    public float getPadTop() {
+        return localMatch.getMatchData().getPadTop();
+    }
+
+    @Override
+    public float getWidth() {
+        return localMatch.getMatchData().getWidth();
+    }
+
+    @Override
+    public float getHeight() {
+        return localMatch.getMatchData().getHeight();
+    }
+
     abstract Timer getTimerByTurn();
 
     abstract Timer getBlackTimer();
@@ -236,12 +273,6 @@ public abstract class EngineController extends Controller {
         return game.isKing(type);
     }
 
-    void makeMove(Move move, TypePiece updated) {
-        lastMoves.add(move);
-        game.makeMove(Move.valueOf(move.getPieceX(), 7 - move.getPieceY(),
-                move.getMoveX(), 7 - move.getMoveY()));
-    }
-
     Move cancelMove() {
         if (lastMoves.isEmpty()) return null;
         game.cancelMove();
@@ -264,8 +295,8 @@ public abstract class EngineController extends Controller {
                 makeMove(move, pair.getValue());
                 aiMakeMove = false;
             } catch (Throwable t) {
-                Gdx.app.error("makeAiMove", RdLogger.getDescription(t));
-                RdLogger.showFatalScreen(t);
+                Gdx.app.error("makeAiMove", RdLogger.self().getDescription(t));
+                RdLogger.self().showFatalScreen(t);
             }
         }, 2000);
     }
@@ -282,8 +313,8 @@ public abstract class EngineController extends Controller {
 
                 onGettingMove.onGetting(move, null);
             } catch (Throwable t) {
-                Gdx.app.error("getHint", RdLogger.getDescription(t));
-                RdLogger.showFatalScreen(t);
+                Gdx.app.error("getHint", RdLogger.self().getDescription(t));
+                RdLogger.self().showFatalScreen(t);
 
             }
         }, 0);

@@ -14,15 +14,16 @@ class LoggingActivity extends Activity {
     private final String description;
 
     private RdLabel logLabel, descriptionLabel;
-    private RdLabel.RdLabelStyle logTextStyle, descTextStyle;
+    private final RdLabel.RdLabelStyle logTextStyle;
+    private final RdLabel.RdLabelStyle descTextStyle;
 
     public LoggingActivity(String logText, String description,
                            RdLabel.RdLabelStyle logTextStyle, RdLabel.RdLabelStyle descTextStyle,
                            CallListener onFatal) {
         this.logTextStyle = logTextStyle;
         this.descTextStyle = descTextStyle;
-        this.logText = logText.replace("[", "|").replace("]", "|");
-        this.description = description.replace("[", "|").replace("]", "|");
+        this.logText = logText;
+        this.description = description;
         Gdx.app.postRunnable(onFatal::call);
     }
 
@@ -30,9 +31,9 @@ class LoggingActivity extends Activity {
     public void initActors() {
         RdApplication.self().setBackgroundColor(Color.BLUE);
 
-        logLabel = new RdLabel(logText, logTextStyle);
+        logLabel = new RdLabel(logText, logTextStyle, false);
         logLabel.setWrap(true);
-        descriptionLabel = new RdLabel(description, descTextStyle);
+        descriptionLabel = new RdLabel(description, descTextStyle, false);
         descriptionLabel.setWrap(true);
     }
 
@@ -50,5 +51,12 @@ class LoggingActivity extends Activity {
                 .pad(30, 10, 10, 10).align(Align.topLeft).row();
         content.add(logLabel).expandX().fillX()
                 .pad(30, 10, 10, 10).align(Align.topLeft);
+    }
+
+    @Override
+    public void render(float delta) {
+        super.render(delta);
+        RdApplication.self().getStage().getRoot().getColor().a = 1;
+        RdApplication.self().getStage().getRoot().clearActions();
     }
 }

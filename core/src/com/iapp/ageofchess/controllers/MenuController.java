@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.*;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
@@ -198,13 +199,15 @@ public class MenuController extends Controller {
                     return;
                 }
 
-
+                Spinner spinner = ChessApplication.self().showSpinner(strings.get("creating"));
                 activity.showBlackout();
                 MultiplayerEngine.self().signup(login.getText(), userName.getText(), password1.getText(),
                         () -> {
+                            spinner.hide();
                             login(login.getText(), password1.getText());
                         },
                         error -> {
+                            spinner.hide();
                             ChessApplication.self().showError(strings.get("signup_failed") + error);
                             activity.hideBlackout();
                         });
@@ -216,7 +219,7 @@ public class MenuController extends Controller {
 
     private void login(String name, String password) {
 
-        System.out.println(name + ", " + password);
+        Spinner spinner = ChessApplication.self().showSpinner(strings.get("login"));
         activity.showBlackout();
         MultiplayerEngine.self().login(name, password,
                 account -> {
@@ -224,17 +227,22 @@ public class MenuController extends Controller {
                     ChessConstants.localData.setPassword(password);
                     ChessConstants.loggingAcc = account;
 
-                    ChessApplication.self().getAccountPanel().setVisible(true);
-                    MultiplayerEngine.self().getAvatar(account, bytes ->
-                        ChessApplication.self().getAccountPanel().update(account, bytes));
+                    ChessConstants.chatView = new ChatView(MultiplayerEngine.self(),
+                        ChatView.Mode.LOBBY, strings.get("game"),
+                        strings.get("lobby"), 550);
+                    RdApplication.self().getTopActors().add(1, ChessConstants.chatView);
 
+                    MultiplayerEngine.self().getAvatar(account, bytes ->
+                        ChessConstants.accountPanel.update(account, bytes));
+
+                    spinner.hide();
                     activity.hideBlackout();
                     Runnable task = this::goToMultiplayerMenu;
                     if (loginDialog == null) task.run();
                     else loginDialog.hide(Actions.run(task));
-
                 },
                 (error) -> {
+                    spinner.hide();
                     activity.hideBlackout();
                     if (activity.getLoginDialog() != null && !activity.getLoginDialog().isHidden()) {
                         ChessApplication.self().showError(strings.get("login_failed") + error);

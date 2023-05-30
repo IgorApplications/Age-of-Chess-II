@@ -80,19 +80,32 @@ public class WindowGroup extends Table {
 
             float sumWidth = 0;
             int j = 0;
-            for (int i = 0; i < buttons.length; i++) {
+            int rows = 1;
+            for (Button button : buttons) {
                 j++;
-                sumWidth += Math.max(buttons[i].getPrefWidth(), style.buttonMinWidth);
+                sumWidth += Math.max(button.getPrefWidth(), style.buttonMinWidth);
 
                 if (sumWidth > Math.max(window.getWidth() - style.padRight - 10 * j,
                     style.windowMinWidth - style.padLeft - style.padRight - 10 * j)) {
 
-                    buttonsTable.row();
+                    rows++;
                     j = 0;
                     sumWidth = 0;
                 }
-                buttonsTable.add(buttons[i]).minWidth(style.buttonMinWidth)
-                        .fillX().padLeft(10);
+            }
+
+            for (int i = 0; i < rows; i++) {
+
+                for (int k = 0; k < buttons.length / rows; k++) {
+                    buttonsTable.add(buttons[i * rows + k])
+                        .minWidth(style.buttonMinWidth).fillX().padLeft(10);
+                }
+                if (buttons.length % rows != 0 && i == 0) {
+                    buttonsTable.add(buttons[buttons.length / rows + 1])
+                        .minWidth(style.buttonMinWidth).fillX().padLeft(10);
+                }
+
+                buttonsTable.row();
             }
 
             add(buttonsTable).fill().padTop(style.padTop).padRight(style.padRight).row();

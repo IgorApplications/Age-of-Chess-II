@@ -3,6 +3,7 @@ package com.iapp.ageofchess.server.controllers;
 import com.google.gson.Gson;
 import com.iapp.lib.web.Account;
 import com.iapp.lib.web.Login;
+import com.iapp.lib.web.Punishment;
 import com.iapp.lib.web.RequestStatus;
 import com.iapp.ageofchess.server.dao.AccountDAO;
 import com.iapp.lib.util.Pair;
@@ -74,7 +75,7 @@ public class AccountController {
         return accountDAO.searchAccounts(partName);
     }
 
-    public void updateTop() {
+    public void update() {
         accountDAO.updateTop();
     }
 
@@ -95,6 +96,18 @@ public class AccountController {
     }
 
     // auth only ------------------------------------------------------------------------------------------------------
+
+    public RequestStatus makeInactive(Account auth, long punishableId, long punishmentId) {
+        Pair<RequestStatus, Account> pair = see(punishableId);
+        if (pair.getKey() != RequestStatus.DONE) return pair.getKey();
+        return accountDAO.makeInactive(auth, pair.getValue(), punishmentId);
+    }
+
+    public RequestStatus punish(Account auth, long punishableId, Punishment punishment) {
+        Pair<RequestStatus, Account> pair = see(punishableId);
+        if (pair.getKey() != RequestStatus.DONE) return pair.getKey();
+        return accountDAO.punish(auth, pair.getValue(), punishment);
+    }
 
     public RequestStatus updateAvatar(Account auth, long updatedId, byte[] avatar) {
         Pair<RequestStatus, Account> updated = see(updatedId);

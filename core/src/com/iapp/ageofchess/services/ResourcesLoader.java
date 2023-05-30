@@ -66,15 +66,15 @@ public class ResourcesLoader {
                 try {
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException e) {
-                    Gdx.app.error("launchLoad", RdLogger.getDescription(e));
+                    Gdx.app.error("launchLoad", RdLogger.self().getDescription(e));
                 }
 
                 RdApplication.postRunnable(() -> {
                     try {
                         assetManager.update(loadTime);
                     } catch (Throwable t) {
-                        Gdx.app.error("launchLoad", RdLogger.getDescription(t));
-                        RdLogger.showFatalScreen(t);
+                        Gdx.app.error("launchLoad", RdLogger.self().getDescription(t));
+                        RdLogger.self().showFatalScreen(t);
                         fatal.set(true);
                     }
                 });
@@ -85,9 +85,9 @@ public class ResourcesLoader {
                     assetManager.finishLoading();
                     onFinish.call();
                 } catch (Throwable t) {
-                    Gdx.app.error("launchLoad", RdLogger.getDescription(t));
+                    Gdx.app.error("launchLoad", RdLogger.self().getDescription(t));
                     if (fatal.get()) return;
-                    RdLogger.showFatalScreen(t);
+                    RdLogger.self().showFatalScreen(t);
                 }
             });
         };

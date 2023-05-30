@@ -701,7 +701,7 @@ public class RdTextField extends Widget implements Disableable {
         clearSelection();
         String oldText = text;
         text = "";
-        label.setText(str);
+        if (str.equals("")) label.setText(str);
         paste(str, false);
         if (programmaticChangeEvents) changeText(oldText, text);
         cursor = 0;

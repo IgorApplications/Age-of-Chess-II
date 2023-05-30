@@ -5,10 +5,7 @@ import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.chess_engine.Game;
 import com.iapp.lib.chess_engine.Result;
 import com.iapp.ageofchess.multiplayer.*;
-import com.iapp.lib.web.Account;
-import com.iapp.lib.web.AccountType;
-import com.iapp.lib.web.RankType;
-import com.iapp.lib.web.RequestStatus;
+import com.iapp.lib.web.*;
 import com.iapp.ageofchess.server.dao.AccountDAO;
 import com.iapp.ageofchess.server.dao.GamesDAO;
 import com.iapp.lib.util.Pair;
@@ -35,7 +32,6 @@ import java.util.stream.Collectors;
 public class GamesController {
 
     private static final Logger gamesLogger = LoggerFactory.getLogger(GamesController.class);
-
     private final AccountDAO accountDAO;
     private final GamesDAO gamesDAO;
     private final Gson gson;
@@ -58,61 +54,66 @@ public class GamesController {
     // no auth --------------------------------------------------------------------------------------------------------
 
     public List<Match> getGames() {
-        return gamesDAO.readGames();
+        List<Match> matches = gamesDAO.readGames();
+        for (Match match : matches) {
+            match.getLobbyMessages().clear();
+            match.getLobbyMessages().addAll(match.getLobby().readMainLobby());
+        }
+        return matches;
     }
 
     public Pair<RequestStatus, Match> getMatch(long gameId) {
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return new Pair<>(RequestStatus.NOT_FOUND, null);
+        Match match = op.get();
+        match.getLobbyMessages().clear();
+        match.getLobbyMessages().addAll(match.getLobby().readMainLobby());
         return new Pair<>(RequestStatus.DONE, op.get());
     }
 
     // only auth -------------------------------------------------------------------------------------------------------
 
+    /** Also, make enter */
     public Pair<RequestStatus, String> create(long authId, String matchData) {
 
-        var match = gson.fromJson(matchData, Match.class);
-        match.setCreatorId(authId);
+        var unsafetyUserMatch = gson.fromJson(matchData, Match.class);
+        unsafetyUserMatch.setCreatorId(authId);
 
         var accounts = accountDAO.getAccount(authId);
         if (accounts.getKey() != RequestStatus.DONE) return new Pair<>(accounts.getKey(), null);
         var acc = accounts.getValue();
 
         if (engineList.size() >= 5) return new Pair<>(RequestStatus.DENIED, "more than 5 matches already");
-        var state = isCorrectMatch(acc, match);
+        var state = isCorrectMatch(acc, unsafetyUserMatch);
         if (!state.getKey()) return new Pair<>(RequestStatus.DENIED, state.getValue());
 
-        acc.setCoins(acc.getCoins() - match.getSponsored());
+        acc.setCoins(acc.getCoins() - unsafetyUserMatch.getSponsored());
         accountDAO.updateServerAccount(acc);
 
-        var newMatch = gamesDAO.createGame(match);
-        gamesLogger.warn("Created match " + match);
-        enter(authId, newMatch.getId());
+        var safetyServerMatch = gamesDAO.createGame(unsafetyUserMatch);
+        safetyServerMatch.setLobby(new Lobby(accountDAO::getServerAccount));
+        enter(authId, safetyServerMatch.getId());
+        safetyServerMatch.getLobbyMessages().clear();
+        safetyServerMatch.getLobbyMessages().addAll(safetyServerMatch.getLobby().readMainLobby());
+        gamesLogger.warn("Created match " + unsafetyUserMatch);
 
-        return new Pair<>(RequestStatus.DONE, gson.toJson(newMatch));
+        return new Pair<>(RequestStatus.DONE, gson.toJson(safetyServerMatch));
     }
 
     public RequestStatus sendMessage(long authId, long gameId, String message) {
 
-        var match = gamesDAO.getGame(gameId);
-        if (match.isEmpty()) return RequestStatus.NOT_FOUND;
+        var op = gamesDAO.getGame(gameId);
+        if (op.isEmpty()) return RequestStatus.NOT_FOUND;
 
         var accounts = accountDAO.getAccount(authId);
         if (accounts.getKey() != RequestStatus.DONE) return accounts.getKey();
         var acc = accounts.getValue();
 
         // only entered in users can send messages
-        if (!match.get().getEntered().contains(acc.getId())) return RequestStatus.DENIED;
+        if (!op.get().getEntered().contains(acc.getId())) return RequestStatus.DENIED;
 
-        // sending text data with formatting:
-        // [color][_]fullname[_]: message
-        var color = acc.getType().ordinal() >= AccountType.MODERATOR.ordinal() ?
-                "[RED]" : "";
-        match.get().getLobby().add(color + "[_]" + acc.getFullName()
-                        + "[_]: " + message
-        );
-
-        return RequestStatus.DONE;
+        Match match = op.get();
+        return match.getLobby().sendLobby(acc, message);
 
     }
 
@@ -154,14 +155,10 @@ public class GamesController {
 
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
-        var match = op.get();
 
-        // if not entered yet, it is added to the match,
-        // the server command "enter [fullname]" is sent
-        if (!match.getEntered().contains(acc.getId())) {
-            match.getEntered().add(acc.getId());
-            match.getLobby().add("enter " + acc.getFullName());
-        }
+        var match = op.get();
+        match.getEntered().add(acc.getId());
+        match.getLobby().sendConnect(acc);
 
         return RequestStatus.DONE;
     }
@@ -174,14 +171,10 @@ public class GamesController {
 
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
-        var match = op.get();
 
-        // If the user is in a match, then he is removed from the match,
-        // the server command "exit [fullname]" is sent
-        if (match.getEntered().contains(acc.getId())) {
-            match.getEntered().remove(acc.getId());
-            match.getLobby().add("exit " + acc.getFullName());
-        }
+        var match = op.get();
+        match.getEntered().remove(acc.getId());
+        match.getLobby().sendDisconnect(acc);
 
         return RequestStatus.DONE;
     }
@@ -211,15 +204,13 @@ public class GamesController {
 
             var colorStr = match.isRandom() ? "" : " white";
             match.setWhitePlayerId(authId);
-            match.getLobby().add("join " + acc.getFullName() + colorStr
-            );
+            match.getLobby().sendJoin(acc, colorStr);
 
         } else if (colorObj == Color.BLACK && match.getBlackPlayerId() == -1) {
 
             var colorStr = match.isRandom() ? "" : " black";
             match.setBlackPlayerId(authId);
-            match.getLobby().add("join " + acc.getFullName() + colorStr
-            );
+            match.getLobby().sendLobby(acc, colorStr);
 
         } else {
             return RequestStatus.DENIED;
@@ -237,16 +228,15 @@ public class GamesController {
 
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
-        var game = op.get();
-        if (game.isStarted()) return RequestStatus.DENIED;
+        var match = op.get();
+        if (match.isStarted()) return RequestStatus.DENIED;
 
-        if (acc.getId() == game.getWhitePlayerId()) {
-            game.setWhitePlayerId(-1);
-        } else if (acc.getId() == game.getBlackPlayerId()) {
-            game.setBlackPlayerId(-1);
+        if (acc.getId() == match.getWhitePlayerId()) {
+            match.setWhitePlayerId(-1);
+        } else if (acc.getId() == match.getBlackPlayerId()) {
+            match.setBlackPlayerId(-1);
         }
-        // the server sends a command "disjoin [fullname]"
-        game.getLobby().add("disjoin " + acc.getFullName());
+        match.getLobby().sendDisjoin(acc);
 
         return RequestStatus.DONE;
     }
@@ -259,23 +249,23 @@ public class GamesController {
 
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
-        var game = op.get();
+        var match = op.get();
 
         // if the match is already running
-        if (game.isStarted()) return RequestStatus.DENIED;
+        if (match.isStarted()) return RequestStatus.DENIED;
 
         // if the match is not complete or the user is not the creator or moderator
-        if (game.getWhitePlayerId() == -1 || game.getBlackPlayerId() == -1
-                || (game.getCreatorId() != acc.getId() && acc.getType().ordinal() < AccountType.MODERATOR.ordinal())) {
+        if (match.getWhitePlayerId() == -1 || match.getBlackPlayerId() == -1
+                || (match.getCreatorId() != acc.getId() && acc.getType().ordinal() < AccountType.MODERATOR.ordinal())) {
             return RequestStatus.DENIED;
         }
 
-        var engine = new MatchChessEngine(game, accountDAO);
+        var engine = new MatchChessEngine(match, accountDAO);
         engine.start();
         engineList.add(engine);
 
         // the server will send the command "start [fullname]"
-        game.getLobby().add("start " + acc.getFullName());
+        match.getLobby().sendStart(acc);
 
         return RequestStatus.DONE;
 
@@ -308,10 +298,6 @@ public class GamesController {
         return RequestStatus.DONE;
 
     }
-
-    //private void kickPlayer() {
-
-    //}
 
     // ----------------------------------------------------------------------------------------------------------------
 
@@ -354,6 +340,7 @@ public class GamesController {
 
             synchronized (engine.getMatch()) {
                 engine.updateTimer();
+                engine.getMatch().getLobby().updateTime();
                 onUpdate.accept(engine.getMatch());
             }
         }

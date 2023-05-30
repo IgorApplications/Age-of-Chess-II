@@ -149,7 +149,7 @@ public class AccountDAO {
 
     /**
      * @param id - accountId
-     * returns a list of found accounts
+     * returns a ready account
      * */
     public Pair<RequestStatus, Account> getAccount(long id) {
         List<Account> accounts = getServerAccount(id);
@@ -207,7 +207,10 @@ public class AccountDAO {
      * RequestStatus.DONE - if successful
      * */
     public RequestStatus updateAccount(Account account, AccountType sender, boolean self) {
+        // attempt to change someone else's account if your role is smaller or the same
         if (!self && account.getType().ordinal() >= sender.ordinal()) return RequestStatus.DENIED;
+        // applying to oneself a role higher than one's own
+        if (self && sender.ordinal() < account.getType().ordinal()) return RequestStatus.DENIED;
 
         List<Account> found = getServerAccount(account.getId());
         if (DataChecks.isBadList(found)) return DataChecks.getBadStatus(found);
@@ -243,10 +246,23 @@ public class AccountDAO {
 
             } else {
 
-                jdbcTemplate.update(
+                if (account.getPassword().equals("")) {
+                    jdbcTemplate.update(
                         "UPDATE Account SET coins=?, bullet=?, blitz=?, rapid=?, long=?, name=?, username=?," +
-                                " password=?, country=?, gender=?, quote=?, datebirth=?, " +
-                                " type=? WHERE id=?",
+                            " country=?, gender=?, quote=?, datebirth=?, " +
+                            " type=? WHERE id=?",
+
+                        account.getCoins(), account.getBullet(), account.getBlitz(),
+                        account.getRapid(), account.getLongRank(),
+                        account.getUsername(), account.getFullName(),
+                        account.getCountry(), account.getGender().toString(),
+                        account.getQuote(), account.getDateBirth(),
+                        account.getType().toString(), account.getId());
+                } else {
+                    jdbcTemplate.update(
+                        "UPDATE Account SET coins=?, bullet=?, blitz=?, rapid=?, long=?, name=?, username=?," +
+                            " password=?, country=?, gender=?, quote=?, datebirth=?, " +
+                            " type=? WHERE id=?",
 
                         account.getCoins(), account.getBullet(), account.getBlitz(),
                         account.getRapid(), account.getLongRank(),
@@ -255,6 +271,7 @@ public class AccountDAO {
                         account.getCountry(), account.getGender().toString(),
                         account.getQuote(), account.getDateBirth(),
                         account.getType().toString(), account.getId());
+                }
 
             }
 
@@ -322,6 +339,40 @@ public class AccountDAO {
         return RequestStatus.DONE;
     }
 
+    public RequestStatus makeInactive(Account sender, Account punishable, long punishmentId) {
+        if (sender.getType().ordinal() <= punishable.getType().ordinal()) return RequestStatus.DENIED;
+        List<List<Punishment>> punishments = metaDAO.getPunishments(punishable.getId());
+        for (List<Punishment> list : punishments) {
+            if (DataChecks.isBadList(list)) return DataChecks.getBadStatus(list);
+            Punishment punishment = list.get(0);
+            if (punishment.getId() == punishmentId) {
+                punishment.setActive(false);
+                return RequestStatus.DONE;
+            }
+        }
+
+        return RequestStatus.NOT_FOUND;
+    }
+
+    public RequestStatus punish(Account sender, Account punishable, Punishment punishment) {
+        if (punishable.getType().ordinal() >= sender.getType().ordinal()) {
+            return RequestStatus.DENIED;
+        }
+        metaDAO.addPunishment(punishable.getId(), punishment);
+
+        return RequestStatus.DONE;
+    }
+
+    public List<Account> getServerAccount(String name) {
+        return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE name=?",
+            new Object[]{name}, new AccountMapper());
+    }
+
+    public List<Account> getServerAccount(long id) {
+        return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE id=?",
+            new Object[]{id}, new AccountMapper());
+    }
+
     private long getNewID() {
         return jdbcTemplate.query("SELECT * FROM Account ORDER BY id DESC LIMIT 1", new AccountMapper())
                 .stream().map(Account::getId).findFirst().orElse(-1L) + 1;
@@ -378,15 +429,5 @@ public class AccountDAO {
             if (c > 127) return false;
         }
         return true;
-    }
-
-    private List<Account> getServerAccount(String name) {
-        return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE name=?",
-                new Object[]{name}, new AccountMapper());
-    }
-
-    private List<Account> getServerAccount(long id) {
-        return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE id=?",
-                new Object[]{id}, new AccountMapper());
     }
 }

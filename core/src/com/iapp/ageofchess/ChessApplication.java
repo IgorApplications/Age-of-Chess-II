@@ -2,13 +2,19 @@ package com.iapp.ageofchess;
 
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.github.tommyettinger.textra.Font;
 import com.iapp.ageofchess.activity.MenuActivity;
+import com.iapp.ageofchess.controllers.multiplayer.AccountController;
 import com.iapp.ageofchess.graphics.AccountPanel;
 import com.iapp.ageofchess.modding.LoaderMap;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
@@ -20,6 +26,8 @@ import com.iapp.lib.util.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class ChessApplication extends RdApplication {
 
@@ -27,7 +35,6 @@ public class ChessApplication extends RdApplication {
 	private final Cheats cheats;
     private final ApplicationMode appMode;
 	private RdI18NBundle strings;
-	private AccountPanel accountPanel;
 
 	private final List<Locale> languageLocales = new ArrayList<>();
 	private final List<String> languages = new ArrayList<>();
@@ -35,6 +42,7 @@ public class ChessApplication extends RdApplication {
 	private final List<Locale> countryLocales = new ArrayList<>();
 	private final List<String> countries = new ArrayList<>();
     private LoggingView loggingView;
+    private RdTable lineContent;
     private boolean initialize;
 
 	public ChessApplication(Launcher launcher, ServerMode serverMode,
@@ -49,6 +57,10 @@ public class ChessApplication extends RdApplication {
 	public ChessApplication(Launcher launcher) {
 		this(launcher, ServerMode.SERVER, ApplicationMode.RELEASE, Cheats.USER);
 	}
+
+    public RdTable getLineContent() {
+        return lineContent;
+    }
 
     public LoggingView getLoggingView() {
         return loggingView;
@@ -91,17 +103,13 @@ public class ChessApplication extends RdApplication {
 		return cheats;
 	}
 
-	public AccountPanel getAccountPanel() {
-		return accountPanel;
-	}
-
 	@Override
 	public void launch(RdAssetManager rdAssetManager) {
 		var style = new RdLabel.RdLabelStyle();
 		style.font = new Font("gray_style/fonts/itxt_lite.fnt", Font.DistanceFieldType.SDF);
 		style.color = Color.WHITE;
-		RdLogger.setLogStyle(style);
-		RdLogger.setDescStyle(style);
+		RdLogger.self().setLogStyle(style);
+		RdLogger.self().setDescStyle(style);
 		initConstants();
 
 		SplashActivity.loadLibrary(MenuActivity::new,
@@ -122,9 +130,7 @@ public class ChessApplication extends RdApplication {
         MultiplayerEngine.self().launchMultiplayerEngine();
 	}
 
-	public void updateTitle(WindowGroup group, String text) {
-        // TODO
-	}
+	public void updateTitle(WindowGroup group, String text) {}
 
 	@Override
 	public void renderApp() {
@@ -178,8 +184,9 @@ public class ChessApplication extends RdApplication {
 		if (!initialize) {
             initialize = true;
 
-            accountPanel = new AccountPanel();
-            accountPanel.setVisible(false);
+            ChessConstants.accountPanel = new AccountPanel();
+            ChessConstants.accountPanel.setVisible(false);
+            ChessConstants.accountController = new AccountController();
 
 			Runnable task = () -> {
 
@@ -207,12 +214,32 @@ public class ChessApplication extends RdApplication {
 
             loggingView = new LoggingView(ChessAssetManager.current().getSkin());
             loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
-            loggingView.setScale(0.75f);
-            RdApplication.self().getTopContent().add(loggingView).expand().align(Align.topLeft);
+
+            RdTable table = new RdTable();
+            table.setTouchable(Touchable.disabled);
+            table.setFillParent(true);
+            table.add(loggingView).expand().fill().align(Align.topLeft);
+            RdApplication.self().getTopActors().add(table);
+
+            lineContent = new RdTable();
+            lineContent.add(new Image(new NinePatchDrawable(
+                new NinePatch(ChessAssetManager.current().findChessRegion("mode_app"),
+                    300, 10, 0, 10)))).expand().fillX().align(Align.topLeft);
+            lineContent.setFillParent(true);
+            RdApplication.self().getTopActors().add(0, lineContent);
 		}
 
         loggingView.setVisible(ChessConstants.localData.isEnableSysProperties());
 	}
+
+    public Spinner showSpinner(String text) {
+        Spinner spinner = new Spinner(text);
+        spinner.show(RdApplication.self().getStage());
+        spinner.setSize(400, 100);
+        RdApplication.self().addDialog(spinner, WindowUtil::resizeCenter);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        return spinner;
+    }
 
 	public void showAccept(String text) {
 		var accept = new RdDialogBuilder()
@@ -231,28 +258,89 @@ public class ChessApplication extends RdApplication {
 		resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
 
-	public RdDialog showConf(String text, OnChangeListener onAccept) {
-		var conf = new RdDialogBuilder()
-				.title(strings.get("info"))
-				.cancel(strings.get("cancel"))
-				.accept(strings.get("accept"), onAccept)
-				.text(text)
-				.build(ChessAssetManager.current().getSkin(), "input");
+    public void showInput(String text, BiConsumer<RdDialog, String> onAccept) {
+        showInput(text, strings.get("accept"), onAccept);
+    }
 
-		conf.getIcon().setDrawable(new TextureRegionDrawable(
-				ChessAssetManager.current().findRegion("icon_conf")));
-		conf.getIcon().setScaling(Scaling.fit);
+    public void showSelector(Consumer<FileHandle> onSelect, String... extensions) {
+        RdDialog selector = new FileSelectorBuilder()
+            .title(strings.get("file_selector"))
+            .endFilters(extensions)
+            .select(strings.get("select"), onSelect)
+            .cancel(strings.get("cancel"))
+            .build(ChessAssetManager.current().getSkin());
 
-		conf.show(RdApplication.self().getStage());
-		conf.setSize(800, 550);
-		RdApplication.self().addDialog(conf, WindowUtil::resizeCenter);
-		resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        selector.show(RdApplication.self().getStage());
+        selector.setSize(900, 800);
+        RdApplication.self().addDialog(selector, WindowUtil::resizeCenter);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
 
-		return conf;
+    public void showInput(String text, String accept, BiConsumer<RdDialog, String> onAccept) {
+        RdDialog conf = new RdDialogBuilder()
+            .title(strings.get("input"))
+            .cancel(strings.get("cancel"))
+            .accept(accept, onAccept)
+            .text(text)
+            .input(strings.get("enter_hint"))
+            .build(ChessAssetManager.current().getSkin(), "input");
+
+        conf.getIcon().setDrawable(new TextureRegionDrawable(
+            ChessAssetManager.current().findRegion("icon_info")));
+        conf.getIcon().setScaling(Scaling.fit);
+
+        conf.show(RdApplication.self().getStage());
+        conf.setSize(800, 550);
+        RdApplication.self().addDialog(conf, WindowUtil::resizeCenter);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+	public void showConf(String text, BiConsumer<RdDialog, String> onAccept) {
+		showConf(strings.get("accept"), text, onAccept);
 	}
 
+    public void showConf(String accept, String text, BiConsumer<RdDialog, String> onAccept) {
+        RdDialog conf = new RdDialogBuilder()
+            .title(strings.get("info"))
+            .cancel(strings.get("cancel"))
+            .accept(accept, onAccept)
+            .text(text)
+            .build(ChessAssetManager.current().getSkin(), "input");
+
+        conf.getIcon().setDrawable(new TextureRegionDrawable(
+            ChessAssetManager.current().findRegion("icon_conf")));
+        conf.getIcon().setScaling(Scaling.fit);
+
+        conf.show(RdApplication.self().getStage());
+        conf.setSize(800, 550);
+        RdApplication.self().addDialog(conf, WindowUtil::resizeCenter);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    public void showConfWarn(String text, BiConsumer<RdDialog, String> onAccept) {
+        showConfWarn(strings.get("accept"), text, onAccept);
+    }
+
+    public void showConfWarn(String accept, String text, BiConsumer<RdDialog, String> onAccept) {
+        RdDialog conf = new RdDialogBuilder()
+            .title(strings.get("info"))
+            .cancel(strings.get("cancel"))
+            .accept(accept, onAccept)
+            .text(text)
+            .build(ChessAssetManager.current().getSkin(), "input");
+
+        conf.getIcon().setDrawable(new TextureRegionDrawable(
+            ChessAssetManager.current().findRegion("icon_warn")));
+        conf.getIcon().setScaling(Scaling.fit);
+
+        conf.show(RdApplication.self().getStage());
+        conf.setSize(800, 550);
+        RdApplication.self().addDialog(conf, WindowUtil::resizeCenter);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
 	public void showInfo(String text) {
-		var info = new RdDialogBuilder()
+		RdDialog info = new RdDialogBuilder()
 				.title(strings.get("info"))
 				.accept(strings.get("accept"))
 				.text(text)
@@ -270,26 +358,22 @@ public class ChessApplication extends RdApplication {
 	}
 
 	private int errors = 0;
-	private RdDialog error;
 
 	public void showError(String text) {
 		if (errors > 0) return;
 		errors++;
 
-		var onCancel = new OnChangeListener() {
-			@Override
-			public void onChange(Actor actor) {
-				error.hide();
-				errors = 0;
-			}
-		};
+        BiConsumer<RdDialog, String> onCancel = (dialog, s) -> {
+            dialog.hide();
+            errors = 0;
+        };
 
-		error = new RdDialogBuilder()
+		RdDialog error = new RdDialogBuilder()
 				.title(strings.get("error"))
 				.accept(strings.get("accept"), onCancel)
+                .onHide(onCancel)
 				.text(text)
 				.build(ChessAssetManager.current().getSkin(), "input");
-		error.setOnCancel(onCancel);
 
 		error.getIcon().setDrawable(new TextureRegionDrawable(
 				ChessAssetManager.current().findRegion("icon_error")));
@@ -303,6 +387,6 @@ public class ChessApplication extends RdApplication {
 
 	private void initConstants() {
 		ChessConstants.localData = DataManager.self().readLocalData();
-		RdLogger.setOnFatal(() -> ChessApplication.self().getLauncher().setOnFinish(null));
+		RdLogger.self().setOnFatal(() -> ChessApplication.self().getLauncher().setOnFinish(null));
 	}
 }

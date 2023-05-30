@@ -18,10 +18,12 @@ import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.util.DisposeUtil;
 import com.iapp.lib.util.Pair;
 import com.iapp.lib.util.RdI18NBundle;
+import com.iapp.lib.util.WindowUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -60,18 +62,18 @@ public abstract class RdApplication implements ApplicationListener {
     private Stage stage;
     /** app background color */
     private Color backgroundColor = Color.BLACK;
-    /** information on top */
-    private RdTable content;
     /** storage of dialog boxes that are independent of the activity */
     private final List<Pair<RdDialog, Consumer<RdDialog>>> dialogList = new ArrayList<>();
     /** default application cursor */
     private Cursor defCursor;
     /** cross-platform implementations of platform calls */
     private final Launcher launcher;
-    /**  */
+    /** directory type for logging */
     private Files.FileType logType;
-    /**  */
+    /** path to logging directory */
     private String logPath;
+    /** list of screen-independent actors, added on top of the rest */
+    private final List<Actor> topActors = new ArrayList<>();
 
     /** @return the application core from anywhere */
     public static RdApplication self() {
@@ -89,8 +91,8 @@ public abstract class RdApplication implements ApplicationListener {
             try {
                 runnable.run();
             } catch (Throwable t) {
-                Gdx.app.error("postRunnable", RdLogger.getDescription(t));
-                RdLogger.showFatalScreen(t);
+                Gdx.app.error("postRunnable", RdLogger.self().getDescription(t));
+                RdLogger.self().showFatalScreen(t);
             }
         });
     }
@@ -207,6 +209,11 @@ public abstract class RdApplication implements ApplicationListener {
         periodRender = 1000f / fps;
     }
 
+    /** returns list of screen-independent actors, added on top of the rest */
+    public List<Actor> getTopActors() {
+        return topActors;
+    }
+
     /** returns app background color */
     public Color getBackgroundColor() {
         return backgroundColor;
@@ -217,10 +224,6 @@ public abstract class RdApplication implements ApplicationListener {
         this.backgroundColor = backgroundColor;
     }
 
-    /** returns a screen-independent table that is drawn on top of everything */
-    public RdTable getTopContent() {
-        return content;
-    }
 
     /** returns zoom viewport; by default Desktop = 1.5  */
     public float getZoom() {
@@ -250,12 +253,30 @@ public abstract class RdApplication implements ApplicationListener {
 
     /**
      * adds a listener to the pool, called each time the window is resized;
-     * Automatically deleted when hide is called
+     * Automatically deleted when hide is called (isHidden)
      * @return index - a pointer to a place in the pool
      * */
     public int addDialog(RdDialog dialog, Consumer<RdDialog> resize) {
         dialogList.add(new Pair<>(dialog, resize));
         return dialogList.size() - 1;
+    }
+
+    /**
+     * resizes the dialog box each time the window is resized using the following formula:
+     * width = min(worldWidth - padX, maxWidth),
+     * height = min(worldHeight - padY, maxHeight);
+     * Automatically deleted when hide is called (isHidden)
+     * @return index - a pointer to a place in the pool
+     * */
+    public int addDialog(RdDialog dialog, float maxWidth, float maxHeight, float padX, float padY) {
+        return addDialog(dialog, current -> {
+            Viewport viewport = RdApplication.self().getViewport();
+            if (current != null) {
+                current.setWidth(Math.min(viewport.getWorldWidth() - padX, maxWidth));
+                current.setHeight(Math.min(viewport.getWorldHeight() - padY, maxHeight));
+            }
+            WindowUtil.resizeCenter(current);
+        });
     }
 
     /** Cleans up application resources */
@@ -273,11 +294,16 @@ public abstract class RdApplication implements ApplicationListener {
      * @param next - render object
      * */
     public void setScreen(Activity next, Action... actions) {
+        if (RdLogger.blockedTransition) return;
+
         SequenceAction sequence = new SequenceAction();
         Gdx.input.setOnscreenKeyboardVisible(false);
+        InputProcessor inputProcessor = Gdx.input.getInputProcessor();
+        Gdx.input.setInputProcessor(null);
 
         Runnable intent = () -> {
-            stage.getActors().clear();
+            stage.clear();
+
             if (current != null) {
                 current.dispose();
             }
@@ -287,6 +313,11 @@ public abstract class RdApplication implements ApplicationListener {
                 next.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             }
             current = next;
+
+            for (Actor actor : topActors) {
+                getStage().addActor(actor);
+            }
+            Gdx.input.setInputProcessor(inputProcessor);
         };
 
         if (current != null) {
@@ -305,6 +336,22 @@ public abstract class RdApplication implements ApplicationListener {
         }
     }
 
+    void setFatalScreen(Activity next) {
+        stage.getActors().clear();
+        stage.getRoot().clearActions();
+        stage.getRoot().getColor().a = 1;
+
+        if (current != null) {
+            current.dispose();
+        }
+
+        if (next != null) {
+            next.show(current);
+            next.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        }
+        current = next;
+    }
+
     /**
      * The method initializes the application resources
      * and called once when the application is created
@@ -312,13 +359,13 @@ public abstract class RdApplication implements ApplicationListener {
     @Override
     public final void create() {
         try {
+            readVersion();
             if (defaultZoom && (Gdx.app.getType() == Application.ApplicationType.Android
                     || Gdx.app.getType() == Application.ApplicationType.iOS)) {
                 zoom = 1f;
             }
             viewport = new ExtendViewport(minAppWidth * zoom, minAppHeight * zoom);
             viewport.setScaling(Scaling.contain);
-            content = new RdTable();
             stage = new Stage(viewport);
             input.addProcessor(stage);
             Gdx.input.setInputProcessor(input);
@@ -329,12 +376,12 @@ public abstract class RdApplication implements ApplicationListener {
             Runnable task = () -> {
                 Gdx.app.log("launch", "Application launched");
 
-                RdLogger.logSysInfo();
+                RdLogger.self().logSysInfo();
             };
             execute(task);
         } catch (Throwable t) {
-            Gdx.app.error("launch", RdLogger.getDescription(t));
-            RdLogger.showFatalScreen(t);
+            Gdx.app.error("launch", RdLogger.self().getDescription(t));
+            RdLogger.self().showFatalScreen(t);
         }
     }
 
@@ -349,27 +396,16 @@ public abstract class RdApplication implements ApplicationListener {
             }
 
             Batch batch = stage.getBatch();
-
+            if (batch.isDrawing()) batch.end();
             stage.act(Gdx.graphics.getDeltaTime());
             stage.draw();
             renderApp();
 
-            content.act(Gdx.graphics.getDeltaTime());
-            if (!batch.isDrawing()) batch.begin();
-            try {
-                content.draw(batch, 1);
-                batch.end();
-            } catch (Throwable t) {
-                Gdx.app.error("render", RdLogger.getDescription(t));
-                batch.end();
-                RdLogger.showFatalScreen(t);
-            }
-
             if (current != null) current.render(Gdx.graphics.getDeltaTime());
             lastRender = System.currentTimeMillis();
         } catch (Throwable t) {
-            Gdx.app.error("render", RdLogger.getDescription(t));
-            RdLogger.showFatalScreen(t);
+            Gdx.app.error("render", RdLogger.self().getDescription(t));
+            RdLogger.self().showFatalScreen(t);
         }
     }
 
@@ -382,7 +418,6 @@ public abstract class RdApplication implements ApplicationListener {
         try {
             resizeApp(width, height);
             viewport.update(width, height, true);
-            content.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
 
             dialogList.removeIf(pair -> pair.getKey().isHidden());
             for (var pair : dialogList) {
@@ -392,8 +427,8 @@ public abstract class RdApplication implements ApplicationListener {
 
             if (current != null) current.resize(width, height);
         } catch (Throwable t) {
-            Gdx.app.error("resize", RdLogger.getDescription(t));
-            RdLogger.showFatalScreen(t);
+            Gdx.app.error("resize", RdLogger.self().getDescription(t));
+            RdLogger.self().showFatalScreen(t);
         }
     }
 
@@ -404,8 +439,8 @@ public abstract class RdApplication implements ApplicationListener {
             if (current != null) current.pause();
             pauseApp();
         } catch (Throwable t) {
-            Gdx.app.error("pause", RdLogger.getDescription(t));
-            RdLogger.showFatalScreen(t);
+            Gdx.app.error("pause", RdLogger.self().getDescription(t));
+            RdLogger.self().showFatalScreen(t);
         }
     }
 
@@ -416,8 +451,8 @@ public abstract class RdApplication implements ApplicationListener {
             if (current != null) current.resume();
             resumeApp();
         } catch (Throwable t) {
-            Gdx.app.error("resume", RdLogger.getDescription(t));
-            RdLogger.showFatalScreen(t);
+            Gdx.app.error("resume", RdLogger.self().getDescription(t));
+            RdLogger.self().showFatalScreen(t);
         }
     }
 
@@ -436,5 +471,13 @@ public abstract class RdApplication implements ApplicationListener {
             Gdx.files.getFileHandle(logPath, logType).child("stderr.txt")
                 .writeBytes(stderr.toByteArray(), false);
         }
+    }
+
+    private void readVersion() {
+        String result = Gdx.files.internal("version").readString();
+        String[] tokens = result.split("\n");
+        String stringVersion = tokens[1].split("=")[1].replace(".", "");
+        RdLogger.self().setVersion(Integer.parseInt(stringVersion));
+        RdLogger.self().setTime(tokens[0].split("=")[1]);
     }
 }

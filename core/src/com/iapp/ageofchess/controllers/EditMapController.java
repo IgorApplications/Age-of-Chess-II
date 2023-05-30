@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -89,61 +90,50 @@ public class EditMapController extends Controller {
 
     public void showConfExit() {
         activity.getBlackout().setVisible(true);
-        var text = newMap ? strings.get("conf_exit_new_mod") : strings.get("conf_exit_mod");
-        var confExit = new RdDialogBuilder()
+        String text = newMap ? strings.get("conf_exit_new_mod") : strings.get("conf_exit_mod");
+        RdDialog confExit = new RdDialogBuilder()
                 .title(strings.get("confirmation"))
                 .text(text)
-                .onHide(new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        activity.getConfExit().hide();
-                        activity.getBlackout().setVisible(false);
-                    }
+                .onHide((dialog, s) -> {
+                    activity.getConfExit().hide();
+                    activity.getBlackout().setVisible(false);
                 })
-                .cancel(strings.get("not_save"), new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        goToModding();
-                    }
-                })
-                .accept(strings.get("save"), new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        for (int i = 0; i < mapData.getScenarios().length; i++) {
-                            var part1 = mapData.getScenarios()[i].split(" ")[0];
-                            if (part1.matches(".*(k.*k).*") || part1.matches(".*(K.*K).*")
-                                    || !part1.contains("k") || !part1.contains("K")) {
-                                showError(strings.format("incorrect_scenario", i + 1),
-                                        true, () -> activity.getBlackout().setVisible(true));
-                                return;
-                            }
+                .cancel(strings.get("not_save"),
+                    (dialog, s) -> goToModding())
+                .accept(strings.get("save"), (dialog, s) -> {
+                    for (int i = 0; i < mapData.getScenarios().length; i++) {
+                        var part1 = mapData.getScenarios()[i].split(" ")[0];
+                        if (part1.matches(".*(k.*k).*") || part1.matches(".*(K.*K).*")
+                            || !part1.contains("k") || !part1.contains("K")) {
+                            ChessApplication.self().showError(strings.format("incorrect_scenario", i + 1));
+                            return;
                         }
-
-                        var spinner = new Spinner(strings.get("loading"));
-                        activity.setSpinner(spinner);
-                        spinner.show(RdApplication.self().getStage());
-                        spinner.setSize(400, 100);
-                        activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
-                        Runnable task = () -> {
-                            var copy = new ArrayList<>(ChessAssetManager.current().getDataMaps());
-                            ChessAssetManager.current().getDataMaps().clear();
-                            DataManager.self().loadMapData(mapData, resources);
-
-                            var taskLoad = LoaderMap.self().getTaskLoadDiskMaps(() ->
-                                goToModding(Actions.run(() -> {
-                                    resources.dispose();
-                                    mapData.getAtlas().dispose();
-                                    for (var mapData : copy) {
-                                        mapData.dispose();
-                                    }
-                                }))
-                            );
-                            taskLoad.load();
-
-                        };
-                        RdApplication.self().execute(task);
                     }
+
+                    var spinner = new Spinner(strings.get("loading"));
+                    activity.setSpinner(spinner);
+                    spinner.show(RdApplication.self().getStage());
+                    spinner.setSize(400, 100);
+                    activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+                    Runnable task = () -> {
+                        var copy = new ArrayList<>(ChessAssetManager.current().getDataMaps());
+                        ChessAssetManager.current().getDataMaps().clear();
+                        DataManager.self().loadMapData(mapData, resources);
+
+                        var taskLoad = LoaderMap.self().getTaskLoadDiskMaps(() ->
+                            goToModding(Actions.run(() -> {
+                                resources.dispose();
+                                mapData.getAtlas().dispose();
+                                for (var mapData : copy) {
+                                    mapData.dispose();
+                                }
+                            }))
+                        );
+                        taskLoad.load();
+
+                    };
+                    RdApplication.self().execute(task);
                 })
                 .build(ChessAssetManager.current().getSkin(), "input");
 
@@ -169,13 +159,13 @@ public class EditMapController extends Controller {
 
     public void getEditMap(Stage stage) {
         activity.getBlackout().setVisible(true);
-        var dialog = new RdDialog(strings.get("map_change"), ChessAssetManager.current().getSkin());
+        RdDialog dialog = new RdDialog(strings.get("map_change"), ChessAssetManager.current().getSkin());
         dialog.setOnCancel(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 for (int i = 0; i < mapData.getScenarios().length; i++) {
                     if (!Game.isValidFEN(mapData.getScenarios()[i])) {
-                        showError(strings.format("incorrect_fen", (i + 1)), true, () -> {});
+                        ChessApplication.self().showError(strings.format("incorrect_fen", (i + 1)));
                         return;
                     }
                 }
@@ -183,7 +173,7 @@ public class EditMapController extends Controller {
                 activity.getBlackout().setVisible(false);
             }
         });
-        var properties = new PropertyTable(500, ChessAssetManager.current().getSkin());
+        PropertyTable properties = new PropertyTable(500, ChessAssetManager.current().getSkin());
         dialog.getContentTable().add(properties).expand().fill();
 
         addTextures(properties);
@@ -199,19 +189,18 @@ public class EditMapController extends Controller {
     }
 
     private void addTextures(PropertyTable properties) {
-        var textures = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> textures = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
         textures.setItems(mapData.getNameTextures());
-        var removeTexture = new RdTextButton(strings.get("remove"));
-        var loadTexture = new RdTextButton(strings.get("load"), "blue");
+        RdTextButton removeTexture = new RdTextButton(strings.get("remove"));
+        RdTextButton loadTexture = new RdTextButton(strings.get("load"), "blue");
 
         loadTexture.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 Consumer<FileHandle> onSelect = handle -> {
                     if (!reservedNames.contains(handle.nameWithoutExtension())) {
-                        showError(strings.get("wrong_name") + reservedNames.toString()
-                                        .replaceAll("\\[", "|").replaceAll("]", "|"),
-                                true, () -> {});
+                        ChessApplication.self().showError(strings.get("wrong_name") + reservedNames.toString()
+                                        .replaceAll("\\[", "|").replaceAll("]", "|"));
                         return;
                     }
                     // Report!
@@ -231,7 +220,7 @@ public class EditMapController extends Controller {
                 };
 
                 Gdx.input.setOnscreenKeyboardVisible(false);
-                showSelector(onSelect, ".png", ".jpg");
+                ChessApplication.self().showSelector(onSelect, ".png", ".jpg");
             }
         });
 
@@ -263,7 +252,7 @@ public class EditMapController extends Controller {
                 Consumer<FileHandle> onSelect = handle -> {
                     // Report!
                     if (reservedNames.contains(handle.nameWithoutExtension())) {
-                        showError(strings.get("name_reserved"), true, () -> {});
+                        ChessApplication.self().showError(strings.get("name_reserved"));
                         return;
                     }
 
@@ -287,7 +276,7 @@ public class EditMapController extends Controller {
                 };
 
                 Gdx.input.setOnscreenKeyboardVisible(false);
-                showSelector(onSelect, ".png", ".jpg");
+                ChessApplication.self().showSelector(onSelect, ".png", ".jpg");
             }
         });
         removeIcon.addListener(new OnChangeListener() {
@@ -314,7 +303,7 @@ public class EditMapController extends Controller {
             public void onChange(Actor actor) {
                 Consumer<FileHandle> onSelect = handle -> {
                     if (checkAtlasNames(handle)) {
-                        showError(strings.get("wrong_names"), true, () -> {});
+                        ChessApplication.self().showError(strings.get("wrong_names"));
                         return;
                     }
 
@@ -339,7 +328,7 @@ public class EditMapController extends Controller {
                 };
 
                 Gdx.input.setOnscreenKeyboardVisible(false);
-                showSelector(onSelect, ".atlas");
+                ChessApplication.self().showSelector(onSelect, ".atlas");
             }
         });
 
@@ -469,7 +458,7 @@ public class EditMapController extends Controller {
                Consumer<FileHandle> onSelect = handle -> {
                     int index = getScenarioIndex(scenariosList);
                     if (reservedNames.contains(handle.nameWithoutExtension())) {
-                        showError(strings.get("name_reserved"), true, () -> {});
+                        ChessApplication.self().showError(strings.get("name_reserved"));
                         return;
                     }
 
@@ -492,7 +481,7 @@ public class EditMapController extends Controller {
                 };
 
                 Gdx.input.setOnscreenKeyboardVisible(false);
-                showSelector(onSelect, ".jpg", ".png");
+                ChessApplication.self().showSelector(onSelect, ".jpg", ".png");
 
             }
         });
@@ -1128,81 +1117,17 @@ public class EditMapController extends Controller {
         return result;
     }
 
-    private void showConfirmation(String text, CallListener callListener) {
-        var conf = new RdDialogBuilder()
-                .title(strings.get("confirmation"))
-                .text(text)
-                .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        callListener.call();
-                        activity.getConfirmation().hide();
-                    }
-                })
-                .build(ChessAssetManager.current().getSkin(), "input");
-
-        conf.getIcon().setDrawable(new TextureRegionDrawable(
-                ChessAssetManager.current().findRegion("ib_help")));
-        conf.getIcon().setScaling(Scaling.fit);
-        conf.show(activity.getStage());
-        conf.setSize(800, 550);
-
-        activity.setConfirmation(conf);
-        activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
-    private void showError(String text, boolean visible, CallListener callListener) {
-        var error = new RdDialogBuilder()
-                .title(strings.get("error"))
-                .text(text)
-                .accept(strings.get("accept"), new OnChangeListener() {
-                    @Override
-                    public void onChange(Actor actor) {
-                        callListener.call();
-                        activity.getError().hide();
-                        activity.getBlackout().setVisible(visible);
-                    }
-                })
-                .build(ChessAssetManager.current().getSkin(), "input");
-
-        error.getIcon().setDrawable(new TextureRegionDrawable(
-                ChessAssetManager.current().findRegion("icon_error")));
-
-        error.getIcon().setScaling(Scaling.fit);
-        error.show(activity.getStage());
-        activity.getBlackout().setVisible(true);
-        error.setSize(700, 550);
-
-        activity.setError(error);
-        activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
-    private void showSelector(Consumer<FileHandle> onSelect, String... extensions) {
-        var selector = new FileSelectorBuilder()
-                .title(strings.get("file_selector"))
-                .endFilters(extensions)
-                .select(strings.get("select"), onSelect)
-                .cancel(strings.get("cancel"))
-                .build(ChessAssetManager.current().getSkin());
-
-        selector.show(activity.getStage());
-        selector.setSize(900, 800);
-        activity.setSelector(selector);
-        activity.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
     private Pair<Boolean, Array<FileHandle>> getAtlasPngs(FileHandle atlasHandle) {
-        var data = new String(atlasHandle.readBytes());
-        var atlasPngs = new Array<FileHandle>();
+        String data = new String(atlasHandle.readBytes());
+        Array<FileHandle> atlasPngs = new Array<>();
 
-        for (var line : data.split("\n")) {
+        for (String line : data.split("\n")) {
             if (line.endsWith(".png")) {
                 atlasPngs.add(atlasHandle.parent().child(line));
             }
         }
 
-        for (var handle : atlasPngs) {
+        for (FileHandle handle : atlasPngs) {
             if (!handle.exists()) return new Pair<>(false, atlasPngs);
         }
 
@@ -1210,8 +1135,8 @@ public class EditMapController extends Controller {
     }
 
     private String[] getAtlasElements() {
-        var textures = getTextureRegions();
-        var data = new ArrayList<String>();
+        Array<TextureAtlas.AtlasRegion> textures = getTextureRegions();
+        List<String> data = new ArrayList<>();
         for (int i = 0; i < mapData.getAtlas().getRegions().size; i++) {
             if (textures.contains(mapData.getAtlas().getRegions().get(i), true)) continue;
             data.add(mapData.getAtlas().getRegions().get(i).name);
@@ -1220,9 +1145,9 @@ public class EditMapController extends Controller {
     }
 
     private Array<TextureAtlas.AtlasRegion> getTextureRegions() {
-        var regions = new Array<TextureAtlas.AtlasRegion>();
-        for (var name : mapData.getNameTextures()) {
-            for (var region : mapData.getAtlas().getRegions()) {
+        Array<TextureAtlas.AtlasRegion> regions = new Array<>();
+        for (String name : mapData.getNameTextures()) {
+            for (TextureAtlas.AtlasRegion region : mapData.getAtlas().getRegions()) {
                 if (region.name.equals(name)) {
                     regions.add(region);
                 }
@@ -1232,16 +1157,16 @@ public class EditMapController extends Controller {
     }
 
     private Array<TextureAtlas.AtlasRegion> removeTextureRegions() {
-        var regions = new Array<TextureAtlas.AtlasRegion>();
-        for (var name : mapData.getNameTextures()) {
-            for (var region : mapData.getAtlas().getRegions()) {
+        Array<TextureAtlas.AtlasRegion> regions = new Array<>();
+        for (String name : mapData.getNameTextures()) {
+            for (TextureAtlas.AtlasRegion region : mapData.getAtlas().getRegions()) {
                 if (region.name.equals(name)) {
                     regions.add(region);
                 }
             }
         }
 
-        for (var region : regions) {
+        for (TextureAtlas.AtlasRegion region : regions) {
             mapData.getAtlas().getRegions()
                     .removeValue(region, true);
             mapData.getAtlas().getTextures()
@@ -1261,7 +1186,7 @@ public class EditMapController extends Controller {
     }
 
     private String[] remove(String[] data, int index) {
-        var copyData = new String[data.length - 1];
+        String[] copyData = new String[data.length - 1];
 
         System.arraycopy(data, 0, copyData, 0, index);
         System.arraycopy(data, index + 1, copyData, index, data.length - index - 1);
@@ -1270,7 +1195,7 @@ public class EditMapController extends Controller {
     }
 
     private Drawable[] remove(Drawable[] data, int index) {
-        var copyData = new Drawable[data.length - 1];
+        Drawable[] copyData = new Drawable[data.length - 1];
 
         System.arraycopy(data, 0, copyData, 0, index);
         System.arraycopy(data, index + 1, copyData, index, data.length - index - 1);
@@ -1288,7 +1213,7 @@ public class EditMapController extends Controller {
     }
 
     private boolean contains(String[] arr, String found) {
-        for (var el : arr) {
+        for (String el : arr) {
             if (el.equals(found)) {
                 return true;
             }
@@ -1297,8 +1222,8 @@ public class EditMapController extends Controller {
     }
 
     private boolean checkAtlasNames(FileHandle handle) {
-        var data = handle.readString();
-        for (var el : data.split("\n")) {
+        String data = handle.readString();
+        for (String el : data.split("\n")) {
             if (!el.contains(":") && reservedNames.contains(el)) {
                 return false;
             }

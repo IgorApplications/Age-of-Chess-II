@@ -120,12 +120,10 @@ public class RdScrollPane extends ScrollPane {
             }
 
             if (actor instanceof  RdTextField) {
-
-                //if (((RdTextField) actor).isOver()) {
-                 //   button = true;
-                 //   break;
-               // }
-                // TODO
+                if (((RdTextField) actor).isOver()) {
+                   button = true;
+                    break;
+                }
             }
         }
 

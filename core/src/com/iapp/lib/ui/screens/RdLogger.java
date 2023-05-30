@@ -13,49 +13,73 @@ import java.util.Arrays;
  * */
 public final class RdLogger {
 
+    private static final RdLogger INSTANCE = new RdLogger();
+
     /** explanatory text on crushed window */
-    private static String description = "IgorApplications application crushed, report send!\nSorry for the inconvenience :-(";
+    private String description = "IgorApplications application crushed, please send a screenshot to igorapplications@gmail.com\nSorry for the inconvenience :-(";
     /** actions in case of a fatal error */
-    private static CallListener OnFatal = () -> {};
+    private CallListener onFatal = () -> {};
     /** fatal activity text styles */
-    private static RdLabel.RdLabelStyle descStyle, logStyle;
+    private RdLabel.RdLabelStyle descStyle, logStyle;
+    /** application version */
+    private int version;
+    /** application version build time */
+    private String time;
+    /** disable screen transitions */
+    static boolean blockedTransition;
+
+    public static RdLogger self() {
+        return INSTANCE;
+    }
+
+    /** returns the application version */
+    public int getVersion() {
+        return version;
+    }
+
+    /** returns the build time of the application version */
+    public String getTime() {
+        return time;
+    }
 
     /**
      * sets explanatory text on crushed window
      * @param description - explanation of what is happening
      * */
-    public static void setDescription(String description) {
-        RdLogger.description = description;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     /**
      * sets actions in case of a fatal error
      * @param onFatal - actions
      * */
-    public static void setOnFatal(CallListener onFatal) {
-        RdLogger.OnFatal = onFatal;
+    public void setOnFatal(CallListener onFatal) {
+        this.onFatal = onFatal;
     }
 
     /** sets stack trace style */
-    public static void setLogStyle(RdLabel.RdLabelStyle logStyle) {
-        RdLogger.logStyle = logStyle;
+    public void setLogStyle(RdLabel.RdLabelStyle logStyle) {
+        this.logStyle = logStyle;
     }
 
     /**
      * sets the style of the message to the user
      * @see RdLogger#description
      * */
-    public static void setDescStyle(RdLabel.RdLabelStyle descriptionStyle) {
-        RdLogger.descStyle = descriptionStyle;
+    public void setDescStyle(RdLabel.RdLabelStyle descriptionStyle) {
+       this.descStyle = descriptionStyle;
     }
 
     /** Displays a crushed window with a description of the error
      * @param error - application exception
      * */
-    public static Activity showFatalScreen(Throwable error) {
+    public Activity showFatalScreen(Throwable error) {
+        blockedTransition = true;
+
         var loggingScreen = new LoggingActivity(getDescription(error), description,
-                logStyle, descStyle, OnFatal);
-        RdApplication.self().setScreen(loggingScreen);
+                logStyle, descStyle, onFatal);
+        RdApplication.self().setFatalScreen(loggingScreen);
 
         return loggingScreen;
     }
@@ -64,7 +88,7 @@ public final class RdLogger {
      * returns the full description of the error
      * @param error - any error or exception
      * */
-    public static String getDescription(Throwable error) {
+    public String getDescription(Throwable error) {
 
         var logText = new StringBuilder(parseThrowable(error));
         var count = 0;
@@ -82,18 +106,18 @@ public final class RdLogger {
     }
 
     /** @return the number of frames per second */
-    public static int getFPS() {
+    public int getFPS() {
         return Gdx.graphics.getFramesPerSecond();
     }
 
     /** @return the amount of RAM the application is using in Mb */
-    public static long getRAM() {
+    public long getRAM() {
         long bytes  = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         return bytes / 1024 / 1024;
     }
 
     /** Logs system information */
-    public static void logSysInfo() {
+    public void logSysInfo() {
         var properties = System.getProperties();
         var keys = properties.keys();
         while (keys.hasMoreElements()) {
@@ -103,12 +127,20 @@ public final class RdLogger {
         }
     }
 
-    private static String parseThrowable(Throwable t) {
+    private String parseThrowable(Throwable t) {
         var logText = Arrays.toString(t.getStackTrace());
         logText = logText.replaceAll(",", ",\n");
         logText = t + "\n" + logText;
 
         return logText;
+    }
+
+    void setVersion(int version) {
+        this.version = version;
+    }
+
+    void setTime(String time) {
+        this.time = time;
     }
 
     private RdLogger() {}

@@ -5,22 +5,27 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.CreationActivity;
-import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerCreationController;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.lib.web.RankType;
-import com.iapp.ageofchess.services.*;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
+import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
+import com.iapp.lib.web.RankType;
+import com.iapp.lib.web.RequestStatus;
+
+import java.util.function.Consumer;
 
 public class MultiplayerCreationActivity extends Activity {
 
@@ -32,7 +37,7 @@ public class MultiplayerCreationActivity extends Activity {
     private RdImageTextButton back;
     private RdWindow window;
     private PropertyTable properties;
-    private RdTextField name;
+    private RdTextArea name;
     private RdSelectBox<String> timeByGame;
     private RdSelectBox<String> maxTurns;
     private RdSelectBox<String> timeByTurn;
@@ -80,7 +85,8 @@ public class MultiplayerCreationActivity extends Activity {
         back = new RdImageTextButton(strings.get("back"), "red_screen");
         back.setImage("ib_back");
 
-        name = new RdTextField("", ChessAssetManager.current().getSkin());
+        name = new RdTextArea("", ChessAssetManager.current().getSkin());
+        name.setMaxLength(15);
 
         infinity = strings.get("infinity");
         timeByTurn = new RdSelectBox<>(ChessAssetManager.current().getSkin());
@@ -158,6 +164,11 @@ public class MultiplayerCreationActivity extends Activity {
             public void onChange(Actor actor) {}
         });
 
+        random.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {}
+        });
+
         create.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -175,13 +186,6 @@ public class MultiplayerCreationActivity extends Activity {
         background.setFillParent(true);
         background.setScaling(Scaling.fill);
         getStage().addActor(background);
-
-        RdTable panel = new RdTable();
-        panel.align(Align.topLeft);
-        panel.setFillParent(true);
-        getStage().addActor(panel);
-        panel.add(ChessApplication.self().getAccountPanel())
-            .expandX().fillX();
 
         windowGroup = new WindowGroup(window, back);
         ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));

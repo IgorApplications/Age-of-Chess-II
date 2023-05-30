@@ -35,7 +35,7 @@ android {
     minSdkVersion 19
     targetSdkVersion 33
     versionCode 1
-    versionName "1.0"
+    versionName "2.00.001"
     multiDexEnabled true
   }
   namespace "com.iapp.ageofchess"
@@ -76,6 +76,9 @@ dependencies {
   // android appcompat
   implementation 'androidx.appcompat:appcompat:1.6.1'
   implementation 'net.yslibrary.keyboardvisibilityevent:keyboardvisibilityevent:3.0.0-RC3'
+
+  // google login
+  implementation 'com.google.android.gms:play-services-auth:20.5.0'
 
 }
 

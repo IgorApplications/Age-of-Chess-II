@@ -5,10 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.controllers.CreationController;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
@@ -16,6 +14,7 @@ import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.SettingsUtil;
+import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
 import com.iapp.lib.util.OnChangeListener;
@@ -58,7 +57,7 @@ public class CreationActivity extends Activity {
 
     @Override
     public void initActors() {
-        var content = new RdTable();
+        RdTable content = new RdTable();
         content.setFillParent(true);
         window = new RdWindow("",  "screen_window");
         window.setMovable(false);
@@ -69,7 +68,7 @@ public class CreationActivity extends Activity {
         back.setImage("ib_back");
 
         name = new RdTextArea("", ChessAssetManager.current().getSkin());
-        //name.setPrefLines(1);
+        name.setMaxLength(15);
         pieceColor = new RdSelectionButton(
                 ChessAssetManager.current().getSkin(),
                 new String[]{strings.get("white"), strings.get("black")});
@@ -195,15 +194,6 @@ public class CreationActivity extends Activity {
         background.setFillParent(true);
         getStage().addActor(background);
         background.setScaling(Scaling.fill);
-
-        if (ChessConstants.loggingAcc != null) {
-            RdTable panel = new RdTable();
-            panel.align(Align.topLeft);
-            panel.setFillParent(true);
-            getStage().addActor(panel);
-            panel.add(ChessApplication.self().getAccountPanel())
-                .expandX().fillX();
-        }
 
         var turnModeHint = new RdImageTextButton("", "circle");
         turnModeHint.getLabelCell().reset();

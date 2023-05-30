@@ -7,6 +7,8 @@ import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.util.OnChangeListener;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Builder of standard dialog boxes from text and buttons
@@ -21,7 +23,11 @@ public class RdDialogBuilder {
             cancelText = "",
             title = "";
     /** accept and reject button listeners */
-    protected OnChangeListener onCancel, onAccept, onHide;
+    protected BiConsumer<RdDialog, String> onCancel, onAccept, onHide;
+    /** true if the dialog is for input */
+    protected boolean input;
+    /** hint for input field */
+    protected String message;
 
     /**
      * set the main text of the dialog box
@@ -36,7 +42,7 @@ public class RdDialogBuilder {
      * @param text - accept button text
      * @param listener - accept button listener
      * */
-    public RdDialogBuilder accept(String text, OnChangeListener listener) {
+    public RdDialogBuilder accept(String text, BiConsumer<RdDialog, String> listener) {
         acceptText = text;
         onAccept = listener;
         return this;
@@ -54,7 +60,7 @@ public class RdDialogBuilder {
      * Sets the window close listener
      * @param onHide - window close listener
      * */
-    public RdDialogBuilder onHide(OnChangeListener onHide) {
+    public RdDialogBuilder onHide(BiConsumer<RdDialog, String> onHide) {
         this.onHide = onHide;
         return this;
     }
@@ -64,7 +70,7 @@ public class RdDialogBuilder {
      * @param text - cancel button text
      * @param listener - cancel button listener
      * */
-    public RdDialogBuilder cancel(String text, OnChangeListener listener) {
+    public RdDialogBuilder cancel(String text, BiConsumer<RdDialog, String> listener) {
         cancelText = text;
         onCancel = listener;
         return this;
@@ -85,46 +91,81 @@ public class RdDialogBuilder {
     }
 
     /**
+     * adds an input field to the dialog box after the text
+     * @param message - hint for input field
+     * */
+    public RdDialogBuilder input(String message) {
+        input = true;
+        this.message = message;
+        return this;
+    }
+
+    /**
      * Collect result dialog box from received data
      * @param style - the style of the dialog box and its actors
      * @return result dialog
      * */
     public RdDialog build(RdDialogBuilderStyle style) {
         var dialog = new RdDialog(title, style.rdDialogStyle);
-        if (onHide != null) dialog.setOnCancel(onHide);
+        if (onHide != null) {
+            dialog.setOnCancel(new OnChangeListener() {
+                @Override
+                public void onChange(Actor actor) {
+                    onHide.accept(dialog, "");
+                }
+            });
+        }
         else {
             if (onCancel != null) {
-                dialog.setOnCancel(onCancel);
+                dialog.setOnCancel(new OnChangeListener() {
+                    @Override
+                    public void onChange(Actor actor) {
+                        onCancel.accept(dialog, "");
+                    }
+                });
             }
         }
 
-        var contentLabel = new RdLabel(contentText, style.textStyle);
+        RdLabel contentLabel = new RdLabel(contentText, style.textStyle);
         contentLabel.setWrap(true);
         contentLabel.setAlignment(Align.topLeft);
 
-        var contentTable = new RdTable();
-        contentTable.add(contentLabel).expand().fill();
+        RdTextArea area = new RdTextArea("", style.textFieldStyle);
+        area.setMaxLines(3);
+        area.setPrefLines(3);
+        area.setMessageText(message);
+        RdTable contentTable = new RdTable();
+        contentTable.align(Align.topLeft);
+        if (input) {
+            contentTable.add(contentLabel).expandX().fillX().row();
+            contentTable.add(area).expandX().fillX();
+        } else {
+            contentTable.add(contentLabel).expand().fill();
+        }
 
-        var scrollPane = new ScrollPane(contentTable, style.scrollStyle);
+        ScrollPane scrollPane = new ScrollPane(contentTable, style.scrollStyle);
         scrollPane.setFadeScrollBars(false);
         scrollPane.setOverscroll(false, false);
         scrollPane.setScrollingDisabled(true, false);
 
-        var cancel = new RdImageTextButton(cancelText, style.cancelStyle);
-        var accept = new RdImageTextButton(acceptText, style.acceptStyle);
+        RdImageTextButton cancel = new RdImageTextButton(cancelText, style.cancelStyle);
+        RdImageTextButton accept = new RdImageTextButton(acceptText, style.acceptStyle);
 
-        accept.addListener(Objects.requireNonNullElseGet(onAccept, () -> new OnChangeListener() {
+        accept.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                dialog.hide();
+                if (onAccept != null) onAccept.accept(dialog, area.getText());
+                else dialog.hide();
             }
-        }));
-        cancel.addListener(Objects.requireNonNullElseGet(onCancel, () -> new OnChangeListener() {
+        });
+        cancel.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                dialog.hide();
+                if (onCancel != null) onCancel.accept(dialog, "");
+                else dialog.hide();
             }
-        }));
+        });
+
 
         dialog.getContentTable().align(Align.topLeft);
         dialog.getContentTable().add(scrollPane).expand().fill();
@@ -159,16 +200,19 @@ public class RdDialogBuilder {
         public RdImageTextButton.RdImageTextButtonStyle acceptStyle, cancelStyle;
         public RdLabel.RdLabelStyle textStyle;
         public ScrollPane.ScrollPaneStyle scrollStyle;
+        public RdTextField.RdTextFieldStyle textFieldStyle;
 
         public RdDialogBuilderStyle() {}
 
         public RdDialogBuilderStyle(RdDialog.RdDialogStyle rdDialogStyle, RdImageTextButton.RdImageTextButtonStyle acceptStyle,
-                                    RdImageTextButton.RdImageTextButtonStyle cancelStyle, RdLabel.RdLabelStyle textStyle, ScrollPane.ScrollPaneStyle scrollStyle) {
+                                    RdImageTextButton.RdImageTextButtonStyle cancelStyle, RdLabel.RdLabelStyle textStyle,
+                                    ScrollPane.ScrollPaneStyle scrollStyle, RdTextField.RdTextFieldStyle textFieldStyle) {
             this.rdDialogStyle = rdDialogStyle;
             this.acceptStyle = acceptStyle;
             this.cancelStyle = cancelStyle;
             this.textStyle = textStyle;
             this.scrollStyle = scrollStyle;
+            this.textFieldStyle = textFieldStyle;
         }
 
         public RdDialogBuilderStyle(RdDialogBuilderStyle style) {
@@ -177,6 +221,7 @@ public class RdDialogBuilder {
             cancelStyle = style.cancelStyle;
             textStyle = style.textStyle;
             scrollStyle = style.scrollStyle;
+            textFieldStyle = style.textFieldStyle;
         }
     }
 }

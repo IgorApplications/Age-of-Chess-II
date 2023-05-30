@@ -95,7 +95,7 @@ public class LoaderMap {
                             }
                         } catch (Throwable t) {
                             Gdx.app.error("loadDiskMaps",
-                                "Bad map (loadTextures) " + RdLogger.getDescription(t));
+                                "Bad map (loadTextures) " + RdLogger.self().getDescription(t));
                         }
                     }
                     for (var dataMap : external) {
@@ -105,7 +105,7 @@ public class LoaderMap {
                             }
                         } catch (Throwable t) {
                             Gdx.app.error("loadDiskMaps",
-                                "Bad map (loadTextures) " + RdLogger.getDescription(t));
+                                "Bad map (loadTextures) " + RdLogger.self().getDescription(t));
                         }
                     }
 

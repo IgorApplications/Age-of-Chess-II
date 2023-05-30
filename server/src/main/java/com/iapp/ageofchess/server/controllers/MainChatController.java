@@ -1,10 +1,6 @@
 package com.iapp.ageofchess.server.controllers;
 
-import com.google.gson.Gson;
-import com.iapp.lib.web.Account;
-import com.iapp.lib.web.AccountType;
-import com.iapp.lib.web.Message;
-import com.iapp.lib.web.RequestStatus;
+import com.iapp.lib.web.*;
 import com.iapp.ageofchess.server.dao.AccountDAO;
 import com.iapp.ageofchess.server.dao.MainChatDAO;
 import com.iapp.lib.util.DataChecks;
@@ -21,6 +17,9 @@ import java.util.*;
  * Rest controller of the main chat
  * @author Igor Ivanov
  * @version 1.0
+ *
+ * The lobby maintains the following server states:
+ * connect username, disconnect username, banned admin_username username time(millis)
  * */
 @RestController
 @RequestMapping("/api/v1/mainChat")
@@ -30,22 +29,31 @@ public class MainChatController {
 
     private final MainChatDAO mainChatDAO;
     private final AccountDAO accountDAO;
-    private final Gson gson;
+    private final Lobby lobby;
 
     @Autowired
     public MainChatController(MainChatDAO mainChatDAO, AccountDAO accountDAO) {
         this.mainChatDAO = mainChatDAO;
         this.accountDAO = accountDAO;
-        gson = new Gson();
+        lobby = new Lobby(accountDAO::getServerAccount);
     }
 
     // no auth ------------------------------------------------------------------------------------------------------
+    public List<LobbyMessage> readMainLobby() {
+        return lobby.readMainLobby();
+    }
+
+    public void update() {
+        mainChatDAO.clearOldMessages();
+        lobby.updateTime();
+    }
 
     public Pair<List<Message>, Map<Long, Account>> readAll() {
         List<Message> messages = mainChatDAO.readMessages();
-        Set<Long> ids = new HashSet<Long>();
+        Set<Long> ids = new HashSet<>();
         for (Message message : messages) ids.add(message.getSenderId());
         Map<Long, Account> idByAcc = new HashMap<>();
+        messages.sort(Comparator.comparing(Message::getTime));
 
         for (long id : ids) {
 
@@ -63,6 +71,18 @@ public class MainChatController {
     }
 
     // only auth -----------------------------------------------------------------------------------------------------
+    public RequestStatus sendMainLobby(Account account, String message) {
+        return lobby.sendLobby(account, message);
+    }
+
+    public void sendConnect(Account account) {
+        lobby.sendConnect(account);
+    }
+
+    public void sendDisconnect(Account account) {
+        lobby.sendDisconnect(account);
+    }
+
     public RequestStatus send(long authId, String text) {
         Pair<RequestStatus, Account> pair = accountDAO.getAccount(authId);
         if (pair.getKey() != RequestStatus.DONE) return pair.getKey();

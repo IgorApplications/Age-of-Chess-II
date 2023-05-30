@@ -143,8 +143,8 @@ public class MatchChessEngine {
                     lastUpdateTime = System.currentTimeMillis();
 
                     if (match.getTimeByWhite() <= 0) {
-                        match.setResult(Result.WHITE_VICTORY);
-                        finishGame(match.getWhitePlayerId(), match.getBlackPlayerId());
+                        match.setResult(Result.BLACK_VICTORY);
+                        finishGame(match.getBlackPlayerId(), match.getWhitePlayerId());
                     }
 
                 }

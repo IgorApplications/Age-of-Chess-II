@@ -30,7 +30,6 @@ import java.util.Map;
 public class RankActivity extends Activity {
 
     private final RankController controller;
-    private final MultiplayerMenuController menuController;
     private RdWindow window;
     private WindowGroup windowGroup;
     private RdTable topTable;
@@ -40,7 +39,6 @@ public class RankActivity extends Activity {
 
     public RankActivity() {
         controller = new RankController(this);
-        menuController = new MultiplayerMenuController(null);
     }
 
     @Override
@@ -73,7 +71,7 @@ public class RankActivity extends Activity {
         panel.align(Align.topLeft);
         panel.setFillParent(true);
         getStage().addActor(panel);
-        panel.add(ChessApplication.self().getAccountPanel())
+        panel.add(ChessConstants.accountPanel)
             .expandX().fillX();
 
         window = new RdWindow("","screen_window");
@@ -144,6 +142,7 @@ public class RankActivity extends Activity {
     }
 
     private void updateTopTable(RankType rankType) {
+        if (topTable == null) return;
         topTable.clear();
 
         for (RankView rankView : ratings.get(rankType)) {
@@ -166,7 +165,7 @@ public class RankActivity extends Activity {
 
         MultiplayerEngine.self().getBulletTop(accounts -> {
             for (int i = 0; i < accounts.size(); i++) {
-                bullet.add(new RankView(i + 1, accounts.get(i), RankType.BULLET, menuController));
+                bullet.add(new RankView(i + 1, accounts.get(i), RankType.BULLET));
             }
 
             if (ratings.size() == 4) updateTopTable(RankType.BULLET);
@@ -174,7 +173,7 @@ public class RankActivity extends Activity {
 
         MultiplayerEngine.self().getBlitzTop(accounts -> {
             for (int i = 0; i < accounts.size(); i++) {
-                blitz.add(new RankView(i + 1, accounts.get(i), RankType.BLITZ, menuController));
+                blitz.add(new RankView(i + 1, accounts.get(i), RankType.BLITZ));
             }
 
             if (ratings.size() == 4) updateTopTable(RankType.BULLET);
@@ -182,7 +181,7 @@ public class RankActivity extends Activity {
 
         MultiplayerEngine.self().getRapidTop(accounts -> {
             for (int i = 0; i < accounts.size(); i++) {
-                rapid.add(new RankView(i + 1, accounts.get(i), RankType.RAPID, menuController));
+                rapid.add(new RankView(i + 1, accounts.get(i), RankType.RAPID));
             }
 
             if (ratings.size() == 4) updateTopTable(RankType.BULLET);
@@ -190,7 +189,7 @@ public class RankActivity extends Activity {
 
         MultiplayerEngine.self().getLongTop(accounts -> {
             for (int i = 0; i < accounts.size(); i++) {
-                longRank.add(new RankView(i + 1, accounts.get(i), RankType.LONG, menuController));
+                longRank.add(new RankView(i + 1, accounts.get(i), RankType.LONG));
             }
 
             if (ratings.size() == 4) updateTopTable(RankType.BULLET);

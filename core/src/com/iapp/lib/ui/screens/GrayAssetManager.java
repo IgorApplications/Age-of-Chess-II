@@ -85,13 +85,17 @@ public class GrayAssetManager extends RdAssetManager {
         addScreenButton("blue", Color.valueOf("0094FF"));
         addScreenButton("red", Color.RED);
 
-        addRdTextButtonStyle("default", "", new RdTextButton.RdTextButtonStyle(), Color.WHITE);
-        addRdTextButtonStyle("blue", "blue_", new RdTextButton.RdTextButtonStyle(), Color.BLACK);
-        addRdTextButtonStyle("dark", "dark_", new RdTextButton.RdTextButtonStyle(), Color.WHITE);
+        addRdTextButtonStyle("default", "", Color.WHITE, new RdImageTextButton.RdImageTextButtonStyle());
+        addRdTextButtonStyle("blue", "blue_", Color.BLACK, new RdImageTextButton.RdImageTextButtonStyle());
+        addRdTextButtonStyle("dark", "dark_", Color.WHITE, new RdImageTextButton.RdImageTextButtonStyle());
 
-        addRdTextButtonStyle("default", "", new RdImageTextButton.RdImageTextButtonStyle(), Color.WHITE);
-        addRdTextButtonStyle("blue", "blue_", new RdImageTextButton.RdImageTextButtonStyle(), Color.BLACK);
-        addRdTextButtonStyle("dark", "dark_", new RdImageTextButton.RdImageTextButtonStyle(), Color.WHITE);
+        addRdTextButtonStyle("default", "", Color.WHITE, new RdTextButton.RdTextButtonStyle());
+        addRdTextButtonStyle("blue", "blue_", Color.BLACK, new RdTextButton.RdTextButtonStyle());
+        addRdTextButtonStyle("dark", "dark_", Color.WHITE, new RdTextButton.RdTextButtonStyle());
+
+        addImageButtonStyle("default", "", Color.WHITE);
+        addImageButtonStyle("blue", "blue_", Color.BLACK);
+        addImageButtonStyle("dark", "dark_", Color.WHITE);
 
         addRdListStyle();
 
@@ -119,7 +123,6 @@ public class GrayAssetManager extends RdAssetManager {
         addLineTableStyle();
 
         addRdDialogBuilderStyle();
-
         addInputDialogBuilderStyle();
 
         addFileSelectorStyle();
@@ -142,7 +145,7 @@ public class GrayAssetManager extends RdAssetManager {
         return grayAtlas;
     }
 
-    // -----------------
+    // ---------------------------------------------------------------------------------------------------------
 
     private void initLoading() {
         loadingBg = new NinePatchDrawable(
@@ -157,8 +160,41 @@ public class GrayAssetManager extends RdAssetManager {
                 new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 6))
         );
 
+        AnimatedImage animatedImage = new AnimatedImage(30,
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-1")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-2")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-3")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-4")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-5")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-6")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-7")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-8")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-9")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-10")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-11")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-12")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-13")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-14")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-15")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-16")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-17")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-18")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-19")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-20")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-21")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-22")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-23")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-24")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-25")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-26")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-27")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-28")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-29")),
+            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-30"))
+        );
+
         graySkin.add("loading_bg", loadingBg);
-        graySkin.add("logo_anim", loadingAnim);
+        graySkin.add("logo_anim", animatedImage);
     }
 
     private void initCursor() {
@@ -212,7 +248,7 @@ public class GrayAssetManager extends RdAssetManager {
         graySkin.add("default", style);
     }
 
-    private void addRdTextButtonStyle(String name, String type, RdTextButton.RdTextButtonStyle style, Color color) {
+    private void addRdTextButtonStyle(String name, String type, Color color, RdTextButton.RdTextButtonStyle style) {
         style.up = new NinePatchDrawable(
                 new NinePatch(findRegion(type + "button_up"),
                         13, 15, 16, 19));
@@ -224,6 +260,22 @@ public class GrayAssetManager extends RdAssetManager {
                         13, 15, 19, 16));
         style.font = font;
         style.fontColor = color;
+
+        graySkin.add(name, style);
+    }
+
+    private void addImageButtonStyle(String name, String type, Color color) {
+        ImageButton.ImageButtonStyle style = new ImageButton.ImageButtonStyle();
+
+        style.up = new NinePatchDrawable(
+            new NinePatch(findRegion(type + "button_up"),
+                13, 15, 16, 19));
+        style.over = new NinePatchDrawable(
+            new NinePatch(findRegion(type + "button_over"),
+                13, 15, 16, 19));
+        style.down = new NinePatchDrawable(
+            new NinePatch(findRegion(type + "button_down"),
+                13, 15, 19, 16));
 
         graySkin.add(name, style);
     }
@@ -492,6 +544,7 @@ public class GrayAssetManager extends RdAssetManager {
         style.cancelStyle = graySkin.get(RdImageTextButton.RdImageTextButtonStyle.class);
         style.acceptStyle = graySkin.get("blue", RdImageTextButton.RdImageTextButtonStyle.class);
         style.scrollStyle = graySkin.get(RdScrollPane.RdScrollPaneStyle.class);
+        style.textFieldStyle = graySkin.get(RdTextField.RdTextFieldStyle.class);
 
         graySkin.add("default", style);
     }
@@ -504,6 +557,7 @@ public class GrayAssetManager extends RdAssetManager {
         style.cancelStyle = graySkin.get(RdImageTextButton.RdImageTextButtonStyle.class);
         style.acceptStyle = graySkin.get("blue", RdImageTextButton.RdImageTextButtonStyle.class);
         style.scrollStyle = graySkin.get(RdScrollPane.RdScrollPaneStyle.class);
+        style.textFieldStyle = graySkin.get(RdTextField.RdTextFieldStyle.class);
 
         graySkin.add("input", style);
     }
@@ -667,7 +721,7 @@ public class GrayAssetManager extends RdAssetManager {
 
         style.padLeft = 15;
         style.padRight = 15;
-        style.padBottom = 30;
+        style.padBottom = 90;
         style.padTop = 128;
         style.buttonMinWidth = 300;
         style.windowMinWidth = 1200;

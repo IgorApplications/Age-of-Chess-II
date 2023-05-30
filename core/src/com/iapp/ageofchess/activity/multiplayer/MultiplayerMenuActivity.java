@@ -1,5 +1,6 @@
 package com.iapp.ageofchess.activity.multiplayer;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -14,7 +15,9 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
 import com.iapp.ageofchess.graphics.MessageView;
+import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.web.Account;
+import com.iapp.lib.web.LobbyMessage;
 import com.iapp.lib.web.Message;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.services.ChessAssetManager;
@@ -30,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MultiplayerMenuActivity extends Activity {
@@ -41,6 +45,7 @@ public class MultiplayerMenuActivity extends Activity {
     private final Array<MessageView> views = new Array<>();
     private RdTextArea messageInput;
     private Spinner spinner;
+    private RdDialog conf;
 
     public MultiplayerMenuActivity() {
         controller = new MultiplayerMenuController(this);
@@ -52,7 +57,7 @@ public class MultiplayerMenuActivity extends Activity {
 
     @Override
     public void initActors() {
-        var avatarView = ChessApplication.self().getAccountPanel().getAvatarView();
+        var avatarView = ChessConstants.accountPanel.getAvatarView();
 
         OnChangeListener last = null;
         for (var listener : avatarView.getListeners()) {
@@ -69,7 +74,7 @@ public class MultiplayerMenuActivity extends Activity {
         avatarView.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                controller.editAccount(ChessConstants.loggingAcc.getId());
+                ChessConstants.accountController.editAccount(ChessConstants.loggingAcc.getId());
             }
         });
 
@@ -138,18 +143,12 @@ public class MultiplayerMenuActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
+        ChessApplication.self().getLineContent().setVisible(true);
         Image background = new Image(new TextureRegionDrawable(
             ChessAssetManager.current().findChessRegion("menu_background")));
         background.setFillParent(true);
         getStage().addActor(background);
         background.setScaling(Scaling.fill);
-
-        RdTable panel = new RdTable();
-        panel.align(Align.topLeft);
-        panel.setFillParent(true);
-        getStage().addActor(panel);
-        panel.add(ChessApplication.self().getAccountPanel())
-            .expandX().fillX();
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
@@ -189,6 +188,19 @@ public class MultiplayerMenuActivity extends Activity {
         } else {
             TransitionEffects.transitionBottomShow(windowGroup, ChessConstants.localData.getScreenDuration());
         }
+
+        MultiplayerEngine.self().setOnMainLobby(strings -> {
+            if (ChessConstants.chatView == null) return;
+            try {
+                LobbyMessage online = strings.remove(0);
+                if (online != null) {
+                    ChessConstants.chatView.updateOnline(Integer.parseInt(online.getText()));
+                }
+            } catch (Throwable t) {
+                Gdx.app.error("Server wrong format!", RdLogger.self().getDescription(t));
+            }
+            ChessConstants.chatView.updateLobbyMessages(strings);
+        });
     }
 
     @Override
@@ -208,11 +220,12 @@ public class MultiplayerMenuActivity extends Activity {
         WindowUtil.resizeCenter(spinner);
     }
 
-    private RdDialog conf;
-
     public void updateMessages(List<Message> messages, Map<Long, Account> accounts) {
         dispose(views);
         messagesTable.clear();
+        if (messages.size() > 50) {
+            messages = messages.subList(0, 50);
+        }
 
         Map<Long, List<MessageView>> idByMessages = new HashMap<>();
 
@@ -221,20 +234,20 @@ public class MultiplayerMenuActivity extends Activity {
                     new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    controller.seeAccount(message.getSenderId());
+                    ChessConstants.accountController.seeAccount(message.getSenderId());
                 }
             }, new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
 
-                    conf = ChessApplication.self().showConf(strings.get("conf_del"),
-                            new OnChangeListener() {
-                        @Override
-                        public void onChange(Actor actor) {
-                            MultiplayerEngine.self().removeMessage(message.getId());
-                            conf.hide();
-                        }
-                    });
+                   ChessApplication.self().showConf(strings.get("conf_del"),
+                        new BiConsumer<RdDialog, String>() {
+                            @Override
+                            public void accept(RdDialog dialog, String s) {
+                                MultiplayerEngine.self().removeMessage(message.getId());
+                                dialog.hide();
+                            }
+                        });
 
                 }
             });
@@ -250,9 +263,11 @@ public class MultiplayerMenuActivity extends Activity {
         }
 
         for (Account account : accounts.values()) {
-            MultiplayerEngine.self().getAvatar(account, bytes -> {
 
-                for (MessageView message : idByMessages.get(account.getId())) {
+            MultiplayerEngine.self().getAvatar(account, bytes -> {
+                List<MessageView> res = idByMessages.get(account.getId());
+                if (res == null) return;
+                for (MessageView message : res) {
                     message.getAvatarView().update(account, bytes);
                 }
 
