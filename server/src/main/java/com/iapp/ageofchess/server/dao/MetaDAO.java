@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
+ * Database management for additional account data
  * @author Igor Ivanov
  * */
 @Component
@@ -22,7 +23,7 @@ public class MetaDAO {
 
     private final JdbcTemplate jdbcTemplate;
     private final Gson gson;
-    // 24 hours
+    /** storage time of logins for an account */
     private static final long MAX_TIME_STORED_LOGIN = 24 * 60 * 60 * 1000;
 
     public MetaDAO(JdbcTemplate jdbcTemplate) {
@@ -30,6 +31,9 @@ public class MetaDAO {
         gson = new Gson();
     }
 
+    /**
+     * processes the account and returns a short list of punishment types
+     * */
     public Pair<RequestStatus, Set<Flag>> getFlags(long accountId) {
         List<List<Punishment>> general = getPunishments(accountId);
         if (DataChecks.isBadList(general)) return new Pair<>(DataChecks.getBadStatus(general), null);
@@ -40,6 +44,9 @@ public class MetaDAO {
         return new Pair<>(RequestStatus.DONE, flags);
     }
 
+    /**
+     * returns from all logins in the specified time, only the last one
+     * */
     public Pair<RequestStatus, Login> getLastLogin(long accountId) {
         List<List<Login>> general = getLogins(accountId);
         if (DataChecks.isBadList(general)) return new Pair<>(DataChecks.getBadStatus(general), null);
@@ -47,6 +54,9 @@ public class MetaDAO {
         return new Pair<>(RequestStatus.DONE, data.get(data.size() - 1));
     }
 
+    /**
+     * adds a new one to the list of logins
+     * */
     public RequestStatus addLogin(long accountId, Login login) {
         List<List<Login>> general = getLogins(accountId);
         if (general.size() == 0) general.add(new ArrayList<>());
@@ -67,6 +77,9 @@ public class MetaDAO {
         return RequestStatus.DONE;
     }
 
+    /**
+     * update account avatar
+     * */
     public RequestStatus updateAvatar(long accountId, byte[] avatar) {
         jdbcTemplate.update("UPDATE Account SET avatar=? WHERE id=?",
                 avatar, accountId);
@@ -74,6 +87,9 @@ public class MetaDAO {
         return RequestStatus.DONE;
     }
 
+    /**
+     * adds a new punishment
+     * */
     public RequestStatus addPunishment(long accountId, Punishment punishment) {
         List<List<Punishment>> general = getPunishments(accountId);
         if (DataChecks.isBadList(general)) return DataChecks.getBadStatus(general);
@@ -88,6 +104,9 @@ public class MetaDAO {
         return RequestStatus.DONE;
     }
 
+    /**
+     * returns all logins for the entire specified time
+     * */
     public List<List<Login>> getLogins(long accountId) {
         return jdbcTemplate.query("SELECT * FROM Account WHERE id=?",
                 new Object[]{accountId},
@@ -95,6 +114,9 @@ public class MetaDAO {
                         new TypeToken<List<Login>>() {}.getType()));
     }
 
+    /**
+     * returns all account punishments
+     * */
     public List<List<Punishment>> getPunishments(long accountId) {
         return jdbcTemplate.query("SELECT * FROM Account Where id=?",
                 new Object[]{accountId},
@@ -103,6 +125,9 @@ public class MetaDAO {
                                 new TypeToken<List<Punishment>>() {}.getType()));
     }
 
+    /**
+     * returns account avatar
+     * */
     public List<byte[]> getAvatar(long accountId) {
         return jdbcTemplate.query("SELECT * FROM Account Where id=?",
                 new Object[]{accountId},

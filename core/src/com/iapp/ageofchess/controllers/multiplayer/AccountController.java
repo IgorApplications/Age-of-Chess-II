@@ -15,8 +15,8 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerScenariosActivity;
-import com.iapp.ageofchess.graphics.AccountView;
-import com.iapp.ageofchess.graphics.AvatarView;
+import com.iapp.lib.ui.widgets.AccountView;
+import com.iapp.lib.ui.widgets.AvatarView;
 import com.iapp.ageofchess.graphics.MultiplayerMatchView;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
@@ -32,9 +32,6 @@ import com.iapp.lib.web.*;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -49,12 +46,22 @@ public class AccountController {
     private final SimpleDateFormat birthdayFormatter = new SimpleDateFormat("d MMMM yyyy", ChessConstants.localData.getLocale());
     private final SimpleDateFormat createdFormatter = new SimpleDateFormat("d MMM yyyy", ChessConstants.localData.getLocale());
     private final String[] accountTypeStrings;
+    private final List<RdDialog> hiddens = new ArrayList<>();
     private RdDialog fileSelector;
     private RdDialog adminWarnDialog;
 
     public AccountController() {
         strings = RdApplication.self().getStrings();
         accountTypeStrings = new String[]{strings.get("user"), strings.get("moderator"), strings.get("executor"), strings.get("developer")};
+    }
+
+    public void seeAccount(long id, List<RdDialog> hidden) {
+        var dialog = showWatchingDialog(isSelf(id));
+        hiddens.addAll(hidden);
+
+        MultiplayerEngine.self().getAccount(id, account -> {
+            updateAccountDialog(account, dialog, false);
+        });
     }
 
     public void seeAccount(long id) {
@@ -324,7 +331,7 @@ public class AccountController {
                         disposed.clear();
 
                         for (Account acc : accounts) {
-                            AccountView accountView = new AccountView(acc,
+                            AccountView accountView = new AccountView(MultiplayerEngine.self(), acc,
                                 new OnChangeListener() {
                                     @Override
                                     public void onChange(Actor actor) {
@@ -597,7 +604,7 @@ public class AccountController {
         changeDialog.getButtonTable().add(cancel).expand().fillX().align(Align.bottomLeft);
 
         changeDialog.show(RdApplication.self().getStage());
-        changeDialog.setSize(900, 900);
+        changeDialog.setSize(900, 700);
 
         ChessApplication.self().addDialog(changeDialog, WindowUtil::resizeCenter);
         ChessApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -648,7 +655,6 @@ public class AccountController {
         RdI18NBundle strings = RdApplication.self().getStrings();
         RdDialog games = new RdDialog(strings.get("viewing_games"));
         games.getLoading().setVisible(true);
-        RdApplication.self().addDialog(games, 1000, 2000, 30, 30);
 
         RdTable content = new RdTable();
         content.align(Align.topLeft);
@@ -657,7 +663,7 @@ public class AccountController {
             .expand().fill().pad(5, 5, 5, 5);
 
         games.show(RdApplication.self().getStage());
-        RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        RdApplication.self().addDialog(games, 1000, 2000, 30, 30);
 
         Consumer<List<Match>> onMatches = matches -> {
             MultiplayerEngine.self().removeOnMatches(idByOnMatches.remove(account.getId()));
@@ -671,6 +677,11 @@ public class AccountController {
                                 new OnChangeListener() {
                                     @Override
                                     public void onChange(Actor actor1) {
+
+                                        // closing previous dialog boxes
+                                        for (RdDialog hidden : hiddens) {
+                                            hidden.setVisible(false);
+                                        }
 
                                         SequenceAction seq1 = new SequenceAction();
                                         seq1.addAction(Actions.run(() -> {
@@ -835,9 +846,8 @@ public class AccountController {
         adminDialog.getButtonTable().add(apply).expandX().fillX();
         adminDialog.getButtonTable().add(cancel).expandX().fillX();
 
-        RdApplication.self().addDialog(adminDialog, 1000, 700, 30, 30);
         adminDialog.show(RdApplication.self().getStage());
-        RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        RdApplication.self().addDialog(adminDialog, 1000, 700, 30, 30);
     }
 
     private void applyChanges(RdDialog adminDialog, Account account, String moneyCoins,
@@ -958,6 +968,8 @@ public class AccountController {
                     return;
                 }
 
+                inputPassword.setText("");
+                confPassword.setText("");
                 account.setPassword(inputPassword.getText());
                 MultiplayerEngine.self().changeAccount(account, requestStatus -> {
                     if (requestStatus != RequestStatus.DONE) {

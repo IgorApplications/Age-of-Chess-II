@@ -12,4 +12,6 @@ public interface Client {
     void sendMainLobbyMessage(String message);
 
     void sendGameLobbyMessage(long matchId, String message);
+
+    void getAvatar(Account account, Consumer<byte[]> getAvatar);
 }

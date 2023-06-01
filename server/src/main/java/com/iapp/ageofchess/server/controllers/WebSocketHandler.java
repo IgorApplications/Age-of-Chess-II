@@ -116,7 +116,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             updateClient(session, new SocketResult(RequestStatus.SOCKET_NOT_FOUND, request));
 
         } catch (Throwable t) {
-            websocketLogger.error("handleTextMessage", t);
+            websocketLogger.error("[handleTextMessage] " + RdLogger.self().getDescription(t));
         }
 
     }
@@ -171,11 +171,11 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
         if (account != null) {
             for (Match match : gamesController.getGames()) {
                 if (canExitAndUpdate(account.getId(), match.getId(), session.getId())) {
-                    gamesController.exit(logins.get(session.getId()).getId(), match.getId());
+                    gamesController.disconnect(logins.get(session.getId()).getId(), match.getId());
                 }
             }
 
-            if (getSession(account.getId()).size() == 1) {
+            if (getSession(account.getId()).size() == 0) {
                 countSessionEntered.remove(account.getId());
                 mainChatController.sendDisconnect(account);
                 update = true;
@@ -218,6 +218,10 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
             }
 
             case "/login": {
+
+                // multiple logins
+                if (logins.get(session.getId()) != null)
+                    return new SocketResult(RequestStatus.DENIED, socketRequest);
 
                 var ip = session.getRemoteAddress() != null ?
                     session.getRemoteAddress().toString() : "null";
@@ -263,7 +267,8 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
             case "/seeAccounts": {
 
-                var pair = accountController.seeAccounts(params[0]);
+                long[] ids = gson.fromJson(params[0], long[].class);
+                var pair = accountController.seeAccounts(ids);
                 updateOnline(pair.getValue());
 
                 return new SocketResult(pair.getKey(), gson.toJson(pair.getValue()),
@@ -463,7 +468,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 if (loginAcc.isMuted()) return new SocketResult(RequestStatus.MUTED, socketRequest);
 
                 long matchId = Long.parseLong(params[0]);
-                var sendMessageRes = gamesController.sendMessage(loginAcc.getId(),
+                var sendMessageRes = gamesController.sendLobby(loginAcc.getId(),
                         matchId, params[1]);
                 if (sendMessageRes == RequestStatus.DONE) {
                     updateEnteredUsers(matchId, socketRequest);
@@ -497,7 +502,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 long matchId = Long.parseLong(params[0]);
                 updateEnteredSessions(loginAcc.getId(), matchId, session.getId());
 
-                var enteredResult = gamesController.enter(loginAcc.getId(), matchId);
+                var enteredResult = gamesController.connect(loginAcc.getId(), matchId);
                 if (enteredResult == RequestStatus.DONE) {
                     updateEnteredUsers(matchId, socketRequest);
                     updateClients(new SocketResult(RequestStatus.UPDATE_FROM_SERVER,
@@ -518,7 +523,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                     return new SocketResult(RequestStatus.DONE, socketRequest);
                 }
 
-                var exitResult = gamesController.exit(loginAcc.getId(), matchId);
+                var exitResult = gamesController.disconnect(loginAcc.getId(), matchId);
                 if (exitResult == RequestStatus.DONE) {
                     updateEnteredUsers(matchId, socketRequest);
                     updateClients(new SocketResult(RequestStatus.UPDATE_FROM_SERVER,
@@ -642,7 +647,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
         if (account == null) return;
         for (var match : gamesController.getGames()) {
             if (match.getId() == account.getId()) {
-                gamesController.exit(account.getId(), match.getId());
+                gamesController.disconnect(account.getId(), match.getId());
             }
         }
     }
@@ -667,7 +672,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
         for (var id : match.getValue().getEntered()) {
             var sessions = getSession(id);
             if (sessions.isEmpty()) {
-                gamesController.exit(id, matchId);
+                gamesController.disconnect(id, matchId);
             }
 
             for (var session : sessions) {

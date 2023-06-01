@@ -127,6 +127,8 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
 
         buttons = new RdTable();
         buttons.add(menu).padRight(5).size(125);
+        buttons.add(settings).padRight(5).size(125);
+
         boardCell = content.add(gameBoard).padTop(120).center();
         content.row();
         content.add(buttons).padTop(10).center();

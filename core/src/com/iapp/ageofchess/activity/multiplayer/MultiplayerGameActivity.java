@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
+import com.iapp.ageofchess.controllers.multiplayer.GameSettingsController;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerGameController;
 import com.iapp.ageofchess.graphics.*;
 import com.iapp.ageofchess.modding.LocalMatch;
@@ -50,6 +51,7 @@ import java.util.function.Consumer;
 public abstract class MultiplayerGameActivity extends Activity {
 
     private final DecimalFormat rankFormat;
+    private final GameSettingsController settingsController;
     private static final Vector3 spriteTouchPoint = new Vector3();
     static boolean verticallyMode;
     private boolean exit = true;
@@ -74,7 +76,7 @@ public abstract class MultiplayerGameActivity extends Activity {
     RdDialog menuDialog, statisticDialog;
 
     Table content;
-    RdImageTextButton menu, controlMenu;
+    RdImageTextButton menu, controlMenu, settings;
 
     Image blackout;
     private AtomicBoolean handleInfoBlackout = new AtomicBoolean(false),
@@ -108,6 +110,7 @@ public abstract class MultiplayerGameActivity extends Activity {
         this.controller = new MultiplayerGameController(this, localMatch, match);
         initialize();
         rankFormat = new DecimalFormat("#.##");
+        settingsController = new GameSettingsController();
         rankFormat.setRoundingMode(RoundingMode.CEILING);
     }
 
@@ -116,6 +119,7 @@ public abstract class MultiplayerGameActivity extends Activity {
         this.oldState = oldState;
         initialize();
         rankFormat = new DecimalFormat("#.##");
+        settingsController = new GameSettingsController();
         rankFormat.setRoundingMode(RoundingMode.CEILING);
     }
 
@@ -197,6 +201,10 @@ public abstract class MultiplayerGameActivity extends Activity {
         menu = new RdImageTextButton("");
         menu.setImage("iw_menu");
         menu.getLabelCell().reset();
+
+        settings = new RdImageTextButton("");
+        settings.setImage("iw_settings");
+        settings.getLabelCell().reset();
 
         controlMenu = new RdImageTextButton("");
         controlMenu.setImage("iw_menu");
@@ -296,9 +304,9 @@ public abstract class MultiplayerGameActivity extends Activity {
         blackTime = oldState.blackTime;
         fewTime = oldState.fewTime;
 
-        //chatView = oldState.chatView;
+
         menu = oldState.menu;
-        //controlGame = oldState.controlGame;
+        settings = oldState.settings;
         controlMenu = oldState.controlMenu;
 
         content = new Table();
@@ -346,7 +354,20 @@ public abstract class MultiplayerGameActivity extends Activity {
         if (oldState != null) {
             menu.getListeners().removeIndex(menu.getListeners().size - 1);
             controlMenu.getListeners().removeIndex(controlMenu.getListeners().size - 1);
+            settings.getListeners().removeIndex(settings.getListeners().size - 1);
         }
+        settings.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                blackout.setVisible(true);
+                gameBoard.addBlocked();
+                settingsController.showSettings(controller.getCurrentMatch(), dialog -> {
+                    blackout.setVisible(false);
+                    gameBoard.addUnblocked();
+                    dialog.hide();
+                });
+            }
+        });
         menu.addListener(onMenu);
         controlMenu.addListener(onMenu);
     }

@@ -1,7 +1,6 @@
 package com.iapp.ageofchess.multiplayer;
 
 import com.badlogic.gdx.Gdx;
-import com.github.czyzby.websocket.CommonWebSockets;
 import com.github.czyzby.websocket.WebSocket;
 import com.github.czyzby.websocket.WebSocketListener;
 import com.github.czyzby.websocket.WebSockets;
@@ -67,7 +66,8 @@ public class MultiplayerEngine implements Client {
     private volatile Consumer<String> signupError;
 
     /** get account listener */
-    private final Map<Long, Consumer<Account>> getAccounts = RdApplication.self().getLauncher().concurrentHashMap();
+    private final Map<Long, Consumer<Account>> listGetAccount = RdApplication.self().getLauncher().concurrentHashMap();
+    private final Map<Long, Consumer<List<Account>>> listGetAccounts = RdApplication.self().getLauncher().concurrentHashMap();
 
     /** account search listeners */
     private volatile Consumer<List<Account>> onSearch;
@@ -176,10 +176,16 @@ public class MultiplayerEngine implements Client {
     }
 
     public void getAccount(long id, Consumer<Account> getAccount) {
-        getAccounts.put(id, getAccount);
+        listGetAccount.put(id, getAccount);
         socket.send(new SocketRequest("/api/v1/accounts/see", String.valueOf(id)));
     }
 
+    public void getAccounts(long[] ids, Consumer<List<Account>> getAccounts) {
+        listGetAccounts.put(getId(ids), getAccounts);
+        socket.send(new SocketRequest("/api/v1/accounts/seeAccounts", gson.toJson(ids)));
+    }
+
+    @Override
     public void getAvatar(Account account, Consumer<byte[]> getAvatar) {
         putOnAvatar(account.getId(), getAvatar);
         socket.send(BinaryRequests.getAvatar((byte) 1, account.getId()));
@@ -389,7 +395,6 @@ public class MultiplayerEngine implements Client {
     public void launchMultiplayerEngine() {
         if (initEngine.getAndSet(true)) return;
 
-        CommonWebSockets.initiate();
         socket = WebSockets.newSocket(ChessConstants.serverAPI);
         socket.setSerializeAsString(true);
         socket.addListener(new WebSocketListener() {
@@ -547,7 +552,7 @@ public class MultiplayerEngine implements Client {
 
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     parseJson(socketRes.getResult(), Account.class, account -> {
-                        var callback = getAccounts.remove(account.getId());
+                        var callback = listGetAccount.remove(account.getId());
                         if (callback != null) {
                             callback.accept(account);
                         } else {
@@ -556,6 +561,27 @@ public class MultiplayerEngine implements Client {
                     });
                 } else {
                     Gdx.app.error("error get account", socketRes.getStatus().toString());
+                }
+
+                break;
+            }
+
+            case "/seeAccounts": {
+
+                if (socketRes.getStatus() == RequestStatus.DONE) {
+                    parseJson(socketRes.getResult(), new TypeToken<List<Account>>() {}.getType(),
+                        (Consumer<List<Account>>) accounts -> {
+
+                        Consumer<List<Account>> callback = listGetAccounts.remove(getId(accounts));
+                        if (callback != null) {
+                            callback.accept(accounts);
+                        } else {
+                            Gdx.app.error("get accounts consumer don't found", socketRes.getStatus().toString());
+                        }
+
+                    });
+                } else {
+                    Gdx.app.error("error get accounts", socketRes.getStatus().toString());
                 }
 
                 break;
@@ -738,9 +764,11 @@ public class MultiplayerEngine implements Client {
                 Gdx.app.error("error send lobby", socketRes.getStatus().toString());
                 if (socketRes.getStatus() == RequestStatus.BANNED) {
                     ChessConstants.chatView.updateLocalLobbyMessages("self_banned");
-                } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA || socketRes.getStatus() == RequestStatus.DENIED) {
+                } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA) {
+                    ChessConstants.chatView.updateLocalLobbyMessages("wrong");
+                } else if (socketRes.getStatus() == RequestStatus.DENIED) {
                     ChessConstants.chatView.updateLocalLobbyMessages("denied");
-                } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND) {
+                } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND_COMMAND) {
                     ChessConstants.chatView.updateLocalLobbyMessages("unknown");
                 }
             }
@@ -856,7 +884,9 @@ public class MultiplayerEngine implements Client {
                         Gdx.app.error("error send message in match", socketRes.getStatus().toString());
                         if (socketRes.getStatus() == RequestStatus.BANNED) {
                             ChessConstants.chatView.updateLocalGameMessages("self_banned");
-                        } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA || socketRes.getStatus() == RequestStatus.DENIED) {
+                        } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA) {
+                            ChessConstants.chatView.updateLocalGameMessages("wrong");
+                        } else if (socketRes.getStatus() == RequestStatus.DENIED) {
                             ChessConstants.chatView.updateLocalGameMessages("denied");
                         } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND) {
                             ChessConstants.chatView.updateLocalGameMessages("unknown");
@@ -1006,6 +1036,7 @@ public class MultiplayerEngine implements Client {
 
                 if (loginTime.get() != -1 && RdApplication.self().getLauncher().currentMillis() - loginTime.get() > 15_000) {
                     loginError.accept("Timeout");
+                    loginTime.set(-1);
                 }
 
                 if (!socket.isConnecting() && !socket.isOpen()) {
@@ -1034,5 +1065,21 @@ public class MultiplayerEngine implements Client {
 
         };
         RdApplication.self().execute(listener);
+    }
+
+    private long getId(long[] ids) {
+        long sum = 0;
+        for (long id : ids) {
+            sum += id * 31;
+        }
+        return sum;
+    }
+
+    private long getId(List<Account> accounts) {
+        long sum = 0;
+        for (Account account : accounts) {
+            sum += account.getId() * 31;
+        }
+        return sum;
     }
 }

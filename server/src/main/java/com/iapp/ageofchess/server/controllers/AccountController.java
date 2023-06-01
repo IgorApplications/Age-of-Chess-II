@@ -17,9 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Rest account controller
+ * Account management
  * @author Igor Ivanov
- * @version 1.0
  * */
 @RestController
 @RequestMapping("/api/v1/account")
@@ -38,23 +37,25 @@ public class AccountController {
 
     // no auth -------------------------------------------------------------------------------------------------------
 
+    /** register a new account */
     public RequestStatus signup(String name, String userName, String password) {
         return accountDAO.signup(name, userName, password);
     }
 
+    /** sign in account */
     public Pair<RequestStatus, Account> login(String name, String password, Login login) {
         Pair<RequestStatus, Account> acc = accountDAO.login(name, password, login);
         if (acc.getKey() == RequestStatus.DONE) acc.getValue().setPassword("");
         return acc;
     }
 
+    /** get account information without a password */
     public Pair<RequestStatus, Account> see(long id) {
         return accountDAO.getAccount(id);
     }
 
-    public Pair<RequestStatus, List<Account>> seeAccounts(String stringIds) {
-        long[] ids = gson.fromJson(stringIds, long[].class);
-
+    /** get information about multiple accounts, without a password */
+    public Pair<RequestStatus, List<Account>> seeAccounts(long ids[]) {
         List<Account> general = new ArrayList<>();
         for (long id : ids) {
 
@@ -71,54 +72,92 @@ public class AccountController {
         return new Pair<>(RequestStatus.DONE, general);
     }
 
+    /** try to find accounts whose name contains the specified string */
     public Pair<RequestStatus, List<Account>> searchAccounts(String partName) {
         return accountDAO.searchAccounts(partName);
     }
 
+    /**
+     * forced update of the top of the best players in all ratings
+     * Beware it can be very costly! call rarely
+     * */
     public void update() {
         accountDAO.updateTop();
     }
 
+    /**
+     * Get the latest updated bullet mode top
+     * @see AccountController#update()
+     * */
     public Pair<RequestStatus, List<Account>> getBulletTop() {
         return accountDAO.getBulletTop();
     }
 
+    /**
+     * Get the latest updated top in blitz mode
+     * @see AccountController#update()
+     * */
     public Pair<RequestStatus, List<Account>> getBlitzTop() {
         return accountDAO.getBlitzTop();
     }
 
+    /**
+     * Get the latest updated top in rapid mode
+     * @see AccountController#update()
+     * */
     public Pair<RequestStatus, List<Account>> getRapidTop() {
         return accountDAO.getRapidTop();
     }
 
+    /**
+     * Get the latest updated top in long mode
+     * @see AccountController#update()
+     * */
     public Pair<RequestStatus, List<Account>> getLongTop() {
         return accountDAO.getLongTop();
     }
 
     // auth only ------------------------------------------------------------------------------------------------------
 
+    /**
+     * remove activity from punishment, will not affect the account,
+     * but will remain in the history
+     * */
     public RequestStatus makeInactive(Account auth, long punishableId, long punishmentId) {
         Pair<RequestStatus, Account> pair = see(punishableId);
         if (pair.getKey() != RequestStatus.DONE) return pair.getKey();
         return accountDAO.makeInactive(auth, pair.getValue(), punishmentId);
     }
 
+    /**
+     * add a new punishment to the account
+     * */
     public RequestStatus punish(Account auth, long punishableId, Punishment punishment) {
         Pair<RequestStatus, Account> pair = see(punishableId);
         if (pair.getKey() != RequestStatus.DONE) return pair.getKey();
         return accountDAO.punish(auth, pair.getValue(), punishment);
     }
 
+    /**
+     * update account avatar in binary form
+     * */
     public RequestStatus updateAvatar(Account auth, long updatedId, byte[] avatar) {
         Pair<RequestStatus, Account> updated = see(updatedId);
         if (updated.getKey() != RequestStatus.DONE) return updated.getKey();
         return accountDAO.updateAvatar(updated.getValue(), auth.getType(),auth.getId() == updatedId, avatar);
     }
 
+    /**
+     * get account avatar in binary form
+     * */
     public Pair<RequestStatus, byte[]> getAvatar(long id) {
         return accountDAO.getAvatar(id);
     }
 
+    /**
+     * Update account, special features available for moderators,
+     * blocks dangerous activities
+     * */
     public RequestStatus change(Account auth, String updated) {
         Account updatedAcc = gson.fromJson(updated, Account.class);
 
@@ -127,6 +166,9 @@ public class AccountController {
     }
 
     // developer authority --------------------------------------------------------------------------------------------
+    /**
+     * returns all accounts from the database with encrypted passwords
+     * */
     public List<Account> getAllData() {
         return accountDAO.getAllData();
     }

@@ -12,45 +12,63 @@ import com.iapp.lib.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Manage a running match in real time
+ * @author Igor Ivanov
+ * You need to call updateTimer about every second, or you might get in trouble!
+ *
+ * */
 public class MatchChessEngine {
 
     private static final Logger matchChessEngineLogger = LoggerFactory.getLogger(MatchChessEngine.class);
 
+    /** list to convert fen to coordinates */
     private static final java.util.Map<Character, Integer> vertical = java.util.Map.of(
             'a', 0, 'b', 1,
             'c', 2, 'd', 3,
             'e', 4, 'f', 5,
             'g', 6, 'h', 7);
 
+    /** list of fen chess pieces */
     private static final char[] piecesFen = {
             'K', 'Q', 'B', 'N', 'R', 'P',
             '1', '1', '1', '1', '1',
             'p', 'r', 'n', 'b', 'q', 'k',
     };
 
+    /** account management */
     private final AccountDAO accountDAO;
+    /** the state of the current match, this class will update its game state (that is, not all states) */
     private final Match match;
+    /** chess game engine for processing moves */
     private final Game game;
+    /** time per turn and per game in settings */
     private final long defTime, defTimeByTurn;
-
+    /**
+     * the time when the timers inside the match state were last updated
+     * @see MatchChessEngine#match
+     * */
     private long lastUpdateTime, lastTurnUpdateTime;
+    /** waiting for the end of the time of each turn */
+    private boolean alternately;
 
     public MatchChessEngine(Match match, AccountDAO accountDAO) {
         this.accountDAO = accountDAO;
         this.match = match;
         game = new Game(Color.BLACK, match.getFen());
-        // should be equal
+        // should be equal before launch!
         defTime = Math.min(match.getTimeByBlack(), match.getTimeByWhite());
         defTimeByTurn = match.getTimeByTurn();
     }
 
+    /** return the current state of the match */
     public Match getMatch() {
         synchronized (match) {
             return match;
         }
     }
 
-    // thread1
+    /** start the match */
     public void start() {
         synchronized (match) {
             if (match.isStarted()) return;
@@ -61,10 +79,11 @@ public class MatchChessEngine {
         }
     }
 
-    // waiting for the end of the time of each turn
-    private boolean alternately;
-
-    // thread1
+    /**
+     * make a move in chess format fen
+     * returns DENIED if finished or alternately time isn't finished
+     * or incorrect chess fen format or illegal move
+     * */
     public RequestStatus makeMove(String fenMove) {
         synchronized (match) {
 
@@ -122,7 +141,7 @@ public class MatchChessEngine {
 
     }
 
-    // thread2
+    /** updates all timers, checks and ends the match if necessary */
     public void updateTimer() {
         synchronized (match) {
 

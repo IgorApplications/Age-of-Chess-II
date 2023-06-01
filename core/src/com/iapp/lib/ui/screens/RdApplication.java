@@ -269,7 +269,7 @@ public abstract class RdApplication implements ApplicationListener {
      * @return index - a pointer to a place in the pool
      * */
     public int addDialog(RdDialog dialog, float maxWidth, float maxHeight, float padX, float padY) {
-        return addDialog(dialog, current -> {
+        int index = addDialog(dialog, current -> {
             Viewport viewport = RdApplication.self().getViewport();
             if (current != null) {
                 current.setWidth(Math.min(viewport.getWorldWidth() - padX, maxWidth));
@@ -277,6 +277,8 @@ public abstract class RdApplication implements ApplicationListener {
             }
             WindowUtil.resizeCenter(current);
         });
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        return index;
     }
 
     /** Cleans up application resources */

@@ -127,11 +127,11 @@ public class Lobby {
                     return ban(account, tokens[1], Long.parseLong(time) * unitSize);
 
                 } else {
-                    return RequestStatus.NOT_FOUND;
+                    return RequestStatus.INCORRECT_DATA;
                 }
             }
         }
-        return RequestStatus.NOT_FOUND;
+        return RequestStatus.NOT_FOUND_COMMAND;
     }
 
     private RequestStatus ban(Account account, String login, long timeMillis) {

@@ -466,7 +466,9 @@ public class ChatView extends RdTable {
             builder.append(lobbyMessages.get(i).getText());
             builder.append(", ");
         }
-        builder.append(lobbyMessages.get(lobbyMessages.size() - 1).getText());
+        if (!lobbyMessages.isEmpty()) {
+            builder.append(lobbyMessages.get(lobbyMessages.size() - 1).getText());
+        }
         return SERVER_STATE_COLOR + strings.format("list_command", builder.toString());
     }
 

@@ -108,6 +108,8 @@ MultiplayerGameActivityH extends MultiplayerGameActivity {
 
         buttons.add(menu).size(125).expandX().left().padTop(infinity ? 100 : 0);
         buttons.row();
+        buttons.add(settings).size(125).expandX().left();
+        buttons.row();
 
         var generalTime = new RdTable();
         generalTime.align(Align.topLeft);

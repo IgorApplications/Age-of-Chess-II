@@ -7,8 +7,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.services.ChessConstants;
+import com.iapp.lib.ui.widgets.AccountView;
 import com.iapp.lib.web.Account;
 import com.iapp.lib.web.RankType;
 import com.iapp.lib.ui.actors.RdLabel;
@@ -29,7 +30,7 @@ public class RankView extends RdTable implements Disposable {
     private final int number;
 
     public RankView(int number, Account account, RankType rankType) {
-        accountView = new AccountView(account,
+        accountView = new AccountView(MultiplayerEngine.self(), account,
             new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {

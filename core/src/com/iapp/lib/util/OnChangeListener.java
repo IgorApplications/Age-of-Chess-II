@@ -20,7 +20,7 @@ import com.iapp.lib.ui.screens.RdLogger;
  * */
 public abstract class OnChangeListener extends InputListener {
 
-    /** button click sound listner */
+    /** button click sound listener */
     private static CallListener buttonClick;
     private boolean enable = true;
 
@@ -40,11 +40,11 @@ public abstract class OnChangeListener extends InputListener {
     public abstract void onChange(Actor actor);
 
     @Override
-    public boolean handle(Event e) {
-        var result = super.handle(e);
-        if (e instanceof ChangeListener.ChangeEvent) {
+    public boolean handle(Event event) {
+        boolean result = super.handle(event);
+        if (event instanceof ChangeListener.ChangeEvent) {
             try {
-                onChange(e.getListenerActor());
+                onChange(event.getListenerActor());
             } catch (Throwable t) {
                 Gdx.app.error("handle", RdLogger.self().getDescription(t));
                 RdLogger.self().showFatalScreen(t);
@@ -61,13 +61,7 @@ public abstract class OnChangeListener extends InputListener {
 
     @Override
     public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-        if (event.getListenerActor() instanceof Button
-                || event.getListenerActor() instanceof RdSelectionButton
-                || event.getListenerActor() instanceof RdSelectBox) {
-            if (buttonClick != null && enable) {
-                buttonClick.call();
-            }
-        }
+
         super.touchUp(event, x, y, pointer, button);
     }
 }

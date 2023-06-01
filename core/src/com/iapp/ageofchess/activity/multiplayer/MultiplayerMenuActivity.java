@@ -228,7 +228,6 @@ public class MultiplayerMenuActivity extends Activity {
         }
 
         Map<Long, List<MessageView>> idByMessages = new HashMap<>();
-
         for (var message : messages) {
             var view = new MessageView(message, accounts.get(message.getSenderId()),
                     new OnChangeListener() {
@@ -241,13 +240,10 @@ public class MultiplayerMenuActivity extends Activity {
                 public void onChange(Actor actor) {
 
                    ChessApplication.self().showConf(strings.get("conf_del"),
-                        new BiConsumer<RdDialog, String>() {
-                            @Override
-                            public void accept(RdDialog dialog, String s) {
-                                MultiplayerEngine.self().removeMessage(message.getId());
-                                dialog.hide();
-                            }
-                        });
+                       (dialog, s) -> {
+                           MultiplayerEngine.self().removeMessage(message.getId());
+                           dialog.hide();
+                       });
 
                 }
             });

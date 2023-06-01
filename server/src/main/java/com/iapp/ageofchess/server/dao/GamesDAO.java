@@ -6,16 +6,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * Match database management
+ * @author Igor Ivanov
+ * All matches are stored in RAM
+ * */
 @Component
 public class GamesDAO {
 
     private final JdbcTemplate jdbcTemplate;
-    private final List<Match> fastGames = new ArrayList<>();
     private final Gson gson;
+    /** list of all created matches */
+    private final List<Match> fastGames = new CopyOnWriteArrayList<>();
 
     @Autowired
     public GamesDAO(JdbcTemplate jdbcTemplate) {
@@ -23,6 +29,7 @@ public class GamesDAO {
         gson = new Gson();
     }
 
+    /** creates a match */
     public Match createGame(Match match) {
 
         var newMatch = new Match(
@@ -46,14 +53,17 @@ public class GamesDAO {
         return newMatch;
     }
 
+    /** deletes the match */
     public void removeGame(long gameId) {
         fastGames.removeIf(match -> match.getId() == gameId);
     }
 
+    /** returns a list of all matches */
     public List<Match> readGames() {
-        return fastGames;
+        return new CopyOnWriteArrayList<>(fastGames);
     }
 
+    /** returns a specific match */
     public Optional<Match> getGame(long id) {
         for (var game : fastGames) {
             if (game.getId() == id) {

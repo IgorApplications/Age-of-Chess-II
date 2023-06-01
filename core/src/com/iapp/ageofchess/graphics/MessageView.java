@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.ChessApplication;
+import com.iapp.lib.ui.widgets.AvatarView;
 import com.iapp.lib.web.Account;
 import com.iapp.lib.web.AccountType;
 import com.iapp.lib.web.Message;

@@ -31,10 +31,10 @@ android {
     exclude '**/*.gwt.xml'
   }
   defaultConfig {
-    applicationId 'com.iapp.ageofchess'
-    minSdkVersion 19
+    applicationId 'com.iapp.chess'
+    minSdkVersion 24
     targetSdkVersion 33
-    versionCode 1
+    versionCode 53
     versionName "2.00.001"
     multiDexEnabled true
   }
@@ -47,7 +47,7 @@ android {
 
   buildTypes {
     release {
-      minifyEnabled true
+      minifyEnabled false
       proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
   }
@@ -76,6 +76,9 @@ dependencies {
   // android appcompat
   implementation 'androidx.appcompat:appcompat:1.6.1'
   implementation 'net.yslibrary.keyboardvisibilityevent:keyboardvisibilityevent:3.0.0-RC3'
+
+  // websockets
+  api "com.github.MrStahlfelge.gdx-websockets:common:1.9.10.3"
 
   // google login
   implementation 'com.google.android.gms:play-services-auth:20.5.0'

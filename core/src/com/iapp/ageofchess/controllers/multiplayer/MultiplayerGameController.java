@@ -282,8 +282,7 @@ public class MultiplayerGameController extends MultiplayerEngineController {
         // avoiding calls to the same moves
         if (this.last == last) return;
 
-        if (!last.getFen().equals(currentMatch.getFen()) && (ChessConstants.loggingAcc.getId() == currentMatch.getWhitePlayerId()
-                || ChessConstants.loggingAcc.getId() == currentMatch.getBlackPlayerId())) {
+        if (!last.getFen().equals(currentMatch.getFen())) {
 
             Color userColor;
             if (currentMatch.getBlackPlayerId() == ChessConstants.loggingAcc.getId()) userColor = Color.BLACK;

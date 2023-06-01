@@ -8,6 +8,10 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * converts the database representation of an account into an object
+ * Doesn't take into account avatar, online status, punishments, logins
+ * */
 public class AccountMapper implements RowMapper<Account> {
 
     @Override

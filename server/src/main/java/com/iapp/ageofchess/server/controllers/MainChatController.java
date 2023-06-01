@@ -16,8 +16,10 @@ import java.util.*;
 /**
  * Rest controller of the main chat
  * @author Igor Ivanov
- * @version 1.0
- *
+ * <p>
+ * Main chat store data in database,
+ * main lobby store data in RAM
+ * <p>
  * The lobby maintains the following server states:
  * connect username, disconnect username, banned admin_username username time(millis)
  * */
@@ -39,15 +41,24 @@ public class MainChatController {
     }
 
     // no auth ------------------------------------------------------------------------------------------------------
+    /**
+     * returns messages from the main lobby
+     * */
     public List<LobbyMessage> readMainLobby() {
         return lobby.readMainLobby();
     }
 
+    /**
+     * Delete old messages, update main lobby
+     * */
     public void update() {
         mainChatDAO.clearOldMessages();
         lobby.updateTime();
     }
 
+    /**
+     * returns messages from the main chat
+     * */
     public Pair<List<Message>, Map<Long, Account>> readAll() {
         List<Message> messages = mainChatDAO.readMessages();
         Set<Long> ids = new HashSet<>();
@@ -71,18 +82,30 @@ public class MainChatController {
     }
 
     // only auth -----------------------------------------------------------------------------------------------------
+    /**
+     * sends messages to the main lobby
+     * */
     public RequestStatus sendMainLobby(Account account, String message) {
         return lobby.sendLobby(account, message);
     }
 
+    /**
+     * sends a server message to the main lobby that the user is logged in
+     * */
     public void sendConnect(Account account) {
         lobby.sendConnect(account);
     }
 
+    /**
+     * sends a server message to the main lobby that the user has logged out
+     * */
     public void sendDisconnect(Account account) {
         lobby.sendDisconnect(account);
     }
 
+    /**
+     * sends messages to the main chat
+     * */
     public RequestStatus send(long authId, String text) {
         Pair<RequestStatus, Account> pair = accountDAO.getAccount(authId);
         if (pair.getKey() != RequestStatus.DONE) return pair.getKey();
@@ -91,6 +114,10 @@ public class MainChatController {
         return RequestStatus.DONE;
     }
 
+    /**
+     * deletes messages from the main chat,
+     * moderators can delete any, other users only their own
+     * */
     public RequestStatus remove(long authId, long messageId) {
 
         Pair<RequestStatus, Account> accounts = accountDAO.getAccount(authId);

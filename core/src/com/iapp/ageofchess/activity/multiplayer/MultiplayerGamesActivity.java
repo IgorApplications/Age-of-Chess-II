@@ -17,21 +17,19 @@ import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
-import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MultiplayerGamesActivity extends Activity {
 
     private final MultiplayerGamesController controller;
     private RdImageTextButton back;
-    private RdTable messagesTable;
+    private RdTable gamesTable;
     private WindowGroup windowGroup;
     private Spinner spinner;
 
@@ -102,9 +100,10 @@ public class MultiplayerGamesActivity extends Activity {
 
         properties.add(new PropertyTable.Title(strings.get("online_games")));
 
-        messagesTable = new RdTable("loading");
-        messagesTable.align(Align.topLeft);
-        var scroll = new ScrollPane(messagesTable);
+        gamesTable = new RdTable("loading");
+        gamesTable.align(Align.topLeft);
+
+        var scroll = new ScrollPane(gamesTable);
         properties.getContent().add(scroll).pad(5, 5, 5,5).expand().fill();
 
         windowGroup = new WindowGroup(window, back);
@@ -113,7 +112,7 @@ public class MultiplayerGamesActivity extends Activity {
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
-        messagesTable.getLoading().setVisible(true);
+        gamesTable.getLoading().setVisible(true);
 
         // listener update matches
         onMatches = this::updateGames;
@@ -130,10 +129,12 @@ public class MultiplayerGamesActivity extends Activity {
         MultiplayerEngine.self().removeOnMatches(onMatches);
     }
 
-    private RdDialog confMatch;
-
     public void updateGames(List<Match> matches) {
-        messagesTable.clear();
+        gamesTable.clear();
+
+        if (matches.isEmpty()) {
+            gamesTable.add(new RdLabel("[#d7d7d7]" + strings.get("no_matches")));
+        }
 
         for (var match : matches) {
             var gameView = new MultiplayerMatchView(match, new OnChangeListener() {
@@ -146,7 +147,7 @@ public class MultiplayerGamesActivity extends Activity {
                 public void onChange(Actor actor) {
                     ChessApplication.self().showConf(strings.get("conf_remove_match"),
                         (dialog, s) -> {
-                            confMatch.hide();
+                            dialog.hide();
                             MultiplayerEngine.self().removeMatch(match.getId(),
                                 error -> ChessApplication.self().showError(strings.format("error_remove_match",
                                     error)));
@@ -154,10 +155,10 @@ public class MultiplayerGamesActivity extends Activity {
                 }
             });
 
-            messagesTable.add(gameView).expandX()
+            gamesTable.add(gameView).expandX()
                     .fillX().pad(5, 5, 5,5).row();
         }
-        messagesTable.getLoading().setVisible(false);
+        gamesTable.getLoading().setVisible(false);
     }
 
     @Override

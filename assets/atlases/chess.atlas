@@ -6,21 +6,21 @@ filter: Nearest, Nearest
 repeat: none
 acc_pane_down
   rotate: false
-  xy: 1704, 1368
+  xy: 1852, 1588
   size: 64, 70
   orig: 64, 70
   offset: 0, 0
   index: -1
 acc_pane_over
   rotate: false
-  xy: 1704, 1440
+  xy: 1778, 1440
   size: 64, 70
   orig: 64, 70
   offset: 0, 0
   index: -1
 acc_pane_up
   rotate: false
-  xy: 1770, 1440
+  xy: 1704, 1366
   size: 64, 70
   orig: 64, 70
   offset: 0, 0
@@ -69,42 +69,42 @@ background
   index: -1
 black_bishop
   rotate: false
-  xy: 154, 20
+  xy: 1606, 1882
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 black_king
   rotate: false
-  xy: 1308, 390
+  xy: 1404, 1528
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 black_knight
   rotate: false
-  xy: 1758, 1882
+  xy: 154, 20
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 black_pawn
   rotate: false
-  xy: 1156, 390
+  xy: 1404, 1680
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 black_queen
   rotate: false
-  xy: 1460, 390
+  xy: 1404, 1376
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 black_rook
   rotate: false
-  xy: 414, 150
+  xy: 1460, 390
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
@@ -132,21 +132,21 @@ cancel_down
   index: -1
 cancel_over
   rotate: false
-  xy: 1918, 1476
+  xy: 1726, 1035
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: -1
 cancel_up
   rotate: false
-  xy: 1654, 1298
+  xy: 1726, 1233
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: -1
 castle_icon
   rotate: false
-  xy: 1918, 1542
+  xy: 1721, 1299
   size: 65, 65
   orig: 65, 65
   offset: 0, 0
@@ -160,21 +160,21 @@ chat_bg
   index: -1
 chat_hide_down
   rotate: false
-  xy: 1918, 1676
+  xy: 1630, 1586
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 chat_hide_over
   rotate: false
-  xy: 1622, 1808
+  xy: 1622, 1734
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 chat_hide_up
   rotate: false
-  xy: 1918, 1750
+  xy: 1506, 1286
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
@@ -223,7 +223,7 @@ cup
   index: -1
 empty_star
   rotate: false
-  xy: 1786, 1303
+  xy: 1726, 1101
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
@@ -251,70 +251,70 @@ hide_bg
   index: -1
 ib_arrow_down
   rotate: false
-  xy: 1252, 140
+  xy: 1326, 140
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_arrow_up
   rotate: false
-  xy: 1778, 1586
+  xy: 1704, 1512
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_back
   rotate: false
-  xy: 1262, 214
+  xy: 1336, 214
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_close
   rotate: false
-  xy: 1696, 1808
+  xy: 1770, 1808
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_construction
   rotate: false
-  xy: 1630, 1586
+  xy: 1630, 1512
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_games
   rotate: false
-  xy: 1692, 339
+  xy: 521, 76
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_group
   rotate: false
-  xy: 521, 76
+  xy: 595, 92
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_guide
   rotate: false
-  xy: 1844, 1808
+  xy: 1844, 1734
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_person
   rotate: false
-  xy: 595, 92
+  xy: 669, 92
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ib_play
   rotate: false
-  xy: 1506, 1286
+  xy: 1580, 1286
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
@@ -328,245 +328,252 @@ ib_question
   index: -1
 ib_settings
   rotate: false
-  xy: 1410, 214
+  xy: 956, 187
+  size: 72, 72
+  orig: 72, 72
+  offset: 0, 0
+  index: -1
+icon_chess_game
+  rotate: false
+  xy: 1692, 339
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 ig_phone
   rotate: false
-  xy: 956, 266
+  xy: 1992, 1862
   size: 22, 34
   orig: 22, 34
   offset: 0, 0
   index: -1
 iw_account
   rotate: false
-  xy: 521, 2
+  xy: 595, 18
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_add
   rotate: false
-  xy: 1836, 1660
+  xy: 1918, 1824
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_arrow_down
   rotate: false
-  xy: 1770, 1734
+  xy: 1844, 1808
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_arrow_up
   rotate: false
-  xy: 956, 187
+  xy: 1030, 187
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_back
   rotate: false
-  xy: 1704, 1586
+  xy: 1630, 1438
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_cake
   rotate: false
-  xy: 1030, 187
+  xy: 1104, 187
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_cancel
   rotate: false
-  xy: 1704, 1512
+  xy: 1630, 1364
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_construction
   rotate: false
-  xy: 669, 18
+  xy: 743, 18
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_country
   rotate: false
-  xy: 1630, 1512
+  xy: 1704, 1586
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_delete
   rotate: false
-  xy: 1556, 1360
+  xy: 1618, 339
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_delete_down
   rotate: false
-  xy: 1762, 1660
+  xy: 1836, 1660
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_delete_over
   rotate: false
-  xy: 743, 92
+  xy: 521, 2
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_face
   rotate: false
-  xy: 1844, 1734
+  xy: 1688, 1660
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_female
   rotate: false
-  xy: 1918, 1824
+  xy: 1918, 1750
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_file
   rotate: false
-  xy: 1770, 1808
+  xy: 1696, 1734
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_folder
   rotate: false
-  xy: 743, 18
+  xy: 1618, 265
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_game
   rotate: false
-  xy: 1618, 339
+  xy: 1556, 1360
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_help
   rotate: false
-  xy: 1692, 265
+  xy: 1262, 214
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_hint
   rotate: false
-  xy: 1580, 1286
+  xy: 1252, 140
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_male
   rotate: false
-  xy: 1630, 1364
+  xy: 1778, 1512
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_menu
   rotate: false
-  xy: 1630, 1438
+  xy: 1778, 1586
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_name
   rotate: false
-  xy: 1778, 1512
+  xy: 1704, 1438
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_pin
   rotate: false
-  xy: 1688, 1660
+  xy: 1762, 1660
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_pin_down
   rotate: false
-  xy: 1400, 140
+  xy: 1918, 1676
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_pin_over
   rotate: false
-  xy: 1104, 187
+  xy: 1178, 187
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_play
   rotate: false
-  xy: 1622, 1734
+  xy: 1696, 1808
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_quote
   rotate: false
-  xy: 1178, 187
+  xy: 1622, 1808
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_replay
   rotate: false
-  xy: 1618, 265
+  xy: 1692, 265
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_reply
   rotate: false
-  xy: 669, 92
+  xy: 743, 92
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_sync
   rotate: false
-  xy: 1696, 1734
+  xy: 1770, 1734
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_transgender
   rotate: false
-  xy: 1336, 214
+  xy: 1410, 214
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_undo
   rotate: false
-  xy: 1326, 140
+  xy: 1400, 140
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
   index: -1
 iw_work
   rotate: false
-  xy: 595, 18
+  xy: 669, 18
   size: 72, 72
   orig: 72, 72
   offset: 0, 0
@@ -601,28 +608,28 @@ mode_app
   index: -1
 mode_chat_checked
   rotate: false
-  xy: 1770, 1369
+  xy: 1852, 1517
   size: 64, 69
   orig: 64, 69
   offset: 0, 0
   index: -1
 mode_chat_over
   rotate: false
-  xy: 1852, 1589
+  xy: 1918, 1605
   size: 64, 69
   orig: 64, 69
   offset: 0, 0
   index: -1
 mode_chat_up
   rotate: false
-  xy: 1852, 1518
+  xy: 1918, 1534
   size: 64, 69
   orig: 64, 69
   offset: 0, 0
   index: -1
 move_icon
   rotate: false
-  xy: 1918, 1609
+  xy: 1654, 1297
   size: 65, 65
   orig: 65, 65
   offset: 0, 0
@@ -650,56 +657,56 @@ result_dialog
   index: -1
 small_star
   rotate: false
-  xy: 1654, 1264
+  xy: 956, 268
   size: 32, 32
   orig: 32, 32
   offset: 0, 0
   index: -1
 star
   rotate: false
-  xy: 1720, 1302
+  xy: 1726, 1167
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: -1
 white_bishop
   rotate: false
-  xy: 1404, 1376
+  xy: 1308, 390
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 white_king
   rotate: false
-  xy: 1404, 1528
+  xy: 1156, 390
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 white_knight
   rotate: false
-  xy: 1404, 1680
+  xy: 1004, 390
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 white_pawn
   rotate: false
-  xy: 1606, 1882
+  xy: 2, 20
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 white_queen
   rotate: false
-  xy: 1004, 390
+  xy: 414, 150
   size: 150, 150
   orig: 150, 150
   offset: 0, 0
   index: -1
 white_rook
   rotate: false
-  xy: 2, 20
+  xy: 1758, 1882
   size: 150, 150
   orig: 150, 150
   offset: 0, 0

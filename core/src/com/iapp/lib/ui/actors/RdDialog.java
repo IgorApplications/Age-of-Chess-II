@@ -367,7 +367,8 @@ public class RdDialog extends RdWindow {
         if (action != null) {
             addCaptureListener(ignoreTouchDown);
             addAction(
-                    sequence(action,
+                    sequence(Actions.run(() -> Gdx.input.setOnscreenKeyboardVisible(false)),
+                            action,
                             Actions.removeListener(ignoreTouchDown, true),
                             Actions.removeActor())
             );

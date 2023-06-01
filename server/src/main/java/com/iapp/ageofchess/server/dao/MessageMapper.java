@@ -6,6 +6,10 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * completely converts the message representation
+ * from the database to an object
+ * */
 public class MessageMapper implements RowMapper<Message> {
 
     @Override

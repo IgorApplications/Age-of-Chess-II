@@ -16,7 +16,9 @@ import java.util.List;
 @Component
 public class MainChatDAO {
 
+    /** the maximum number of elements stored in the database */
     private static final int maxRows = 200;
+    /** the maximum number of elements returned from the database */
     private static final int returnRows = 70;
     private final JdbcTemplate jdbcTemplate;
 
@@ -25,6 +27,9 @@ public class MainChatDAO {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * removes old messages from the database when the limit is exceeded
+     * */
     public void clearOldMessages() {
         // TODO
         //jdbcTemplate.update("DELETE FROM Message " +

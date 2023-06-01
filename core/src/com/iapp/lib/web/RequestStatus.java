@@ -12,5 +12,7 @@ public enum RequestStatus {
     LEGACY,
     BANNED,
     MUTED,
-    WARNED
+    WARNED,
+    NOT_FOUND_COMMAND,
+    DENIED_COMMAND
 }

@@ -261,6 +261,17 @@ public class Match {
         this.finishTime = finishTime;
     }
 
+    public long[] getPlayers() {
+        if (whitePlayerId == -1 && blackPlayerId == -1) return new long[0];
+        if (whitePlayerId > -1 && blackPlayerId > -1) {
+            return new long[]{whitePlayerId, blackPlayerId};
+        }
+        if (whitePlayerId > -1) {
+            return new long[]{whitePlayerId};
+        }
+        return new long[]{blackPlayerId};
+    }
+
     @Override
     public String toString() {
         return "Match{" +

@@ -103,15 +103,24 @@ public class ControlGameView extends Table {
         availableColors.setItems(data.toArray(new String[0]));
         join.setText("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
 
-        if (menu != null) controlContent.add(menu).padRight(10);
-        controlContent.add(join).minWidth(300);
+        if (menu != null) controlContent.add(menu).padLeft(10);
+        if (!availableColors.getItems().isEmpty() || controller.isInside()) {
+            controlContent.add(join).minWidth(300).padLeft(10);
+        }
+
         if (controller.isCreator() || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal()) {
             controlContent.add(start).minWidth(300).padLeft(10);
         }
 
-        if (!controller.isInside() && !controller.getCurrentMatch().isRandom()) {
+        if (!availableColors.getItems().isEmpty() && !controller.isInside()
+            && !controller.getCurrentMatch().isRandom()) {
             controlContent.add(availableColors).padLeft(10);
         }
         controlContent.padLeft(20).padRight(20);
+
+        if (menu == null && availableColors.getItems().isEmpty() && !controller.isInside()
+            && !(controller.isCreator() || ChessConstants.loggingAcc.getType().ordinal() >= AccountType.MODERATOR.ordinal())) {
+            controlContent.setVisible(false);
+        }
     }
 }

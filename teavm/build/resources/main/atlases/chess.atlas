@@ -132,21 +132,21 @@ cancel_down
   index: -1
 cancel_over
   rotate: false
-  xy: 1720, 1302
+  xy: 1918, 1476
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: -1
 cancel_up
   rotate: false
-  xy: 1852, 1527
+  xy: 1654, 1298
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
   index: -1
 castle_icon
   rotate: false
-  xy: 1852, 1593
+  xy: 1918, 1542
   size: 65, 65
   orig: 65, 65
   offset: 0, 0
@@ -223,7 +223,7 @@ cup
   index: -1
 empty_star
   rotate: false
-  xy: 1654, 1298
+  xy: 1786, 1303
   size: 64, 64
   orig: 64, 64
   offset: 0, 0
@@ -599,9 +599,30 @@ mode_app
   orig: 410, 128
   offset: 0, 0
   index: -1
+mode_chat_checked
+  rotate: false
+  xy: 1770, 1369
+  size: 64, 69
+  orig: 64, 69
+  offset: 0, 0
+  index: -1
+mode_chat_over
+  rotate: false
+  xy: 1852, 1589
+  size: 64, 69
+  orig: 64, 69
+  offset: 0, 0
+  index: -1
+mode_chat_up
+  rotate: false
+  xy: 1852, 1518
+  size: 64, 69
+  orig: 64, 69
+  offset: 0, 0
+  index: -1
 move_icon
   rotate: false
-  xy: 1770, 1373
+  xy: 1918, 1609
   size: 65, 65
   orig: 65, 65
   offset: 0, 0
@@ -636,7 +657,7 @@ small_star
   index: -1
 star
   rotate: false
-  xy: 1919, 1610
+  xy: 1720, 1302
   size: 64, 64
   orig: 64, 64
   offset: 0, 0

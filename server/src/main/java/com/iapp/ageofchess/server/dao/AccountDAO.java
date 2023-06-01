@@ -1,8 +1,8 @@
 package com.iapp.ageofchess.server.dao;
 
-import com.iapp.lib.web.*;
 import com.iapp.lib.util.DataChecks;
 import com.iapp.lib.util.Pair;
+import com.iapp.lib.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +26,7 @@ public class AccountDAO {
     private final JdbcTemplate jdbcTemplate;
     private final BCryptPasswordEncoder cipher;
 
+    /** top lists in different rank modes */
     private volatile List<Account> bulletTop = new ArrayList<>();
     private volatile List<Account> blitzTop = new ArrayList<>();
     private volatile List<Account> rapidTop = new ArrayList<>();
@@ -37,6 +38,9 @@ public class AccountDAO {
         cipher = new BCryptPasswordEncoder(12);
     }
 
+    /**
+     * update all tops from the database
+     * */
     public void updateTop() {
 
         bulletTop = jdbcTemplate.query("SELECT * FROM account ORDER BY bullet DESC FETCH FIRST 50 ROWS WITH TIES",
@@ -52,26 +56,42 @@ public class AccountDAO {
                 new AccountMapper());
     }
 
+    /**
+     * Get the latest updated bullet mode top
+     * @see AccountDAO#updateTop()
+     * */
     public Pair<RequestStatus, List<Account>> getBulletTop() {
         RequestStatus status = updateAccounts(bulletTop);
         if (status != RequestStatus.DONE) return new Pair<>(status, null);
         return new Pair<>(RequestStatus.DONE, bulletTop);
     }
 
+    /**
+     * Get the latest updated blitz mode top
+     * @see AccountDAO#updateTop()
+     * */
     public Pair<RequestStatus, List<Account>> getBlitzTop() {
         RequestStatus status = updateAccounts(blitzTop);
         if (status != RequestStatus.DONE) return new Pair<>(status, null);
         return new Pair<>(RequestStatus.DONE, blitzTop);
     }
 
+    /**
+     * Get the latest updated rapid mode top
+     * @see AccountDAO#updateTop()
+     * */
     public Pair<RequestStatus, List<Account>> getRapidTop() {
         RequestStatus status = updateAccounts(rapidTop);
         if (status != RequestStatus.DONE) return new Pair<>(status, null);
         return new Pair<>(RequestStatus.DONE, rapidTop);
     }
 
+    /**
+     * Get the latest updated long mode top
+     * @see AccountDAO#updateTop()
+     * */
     public Pair<RequestStatus, List<Account>> getLongTop() {
-       RequestStatus status = updateAccounts(longTop);
+        RequestStatus status = updateAccounts(longTop);
         if (status != RequestStatus.DONE) return new Pair<>(status, null);
         return new Pair<>(RequestStatus.DONE, longTop);
     }
@@ -113,6 +133,10 @@ public class AccountDAO {
         return metaDAO.updateAvatar(account.getId(), avatar);
     }
 
+    /**
+     * adds a new punishment to the account.
+     * If it applies to yourself, or you are not a higher role than the punished - DENIED
+     * */
     public RequestStatus addPunishment(Account account, AccountType sender, boolean self, Punishment punishment) {
         if (self || sender.ordinal() <= account.getType().ordinal()) {
             return RequestStatus.DENIED;
@@ -363,11 +387,23 @@ public class AccountDAO {
         return RequestStatus.DONE;
     }
 
+    /**
+     * returns an account directly from the database,
+     * contains only permanent data, such as: name, password and other data from the table
+     * Cannot be returned to the client, as there is no online status!
+     * @param name - account name
+     * */
     public List<Account> getServerAccount(String name) {
         return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE name=?",
             new Object[]{name}, new AccountMapper());
     }
 
+    /**
+     * returns an account directly from the database,
+     * contains only permanent data, such as: name, password and other data from the table
+     * Cannot be returned to the client, as there is no online status!
+     * @param id - account id
+     * */
     public List<Account> getServerAccount(long id) {
         return jdbcTemplate.query("SELECT * FROM ACCOUNT WHERE id=?",
             new Object[]{id}, new AccountMapper());

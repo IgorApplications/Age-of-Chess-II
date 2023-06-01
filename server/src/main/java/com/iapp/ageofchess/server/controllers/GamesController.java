@@ -1,14 +1,15 @@
 package com.iapp.ageofchess.server.controllers;
 
 import com.google.gson.Gson;
+import com.iapp.ageofchess.multiplayer.Match;
+import com.iapp.ageofchess.multiplayer.TurnMode;
+import com.iapp.ageofchess.server.dao.AccountDAO;
+import com.iapp.ageofchess.server.dao.GamesDAO;
 import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.chess_engine.Game;
 import com.iapp.lib.chess_engine.Result;
-import com.iapp.ageofchess.multiplayer.*;
-import com.iapp.lib.web.*;
-import com.iapp.ageofchess.server.dao.AccountDAO;
-import com.iapp.ageofchess.server.dao.GamesDAO;
 import com.iapp.lib.util.Pair;
+import com.iapp.lib.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +24,17 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Rest controller matches
+ * Match management
  * @author Igor Ivanov
- * @version 1.0
  * */
 @RestController
 @RequestMapping("/api/v1/games")
 public class GamesController {
+
+    /** time of deleting the completed match by the server */
+    private static final long REMOVE_FINISHED = 600_000;
+    /** time to delete an inactive unfinished match */
+    private static final long REMOVE_INACTIVE = 300_000;
 
     private static final Logger gamesLogger = LoggerFactory.getLogger(GamesController.class);
     private final AccountDAO accountDAO;
@@ -37,7 +42,10 @@ public class GamesController {
     private final Gson gson;
     private Consumer<Match> onUpdate;
 
-    // threads have access!
+    /**
+     * list of all running matches,
+     * access from two threads
+     * */
     private final List<MatchChessEngine> engineList = new CopyOnWriteArrayList<>();
 
     @Autowired
@@ -47,12 +55,18 @@ public class GamesController {
         gson = new Gson();
     }
 
+    /**
+     * sets a single listener to update the match
+     * */
     public void setOnUpdateMatch(Consumer<Match> onUpdate) {
         this.onUpdate = onUpdate;
     }
 
     // no auth --------------------------------------------------------------------------------------------------------
 
+    /**
+     * returns a list of all matches (started and not)
+     * */
     public List<Match> getGames() {
         List<Match> matches = gamesDAO.readGames();
         for (Match match : matches) {
@@ -62,6 +76,9 @@ public class GamesController {
         return matches;
     }
 
+    /**
+     * returns a specific match
+     * */
     public Pair<RequestStatus, Match> getMatch(long gameId) {
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return new Pair<>(RequestStatus.NOT_FOUND, null);
@@ -73,7 +90,11 @@ public class GamesController {
 
     // only auth -------------------------------------------------------------------------------------------------------
 
-    /** Also, make enter */
+    /**
+     * creates a new match and immediately connects the match creator to it.
+     * Makes a lot of checks for the correctness of modes and settings
+     * if wrong - returns DENIED
+     * */
     public Pair<RequestStatus, String> create(long authId, String matchData) {
 
         var unsafetyUserMatch = gson.fromJson(matchData, Match.class);
@@ -92,7 +113,7 @@ public class GamesController {
 
         var safetyServerMatch = gamesDAO.createGame(unsafetyUserMatch);
         safetyServerMatch.setLobby(new Lobby(accountDAO::getServerAccount));
-        enter(authId, safetyServerMatch.getId());
+        connect(authId, safetyServerMatch.getId());
         safetyServerMatch.getLobbyMessages().clear();
         safetyServerMatch.getLobbyMessages().addAll(safetyServerMatch.getLobby().readMainLobby());
         gamesLogger.warn("Created match " + unsafetyUserMatch);
@@ -100,7 +121,10 @@ public class GamesController {
         return new Pair<>(RequestStatus.DONE, gson.toJson(safetyServerMatch));
     }
 
-    public RequestStatus sendMessage(long authId, long gameId, String message) {
+    /**
+     * sends a message to the game lobby
+     * */
+    public RequestStatus sendLobby(long authId, long gameId, String message) {
 
         var op = gamesDAO.getGame(gameId);
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
@@ -117,6 +141,9 @@ public class GamesController {
 
     }
 
+    /**
+     * makes a move in a match
+     * */
     public RequestStatus makeMove(long authId, long gameId, String fenMove) {
 
         var engines = findMatch(gameId);
@@ -147,7 +174,10 @@ public class GamesController {
 
     }
 
-    public RequestStatus enter(long authId, long gameId) {
+    /**
+     * connects the user to the match
+     * */
+    public RequestStatus connect(long authId, long gameId) {
 
         var accounts = accountDAO.getAccount(authId);
         if (accounts.getKey() != RequestStatus.DONE) return accounts.getKey();
@@ -157,13 +187,18 @@ public class GamesController {
         if (op.isEmpty()) return RequestStatus.NOT_FOUND;
 
         var match = op.get();
-        match.getEntered().add(acc.getId());
-        match.getLobby().sendConnect(acc);
+        if (!match.getEntered().contains(acc.getId())) {
+            match.getEntered().add(acc.getId());
+            match.getLobby().sendConnect(acc);
+        }
 
         return RequestStatus.DONE;
     }
 
-    public RequestStatus exit(long authId, long gameId) {
+    /**
+     * disconnects the user from the match
+     * */
+    public RequestStatus disconnect(long authId, long gameId) {
 
         var accounts = accountDAO.getAccount(authId);
         if (accounts.getKey() != RequestStatus.DONE) return accounts.getKey();
@@ -179,6 +214,9 @@ public class GamesController {
         return RequestStatus.DONE;
     }
 
+    /**
+     * user entry into a match for the selected color or random
+     * */
     public RequestStatus join(long authId, long gameId, String color) {
 
         var accounts = accountDAO.getAccount(authId);
@@ -210,7 +248,7 @@ public class GamesController {
 
             var colorStr = match.isRandom() ? "" : " black";
             match.setBlackPlayerId(authId);
-            match.getLobby().sendLobby(acc, colorStr);
+            match.getLobby().sendJoin(acc, colorStr);
 
         } else {
             return RequestStatus.DENIED;
@@ -220,6 +258,9 @@ public class GamesController {
 
     }
 
+    /**
+     * user leaving the match, freeing up space
+     * */
     public RequestStatus disjoin(long authId, long  gameId) {
 
         var accounts = accountDAO.getAccount(authId);
@@ -241,6 +282,10 @@ public class GamesController {
         return RequestStatus.DONE;
     }
 
+    /**
+     * starting a match can be done either by the creator
+     * of the match or by the moderator
+     * */
     public RequestStatus start(long authId, long gameId) {
 
         var accounts = accountDAO.getAccount(authId);
@@ -271,6 +316,10 @@ public class GamesController {
 
     }
 
+    /**
+     * deletes the match, can be done by the match creator before
+     * the start, or by the moderator
+     * */
     public RequestStatus removeMatch(long authId, long gameId) {
 
         var accounts = accountDAO.getAccount(authId);
@@ -311,38 +360,30 @@ public class GamesController {
             e.printStackTrace();
         }
 
-        engineList.removeIf(engine -> {
+        for (Match match : gamesDAO.readGames()) {
+            synchronized (match) {
+                // after finish
+                boolean result = match.getResult() != Result.NONE
+                    && match.getFinishTime() != -1 &&
+                    System.currentTimeMillis() - match.getFinishTime() > REMOVE_FINISHED;
 
-            synchronized (engine.getMatch()) {
-
-                // 10 minute after finish
-                boolean result = engine.getMatch().getResult() != Result.NONE
-                        && engine.getMatch().getFinishTime() != -1 &&
-                        System.currentTimeMillis() - engine.getMatch().getFinishTime() > 600_000;
-
-                // 5 minute after create
-                result = result || (engine.getMatch().getWhitePlayerId() == -1
-                        && engine.getMatch().getBlackPlayerId() == -1 && engine.getMatch().getEntered().isEmpty()
-                        && System.currentTimeMillis() - engine.getMatch().getCreatedTime() > 300_000);
+                // after inactive all entered
+                result = result || (match.getEntered().isEmpty()
+                    && System.currentTimeMillis() - match.getCreatedTime() > REMOVE_INACTIVE);
 
                 if (result) {
-                    gamesDAO.removeGame(engine.getMatch().getId());
-                    gamesLogger.warn("Deleted match id = " + engine.getMatch().getId());
+                    gamesDAO.removeGame(match.getId());
+                    gamesLogger.warn("Deleted match id = " + match.getId());
                 }
-
-                return result;
             }
-
-        });
+        }
 
         for (var engine : engineList) {
             if (engine.getMatch().getResult() != Result.NONE) continue;
 
-            synchronized (engine.getMatch()) {
-                engine.updateTimer();
-                engine.getMatch().getLobby().updateTime();
-                onUpdate.accept(engine.getMatch());
-            }
+            engine.updateTimer();
+            engine.getMatch().getLobby().updateTime();
+            onUpdate.accept(engine.getMatch());
         }
     }
 

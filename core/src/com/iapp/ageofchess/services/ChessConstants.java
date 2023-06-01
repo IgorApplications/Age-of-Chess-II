@@ -1,7 +1,7 @@
 package com.iapp.ageofchess.services;
 
 import com.iapp.ageofchess.controllers.multiplayer.AccountController;
-import com.iapp.ageofchess.graphics.AccountPanel;
+import com.iapp.lib.ui.widgets.AccountPanel;
 import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.lib.web.Account;
 
