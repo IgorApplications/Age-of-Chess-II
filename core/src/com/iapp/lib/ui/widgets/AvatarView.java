@@ -7,9 +7,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
+import com.iapp.lib.ui.screens.RdAssetManager;
+import com.iapp.lib.util.LoadAvatarUtil;
 import com.iapp.lib.web.Account;
-import com.iapp.ageofchess.services.ChessAssetManager;
-import com.iapp.ageofchess.services.LoadAvatarUtil;
 import com.iapp.lib.ui.actors.AnimatedImage;
 import com.iapp.lib.util.DisposeUtil;
 
@@ -17,17 +17,26 @@ import java.util.Arrays;
 
 public class AvatarView extends ImageButton implements Disposable {
 
+    // TODO
+    private final Drawable loadingBg;
     private byte[] lastByteAvatar;
     private AnimatedImage avatar;
-    private final Drawable loadingBg;
     private Image online;
     private Texture avatarTexture;
     private boolean init;
 
-    public AvatarView(ImageButtonStyle style) {
+    public AvatarView(AvatarViewStyle style) {
         super(style);
-        avatar = ChessAssetManager.current().getSkin().get("logo_anim", AnimatedImage.class);
-        loadingBg = new TextureRegionDrawable(ChessAssetManager.current().getWhiteTexture());
+        loadingBg = style.loadingBg;
+        avatar = style.loadingAnim;
+    }
+
+    public AvatarView(String skinName) {
+        this(RdAssetManager.current().getSkin().get(skinName, AvatarViewStyle.class));
+    }
+
+    public AvatarView() {
+        this("default");
     }
 
     public AvatarView(AvatarView avatarView) {
@@ -91,5 +100,10 @@ public class AvatarView extends ImageButton implements Disposable {
     @Override
     public void dispose() {
         DisposeUtil.dispose(avatarTexture);
+    }
+
+    public static class AvatarViewStyle extends ImageButtonStyle {
+        public AnimatedImage loadingAnim;
+        public Drawable loadingBg;
     }
 }

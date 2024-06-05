@@ -2,13 +2,13 @@ package com.iapp.ageofchess.server.controllers;
 
 import com.google.gson.Gson;
 import com.iapp.ageofchess.multiplayer.Match;
+import com.iapp.ageofchess.server.config.WebSocketConfig;
 import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.util.Pair;
 import com.iapp.lib.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.devtools.restart.Restarter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -16,6 +16,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -37,6 +38,8 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private final AccountController accountController;
     private final MainChatController mainChatController;
     private final GamesController gamesController;
+    private final SysAdminController sysAdminController;
+
     /**
      * One account can log in from multiple devices
      * how many sessions are in a match
@@ -51,10 +54,12 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     @Autowired
     public WebSocketHandler(AccountController accountController,
                             MainChatController mainChatController,
-                            GamesController gamesController) {
+                            GamesController gamesController,
+                            SysAdminController sysAdminController) {
         this.accountController = accountController;
         this.mainChatController = mainChatController;
         this.gamesController = gamesController;
+        this.sysAdminController = sysAdminController;
         launchParallel();
     }
 
@@ -96,6 +101,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 updateClient(session, res);
 
                 return;
+
             } else if (request.getRequest().startsWith("/api/v1/games")) {
 
                 SocketResult res = requireFromGames(
@@ -105,11 +111,13 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
                 updateClient(session, res);
 
                 return;
+
             } else if (request.getRequest().startsWith("/api/v1/server")) {
-                requireFromServer(
+                SocketResult res = requireFromServer(
                     session,
                     request.getRequest().replaceAll("/api/v1/server", ""),
                     request);
+                updateClient(session, res);
                 return;
             }
 
@@ -193,23 +201,49 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private SocketResult requireFromServer(WebSocketSession session, String serverReq, SocketRequest socketRequest) {
         String[] params = socketRequest.getParameters();
         Account loginAcc = logins.get(session.getId());
-        if (loginAcc != null) socketRequest.setId(loginAcc.getId());
+        if (loginAcc != null) socketRequest.setSenderId(loginAcc.getId());
 
         switch (serverReq) {
             case "/restart": {
                 if (loginAcc == null || loginAcc.getType().ordinal() < AccountType.EXECUTOR.ordinal()) {
                     return new SocketResult(RequestStatus.DENIED, socketRequest);
                 }
-                Restarter.getInstance().restart();
+
+                sysAdminController.restart();
+                return new SocketResult(RequestStatus.DONE, socketRequest);
+            }
+
+            case "/readData": {
+                if (loginAcc == null || loginAcc.getType().ordinal() < AccountType.DEVELOPER.ordinal()) {
+                    return new SocketResult(RequestStatus.DENIED, socketRequest);
+                }
+                if (params.length != 2) {
+                    return new SocketResult(RequestStatus.INCORRECT_DATA, socketRequest);
+                }
+
+                byte id = Byte.parseByte(params[0]);
+                try {
+                    byte[] data = sysAdminController.readData(params[1]);
+
+                    for (byte[] part : BinaryRequests.splitArray((byte) 2, id, data,
+                        (int) (WebSocketConfig.BYTE_BUFFER_SIZE * 0.9f))) {
+                        updateClient(session, part);
+                    }
+
+                    return new SocketResult(RequestStatus.DONE, socketRequest);
+                } catch (IOException e) {
+                    return new SocketResult(RequestStatus.INCORRECT_DATA, e.toString(), socketRequest);
+                }
             }
         }
+
         return new SocketResult(RequestStatus.SOCKET_NOT_FOUND, socketRequest);
     }
 
     private SocketResult requireFromAccounts(WebSocketSession session, String accountReq, SocketRequest socketRequest) {
         String[] params = socketRequest.getParameters();
         Account loginAcc = logins.get(session.getId());
-        if (loginAcc != null) socketRequest.setId(loginAcc.getId());
+        if (loginAcc != null) socketRequest.setSenderId(loginAcc.getId());
 
         switch (accountReq) {
 
@@ -354,7 +388,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private SocketResult requireFromMainChat(WebSocketSession session, String mainChatReq, SocketRequest socketRequest) {
         var params = socketRequest.getParameters();
         var loginAcc = logins.get(session.getId());
-        if (loginAcc != null) socketRequest.setId(loginAcc.getId());
+        if (loginAcc != null) socketRequest.setSenderId(loginAcc.getId());
 
         switch (mainChatReq) {
 
@@ -418,7 +452,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private SocketResult requireFromGames(WebSocketSession session, String gamesReq, SocketRequest socketRequest) {
         var params = socketRequest.getParameters();
         var loginAcc = logins.get(session.getId());
-        if (loginAcc != null) socketRequest.setId(loginAcc.getId());
+        if (loginAcc != null) socketRequest.setSenderId(loginAcc.getId());
 
         switch (gamesReq) {
 
@@ -770,7 +804,10 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
 
     private List<LobbyMessage> getListCommand(Iterable<Account> accounts) {
         List<LobbyMessage> messages = new ArrayList<>();
+        Set<Long> ids = new HashSet<>();
         for (Account account : accounts) {
+            if (ids.contains(account.getId())) continue;
+            ids.add(account.getId());
             messages.add(new LobbyMessage(-1, account.getId(), account.getFullName()));
         }
         return messages;

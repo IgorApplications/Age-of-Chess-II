@@ -23,7 +23,7 @@ public class PropertyTable extends RdTable {
     private final RdTable background;
     /** width in the table dedicated to control actors */
     private final float actorWidth;
-    private PropertyTableStyle style;
+    private final PropertyTableStyle style;
 
     public PropertyTable(float actorWidth, PropertyTableStyle style) {
         this.style = style;
@@ -34,7 +34,7 @@ public class PropertyTable extends RdTable {
         background.add(new Image()).width(actorWidth + 10).expandY().fillY();
         background.setFillParent(true);
 
-        content = new RdTable();
+        content = new RdTable(style.contentStyle);
         content.addActor(background);
         content.align(Align.topLeft);
         scrollArea = new RdScrollPane(content, style.scrollStyle);
@@ -42,29 +42,13 @@ public class PropertyTable extends RdTable {
         add(scrollArea).expand().fill();
     }
 
-    public PropertyTable(float actorWidth, Skin skin) {
-        this(actorWidth, skin.get(PropertyTableStyle.class));
-    }
-
-    public PropertyTable(float actorWidth, Skin skin, String styleName) {
-        this(actorWidth, skin.get(styleName, PropertyTableStyle.class));
-    }
-
-    public PropertyTable(float actorWidth) {
-        this(actorWidth, RdAssetManager.current().getSkin());
-    }
-
     public PropertyTable(float actorWidth, String styleName) {
-        this(actorWidth, RdAssetManager.current().getSkin(), styleName);
+        this(actorWidth, RdAssetManager.current().getSkin().get(styleName, PropertyTableStyle.class));
+    }
+    public PropertyTable(float actorWidth) {
+        this(actorWidth, "default");
     }
 
-    public void setStyle(PropertyTableStyle style) {
-        this.style = style;
-    }
-
-    public PropertyTableStyle getStyle() {
-        return style;
-    }
 
     /** sets the visibility of the background, if false then the background will not be visible */
     public void setVisibleBackground(boolean visible) {
@@ -72,16 +56,16 @@ public class PropertyTable extends RdTable {
     }
 
     /** returns the content scroll area */
-    public ScrollPane getScrollArea() {
+    public RdScrollPane getScrollArea() {
         return scrollArea;
     }
 
     /** adds a title to the table */
     public void add(Title title) {
-        var labelTitle = new RdLabel(title.text, style.titleStyle);
+        RdLabel labelTitle = new RdLabel(title.text, style.titleStyle);
         labelTitle.setWrap(true);
 
-        var table = new RdTable();
+        RdTable table = new RdTable();
         if (style.panel != null) table.setBackground(style.panel);
         table.add(labelTitle).expand().fill().pad(5, 5, 5, 5);
 
@@ -90,10 +74,10 @@ public class PropertyTable extends RdTable {
 
     /** adds an element to the table */
     public void add(Element element) {
-        var textElement = new RdLabel(element.text, style.elementStyle);
+        RdLabel textElement = new RdLabel(element.text, style.elementStyle);
         textElement.setWrap(true);
 
-        var textTable = new Table();
+        RdTable textTable = new RdTable();
         textTable.add(textElement).expandX().fillX();
         if (element.textActor != null) {
             textTable.add(element.textActor);
@@ -149,22 +133,8 @@ public class PropertyTable extends RdTable {
         public RdLabel.RdLabelStyle titleStyle;
         public RdLabel.RdLabelStyle elementStyle;
         public RdScrollPane.RdScrollPaneStyle scrollStyle;
+        public RdTableStyle contentStyle;
 
         public PropertyTableStyle() {}
-
-        public PropertyTableStyle(Drawable panel, RdLabel.RdLabelStyle titleStyle, RdLabel.RdLabelStyle elementStyle,
-                                  RdScrollPane.RdScrollPaneStyle scrollStyle) {
-            this.panel = panel;
-            this.titleStyle = titleStyle;
-            this.elementStyle = elementStyle;
-            this.scrollStyle = scrollStyle;
-        }
-
-        public PropertyTableStyle(PropertyTableStyle style) {
-            panel = style.panel;
-            titleStyle = style.titleStyle;
-            elementStyle = style.elementStyle;
-            scrollStyle = style.scrollStyle;
-        }
     }
 }

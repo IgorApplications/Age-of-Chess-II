@@ -6,14 +6,14 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
 import com.iapp.lib.chess_engine.Chess2dController;
 import com.iapp.lib.chess_engine.Move;
-import com.iapp.ageofchess.services.BooleanList;
-import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.BooleanList;
 import com.iapp.lib.util.CallListener;
-import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.lib.util.Pair;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,9 +23,8 @@ public class BoardView extends Image {
 
     private final Chess2dController controller;
     private final Vector3 spriteTouchPoint = new Vector3();
-    private final TextureAtlas.AtlasRegion moveRegion, castleRegion,
-            greenFrame, yellowRegion, greenCross, blueFrame;
     private final List<Transition> transitions = RdApplication.self().getLauncher().copyOnWriteArrayList();
+    private final BoardViewStyle style;
 
     private double padLeft, padBottom, cellWidth, cellHeight;
     private boolean blockedMove;
@@ -36,16 +35,16 @@ public class BoardView extends Image {
     private PieceView checked;
     private Array<MoveView> moveViews = new Array<>();
     private MoveView lastPosition, hintView;
+    private float pieceDuration;
 
-    public BoardView(Chess2dController controller) {
+    public BoardView(Chess2dController controller, Skin skin, float pieceDuration) {
+        this(controller, skin, "default", pieceDuration);
+    }
+
+    public BoardView(Chess2dController controller, Skin skin, String skinName, float pieceDuration) {
         this.controller = controller;
-
-        moveRegion = ChessAssetManager.current().findChessRegion("move_icon");
-        castleRegion = ChessAssetManager.current().findChessRegion("castle_icon");
-        greenFrame = ChessAssetManager.current().findChessRegion("green_frame");
-        yellowRegion = ChessAssetManager.current().findChessRegion("yellow_frame");
-        greenCross = ChessAssetManager.current().findChessRegion("green_cross");
-        blueFrame = ChessAssetManager.current().findChessRegion("blue_frame");
+        style = skin.get(skinName, BoardViewStyle.class);
+        this.pieceDuration = pieceDuration;
     }
 
     public boolean isBlocked() {
@@ -73,9 +72,9 @@ public class BoardView extends Image {
         this.onEndMove = onEndMove;
         transitions.clear();
 
-        var movingPiece = pieceViews[move.getPieceY()][move.getPieceX()];
+        PieceView movingPiece = pieceViews[move.getPieceY()][move.getPieceX()];
         if (movingPiece == checked) checked = null;
-        var movingTransit = new Transition(movingPiece, move);
+        Transition movingTransit = new Transition(movingPiece, move);
         movingTransit.moving = true;
         transitions.add(movingTransit);
 
@@ -101,7 +100,7 @@ public class BoardView extends Image {
             }
         }
 
-        var matrix = controller.getMatrix();
+        byte[][] matrix = controller.getMatrix();
         pieceViews = new PieceView[8][8];
 
         if (updated) {
@@ -113,7 +112,7 @@ public class BoardView extends Image {
                 if (controller.isCage(matrix[i][j])) continue;
 
                 boolean skip = false;
-                for (var transition : transitions) {
+                for (Transition transition : transitions) {
                     if (transition.move.getMoveX() == j && transition.move.getMoveY() == i) {
                         pieceViews[i][j] = transition.movingPiece;
                         skip = true;
@@ -125,7 +124,7 @@ public class BoardView extends Image {
                 }
                 if (skip) continue;
 
-                var pieceView = new PieceView(j, i,
+                PieceView pieceView = new PieceView(j, i,
                         (float) (cellWidth * j + padLeft),
                         (float) (cellHeight * i + padBottom),
                         (float) cellWidth, (float) cellHeight);
@@ -167,20 +166,20 @@ public class BoardView extends Image {
 
     public void updateCheck() {
         update();
-        var position = controller.getCheckKing();
+        Pair<Integer, Integer> position = controller.getCheckKing();
         if (position != null) checked = pieceViews[position.getValue()][position.getKey()];
         else checked = null;
     }
 
     public void update() {
-        var matrix = controller.getMatrix();
+        byte[][] matrix = controller.getMatrix();
         pieceViews = new PieceView[8][8];
 
         for (int i = 0; i < matrix.length; i++) {
             for (int j = 0; j < matrix[i].length; j++) {
                 if (controller.isCage(matrix[i][j])) continue;
 
-                var pieceView = new PieceView(j, i,
+                PieceView pieceView = new PieceView(j, i,
                         (float) (cellWidth * j + padLeft),
                         (float) (cellHeight * i + padBottom),
                         (float) cellWidth, (float) cellHeight);
@@ -196,9 +195,9 @@ public class BoardView extends Image {
         super.draw(batch, parentAlpha);
 
         batch.draw(controller.getRegion("board"), getX(), getY(), getWidth(), getHeight());
-        for (var view : getPieceViews()) {
+        for (PieceView view : getPieceViews()) {
             boolean skip = false;
-            for (var transition : transitions) {
+            for (Transition transition : transitions) {
                 if (transition.movingPiece == view) {
                     skip = true;
                     break;
@@ -212,45 +211,45 @@ public class BoardView extends Image {
         }
 
         if (selected != null) {
-            batch.draw(greenFrame, getX() + selected.x - 0.5f, getY() + selected.y -  0.5f,
+            batch.draw(style.greenFrame, getX() + selected.x - 0.5f, getY() + selected.y -  0.5f,
                     selected.width +  1, selected.height +  1);
         }
 
         if (checked != null) {
-            batch.draw(ChessAssetManager.current().findChessRegion("red_frame"),
+            batch.draw(style.redFrame,
                     getX() + checked.x - 0.5f, getY() + checked.y -  0.5f,
                     checked.width +  1, checked.height +  1);
         }
 
-        for (var moveView : moveViews) {
+        for (MoveView moveView : moveViews) {
             moveView.sprite.setPosition(getX() + moveView.spriteX, getY() + moveView.spriteY);
             if (pieceViews[moveView.move.getMoveY()][moveView.move.getMoveX()] != null) {
-                batch.draw(yellowRegion, getX() + moveView.spriteX - 0.5f, getY() + moveView.spriteY - 0.5f,
+                batch.draw(style.yellowRegion, getX() + moveView.spriteX - 0.5f, getY() + moveView.spriteY - 0.5f,
                         moveView.sprite.getWidth() + 1, moveView.sprite.getHeight() + 1);
             } else if (moveView.castle) {
-                batch.draw(castleRegion, getX() + moveView.moveX, getY() + moveView.moveY,
+                batch.draw(style.castleRegion, getX() + moveView.moveX, getY() + moveView.moveY,
                         moveView.radius, moveView.radius);
             } else {
-                batch.draw(moveRegion, getX() + moveView.moveX, getY() + moveView.moveY,
+                batch.draw(style.moveRegion, getX() + moveView.moveX, getY() + moveView.moveY,
                         moveView.radius, moveView.radius);
             }
         }
 
         if (lastPosition != null) {
-            batch.draw(greenCross, getX() + lastPosition.spriteX, getY() + lastPosition.spriteY,
+            batch.draw(style.greenCross, getX() + lastPosition.spriteX, getY() + lastPosition.spriteY,
                     lastPosition.sprite.getWidth(), lastPosition.sprite.getHeight());
         }
 
         if (hintView != null) {
             hintView.sprite.setPosition(getX() + hintView.spriteX, getY() + hintView.spriteY);
-            batch.draw(blueFrame, getX() + hintView.spriteX - 0.5f, getY() + hintView.spriteY - 0.5f,
+            batch.draw(style.blueFrame, getX() + hintView.spriteX - 0.5f, getY() + hintView.spriteY - 0.5f,
                     hintView.sprite.getWidth() + 1, hintView.sprite.getHeight() + 1);
         }
 
         boolean transitionsReady = !transitions.isEmpty();
-        for (var transition : transitions) {
+        for (Transition transition : transitions) {
             transition.update();
-            var view = transition.movingPiece;
+            PieceView view = transition.movingPiece;
             view.sprite.setPosition(getX() + view.x, getY() + view.y);
             batch.draw(view.sprite, view.sprite.getX(), view.sprite.getY(),
                     view.width, view.height);
@@ -258,8 +257,8 @@ public class BoardView extends Image {
             transitionsReady = transitionsReady && transition.percent >= 0.999_999f;
 
             if (transition.percent >= 0.999_999f) {
-                var piece = transition.movingPiece;
-                var move = transition.move;
+                PieceView piece = transition.movingPiece;
+                Move move = transition.move;
 
                 piece.pieceX = move.getMoveX();
                 piece.pieceY = move.getMoveY();
@@ -272,11 +271,11 @@ public class BoardView extends Image {
         }
 
         if (transitionsReady) {
-            for (var transition : transitions) {
+            for (Transition transition : transitions) {
                 // single
                 if (transition.moving) {
-                    var piece = transition.movingPiece;
-                    var move = transition.move;
+                    PieceView piece = transition.movingPiece;
+                    Move move = transition.move;
 
                     lastPosition = new MoveView(
                             Move.valueOf(move.getPieceX(), move.getPieceY(),
@@ -311,7 +310,7 @@ public class BoardView extends Image {
         cellWidth = (getWidth() - padLeft - padRight) / 8;
         cellHeight = (getHeight() - padBottom - padTop) / 8;
 
-        for (var moveView : moveViews) moveView.update();
+        for (MoveView moveView : moveViews) moveView.update();
         update();
         if (selected != null) selected = pieceViews[selected.pieceY][selected.pieceX];
         if (checked != null) checked = pieceViews[checked.pieceY][checked.pieceX];
@@ -324,7 +323,7 @@ public class BoardView extends Image {
             RdApplication.self().getStage().getViewport().getCamera()
                     .unproject(spriteTouchPoint.set(Gdx.input.getX(), Gdx.input.getY(),0));
 
-            for (var moveView : moveViews) {
+            for (MoveView moveView : moveViews) {
                 if (moveView.sprite.getBoundingRectangle().contains(spriteTouchPoint.x, spriteTouchPoint.y)) {
                     selected = null;
                     lastPosition = null;
@@ -335,7 +334,7 @@ public class BoardView extends Image {
                 }
             }
 
-            for (var view : getPieceViews()) {
+            for (PieceView view : getPieceViews()) {
                 if (!controller.getMoves(view.pieceX, view.pieceY).isEmpty()
                         && view.sprite.getBoundingRectangle().contains(spriteTouchPoint.x, spriteTouchPoint.y)
                         && transitions.isEmpty()) {
@@ -345,9 +344,9 @@ public class BoardView extends Image {
                     hintView = null;
                     moveViews = new Array<>();
 
-                    var moves = controller.getMoves(selected.pieceX, selected.pieceY);
-                    for (var move : moves) {
-                        var moveView = new MoveView(move);
+                    Array<Move> moves = controller.getMoves(selected.pieceX, selected.pieceY);
+                    for (Move move : moves) {
+                        MoveView moveView = new MoveView(move);
                         if (controller.isCastleMove(move)) moveView.castle = true;
                         moveViews.add(moveView);
                     }
@@ -356,7 +355,7 @@ public class BoardView extends Image {
 
             if (hintView != null && hintView.sprite.getBoundingRectangle()
                     .contains(spriteTouchPoint.x, spriteTouchPoint.y)) {
-                var move = hintView.move;
+                Move move = hintView.move;
                 hintView = null;
                 controller.makeMove(move, null);
             }
@@ -364,7 +363,7 @@ public class BoardView extends Image {
     }
 
     private Array<PieceView> getPieceViews() {
-        var arr = new Array<PieceView>();
+        Array<PieceView> arr = new Array<PieceView>();
         Arrays.stream(pieceViews)
                 .flatMap(Arrays::stream)
                 .filter(Objects::nonNull)
@@ -424,8 +423,8 @@ public class BoardView extends Image {
             this.move = move;
 
             radius = (float) ((cellWidth + cellHeight) / 10);
-            var shiftLeft = cellWidth / 2 - radius / 2;
-            var shiftTop = cellHeight / 2 - radius / 2;
+            double shiftLeft = cellWidth / 2 - radius / 2;
+            double shiftTop = cellHeight / 2 - radius / 2;
 
             moveX = (float) (cellWidth * move.getMoveX() + padLeft + shiftLeft);
             moveY = (float) (cellHeight * move.getMoveY() + padBottom + shiftTop);
@@ -437,8 +436,8 @@ public class BoardView extends Image {
 
         private void update() {
             radius = (float) ((cellWidth + cellHeight) / 10);
-            var shiftLeft = cellWidth / 2 - radius / 2;
-            var shiftTop = cellHeight / 2 - radius / 2;
+            double shiftLeft = cellWidth / 2 - radius / 2;
+            double shiftTop = cellHeight / 2 - radius / 2;
 
             moveX = (float) (cellWidth * move.getMoveX() + padLeft + shiftLeft);
             moveY = (float) (cellHeight * move.getMoveY() + padBottom + shiftTop);
@@ -469,17 +468,47 @@ public class BoardView extends Image {
             float lengthX = Math.abs(move.getMoveX() - move.getPieceX());
             float lengthY = Math.abs(move.getMoveY() - move.getPieceY());
 
-            percent += ChessConstants.localData.getPiecesSpeed()
-                    * (System.currentTimeMillis() - lastRender) / (Math.max(lengthX, lengthY) / 2);
+            percent += pieceDuration * (System.currentTimeMillis() - lastRender)
+                / (Math.max(lengthX, lengthY) / 2);
 
-            var startX = movingPiece.pieceX * cellWidth + padLeft;
-            var startY = movingPiece.pieceY * cellHeight + padBottom;
+            double startX = movingPiece.pieceX * cellWidth + padLeft;
+            double startY = movingPiece.pieceY * cellHeight + padBottom;
 
-            var vectorX = (move.getMoveX() * cellWidth + padLeft - startX) * percent;
-            var vectorY = (move.getMoveY() * cellHeight + padBottom - startY) * percent;
+            double vectorX = (move.getMoveX() * cellWidth + padLeft - startX) * percent;
+            double vectorY = (move.getMoveY() * cellHeight + padBottom - startY) * percent;
 
             movingPiece.setPosition((float) (startX + vectorX), (float) (startY + vectorY));
             lastRender = System.currentTimeMillis();
         }
+    }
+
+    public static class BoardViewStyle {
+        public TextureAtlas.AtlasRegion moveRegion, castleRegion,
+            greenFrame, yellowRegion, greenCross, blueFrame, redFrame;
+
+
+        public BoardViewStyle(TextureAtlas.AtlasRegion moveRegion, TextureAtlas.AtlasRegion castleRegion, TextureAtlas.AtlasRegion greenFrame,
+                              TextureAtlas.AtlasRegion yellowRegion, TextureAtlas.AtlasRegion greenCross, TextureAtlas.AtlasRegion blueFrame,
+                              TextureAtlas.AtlasRegion redFrame, float pieceDuration) {
+            this.moveRegion = moveRegion;
+            this.castleRegion = castleRegion;
+            this.greenFrame = greenFrame;
+            this.yellowRegion = yellowRegion;
+            this.greenCross = greenCross;
+            this.blueFrame = blueFrame;
+            this.redFrame = redFrame;
+        }
+
+        public BoardViewStyle(BoardViewStyle style) {
+            moveRegion = style.moveRegion;
+            castleRegion = style.castleRegion;
+            greenFrame = style.greenFrame;
+            yellowRegion = style.yellowRegion;
+            greenCross = style.greenCross;
+            blueFrame = style.blueFrame;
+            redFrame = style.redFrame;
+        }
+
+        public BoardViewStyle() {}
     }
 }

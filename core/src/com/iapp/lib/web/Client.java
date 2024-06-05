@@ -1,5 +1,7 @@
 package com.iapp.lib.web;
 
+import com.iapp.lib.ui.widgets.AccountPanel;
+
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -13,5 +15,7 @@ public interface Client {
 
     void sendGameLobbyMessage(long matchId, String message);
 
-    void getAvatar(Account account, Consumer<byte[]> getAvatar);
+    void requireAvatar(Account account, Consumer<byte[]> getAvatar);
+
+    AccountPanel currentAccountPanel();
 }

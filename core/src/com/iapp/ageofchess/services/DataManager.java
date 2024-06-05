@@ -15,13 +15,6 @@ import java.util.Arrays;
 
 public class DataManager {
 
-    private static final String INFO_PLIST =
-            "<key>CFBundleLocalizations</key>\n" +
-            "<array>\n" +
-            "<string>en</string>\n" +
-            "<string>ru</string>\n" +
-            "</array>";
-
     private static final DataManager INSTANCE = new DataManager();
     private final Gson gson;
 
@@ -30,7 +23,7 @@ public class DataManager {
     }
 
     public void loadMapData(MapData mapData, MapResources mapResources) {
-        var folderHandle = Gdx.files.external(ChessConstants.MAPS_DIRECTORY + ("/map" + mapData.getId()));
+        var folderHandle = Gdx.files.local(ChessConstants.MAPS_DIRECTORY + ("/map" + mapData.getId()));
         if (folderHandle.exists()) folderHandle.deleteDirectory();
 
         if (mapResources.getAtlasDesc() != null && mapResources.getAtlasDescName() != null) {
@@ -53,7 +46,8 @@ public class DataManager {
         }
 
         // strings
-        folderHandle.child("info.plist.xml").writeString(INFO_PLIST, false);
+        // INFO PLIST REMOVED!
+
         for (var entry : mapResources.getStrings().entries()) {
             folderHandle.child("lang_" + entry.key + ".properties")
                     .writeString(getStrings(entry.value), false, StandardCharsets.UTF_8.toString());
@@ -65,14 +59,15 @@ public class DataManager {
 
     public void removeMapData(MapData mapData) {
         if (mapData.getType() == Files.FileType.Internal) throw new IllegalArgumentException("Can't be deleted! Internal path!");
-        var handler = Gdx.files.external(ChessConstants.MAPS_DIRECTORY + "/map" + mapData.getId());
+        var handler = Gdx.files.getFileHandle(
+            ChessConstants.MAPS_DIRECTORY + "/map" + mapData.getId(), ChessConstants.FILE_TYPE);
         if (!handler.exists()) throw new IllegalStateException("Folder not found! Path = " + handler);
         handler.deleteDirectory();
     }
 
     public Array<MapData> readDataMaps() {
         var dataMaps = new Array<MapData>();
-        var handler = Gdx.files.external(ChessConstants.MAPS_DIRECTORY);
+        var handler = Gdx.files.getFileHandle(ChessConstants.MAPS_DIRECTORY, ChessConstants.FILE_TYPE);
 
         for (var child1 : handler.list()) {
             if (child1.name().startsWith("map")) {
@@ -92,13 +87,13 @@ public class DataManager {
     }
 
     public void saveLocalData(LocalData localData) {
-        var accountHandler = Gdx.files.external(ChessConstants.SETTINGS);
+        var accountHandler = Gdx.files.getFileHandle(ChessConstants.SETTINGS, ChessConstants.FILE_TYPE);
         if (localData == null) return;
         accountHandler.writeString(gson.toJson(localData), false);
     }
 
     public LocalData readLocalData() {
-        var accountHandler = Gdx.files.external(ChessConstants.SETTINGS);
+        var accountHandler = Gdx.files.getFileHandle(ChessConstants.SETTINGS, ChessConstants.FILE_TYPE);
         if (!accountHandler.exists()) return new LocalData();
         try {
             var localData = gson.fromJson(

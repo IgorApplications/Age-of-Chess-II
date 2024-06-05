@@ -111,7 +111,8 @@ class IgorChessEngine {
                 int bestMove = Integer.MIN_VALUE;
                 Move virtualAIMove = null;
 
-                for (Move move : getAllMoves(clonedGame, aiColor)) {
+                Array<Move> moves = getAllMoves(clonedGame, aiColor);
+                for (Move move : moves) {
                     clonedGame.makeMove(move);
                     getParallelMiniMax(clonedGame.cloneGame(), move, depth - 1, -10_000, 10_000, userColor);
                     countMinimaxThreads.incrementAndGet();
@@ -167,7 +168,6 @@ class IgorChessEngine {
         }
 
         Array<Move> moves = getAllMoves(clonedGame, color);
-
         int bestMove;
         if (color == aiColor) {
             bestMove = Integer.MIN_VALUE;
@@ -212,13 +212,13 @@ class IgorChessEngine {
         byte[][] matrix = game.getMatrix();
         for (int i = 0; i < matrix.length; i++) {
             for (int j = 0; j < matrix[i].length; j++) {
-                totalEvaluation += evaluateFigure(game, j, i);
+                totalEvaluation += evaluatePiece(game, j, i);
             }
         }
         return totalEvaluation;
     }
 
-    private float evaluateFigure(Game game, int x, int y) {
+    private float evaluatePiece(Game game, int x, int y) {
         float eval = 0;
 
         if (game.isPawn(x, y)) {

@@ -36,7 +36,7 @@ public class RdWindow extends Table {
     protected int edge;
     protected boolean dragging;
 
-    private RdTable loading;
+    private LoadingTable loading;
 
     public RdWindow(String title, Skin skin) {
         this(title, skin.get(RdWindowStyle.class));
@@ -188,10 +188,10 @@ public class RdWindow extends Table {
             }
         });
 
-        loading = new RdTable();
-        loading.setBackground(style.loadingBg);
-        loading.add(style.loadingAnim);
-        loading.setVisible(false);
+        if (style.loadingStyle != null) {
+            loading = new LoadingTable(style.loadingStyle);
+            loading.setVisible(false);
+        }
     }
 
     protected RdLabel newLabel (String text, RdLabel.RdLabelStyle style) {
@@ -199,11 +199,11 @@ public class RdWindow extends Table {
         return new RdLabel(text, style);
     }
 
-    public RdTable getLoading() {
+    public LoadingTable getLoading() {
         return loading;
     }
 
-    public void setLoading(RdTable loading) {
+    public void setLoading(LoadingTable loading) {
         this.loading = loading;
     }
 
@@ -268,8 +268,8 @@ public class RdWindow extends Table {
         drawLoading(loading, batch);
     }
 
-    protected void drawLoading(RdTable loading, Batch batch) {
-        if (!loading.isVisible()) return;
+    protected void drawLoading(LoadingTable loading, Batch batch) {
+        if (loading == null || !loading.isVisible()) return;
         loading.setPosition(getX() + style.background.getLeftWidth(),
                 getY() + style.background.getBottomHeight());
         loading.setSize(getWidth() - style.background.getLeftWidth() - style.background.getRightWidth(),
@@ -368,8 +368,8 @@ public class RdWindow extends Table {
         public @Null Drawable background;
         public Font titleFont;
         public @Null Color titleFontColor = new Color(1, 1, 1, 1);
-        public @Null Drawable stageBackground, loadingBg;
-        public @Null AnimatedImage loadingAnim;
+        public @Null Drawable stageBackground;
+        public @Null LoadingTable.LoadingStyle loadingStyle;
         public float scaleText = 1;
 
         public RdWindowStyle() {}

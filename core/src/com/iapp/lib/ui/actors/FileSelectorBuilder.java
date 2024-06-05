@@ -12,6 +12,7 @@ import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.util.OnChangeListener;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -109,7 +110,7 @@ public class FileSelectorBuilder {
     private RdList<String> list;
 
     public RdDialog build(FileSelectorStyle style) {
-        var dialog = new RdDialog(title, style.dialogBuilderStyle.rdDialogStyle);
+        RdDialog dialog = new RdDialog(title, style.dialogBuilderStyle.rdDialogStyle);
         if (onHide != null) dialog.setOnCancel(onHide);
         else {
             if (onCancel != null) {
@@ -121,7 +122,7 @@ public class FileSelectorBuilder {
         handles = getFiles(parent);
 
         list = new RdList<>(style.rdListStyle);
-        var scrollPane = new ScrollPane(list, style.dialogBuilderStyle.scrollStyle);
+        ScrollPane scrollPane = new ScrollPane(list, style.dialogBuilderStyle.scrollStyle);
         scrollPane.setFadeScrollBars(false);
         scrollPane.setOverscroll(false, false);
         scrollPane.setScrollingDisabled(true, false);
@@ -136,7 +137,7 @@ public class FileSelectorBuilder {
                 if (list.getSelectedIndex() == 0) parent = parent.parent();
 
                 if (list.getSelectedIndex() != 0) parent = handles[list.getSelectedIndex() - 1];
-                var res= parent.path().trim();
+                String res = parent.path().trim();
                 pathParent.setText("[" + style.filePath.color.toString() + "] " + res);
                 if (res.equals("")) pathParent.setText("/");
                 if (!parent.isDirectory()) return;
@@ -147,8 +148,8 @@ public class FileSelectorBuilder {
             }
         });
 
-        var cancel = new RdImageTextButton(cancelText, style.dialogBuilderStyle.cancelStyle);
-        var accept = new RdImageTextButton(acceptText, style.dialogBuilderStyle.acceptStyle);
+        RdImageTextButton cancel = new RdImageTextButton(cancelText, style.dialogBuilderStyle.cancelStyle);
+        RdImageTextButton accept = new RdImageTextButton(acceptText, style.dialogBuilderStyle.acceptStyle);
 
         pathParent = new RdLabel(" " + parent.path().trim(), style.filePath);
         pathParent.setWrap(true);
@@ -158,18 +159,23 @@ public class FileSelectorBuilder {
             public void onChange(Actor actor) {
                 if (list.getSelectedIndex() == 0) return;
                 if (onSelect != null) {
-                    var handle = handles[list.getSelectedIndex() - 1];
+                    FileHandle handle = handles[list.getSelectedIndex() - 1];
                     if (handle.isDirectory()) return;
                     onSelect.accept(handle);
                 }
             }
         });
-        cancel.addListener(Objects.requireNonNullElseGet(onCancel, () -> new OnChangeListener() {
-            @Override
-            public void onChange(Actor actor) {
-                dialog.hide();
-            }
-        }));
+
+        if (onCancel != null) {
+            cancel.addListener(onCancel);
+        } else {
+            cancel.addListener(new OnChangeListener() {
+                @Override
+                public void onChange(Actor actor) {
+                    dialog.hide();
+                }
+            });
+        }
 
         dialog.getContentTable().align(Align.topLeft);
         dialog.getContentTable().add(pathParent)
@@ -231,12 +237,12 @@ public class FileSelectorBuilder {
     }
 
     private FileHandle[] getFiles(FileHandle parent) {
-        var handleList = new ArrayList<FileHandle>();
+        List<FileHandle> handleList = new ArrayList<FileHandle>();
 
         if (endFilters.length == 0) return parent.list();
 
-        for (var file : parent.list()) {
-            for (var filter : endFilters) {
+        for (FileHandle file : parent.list()) {
+            for (String filter : endFilters) {
                 if (file.isDirectory() || file.name().endsWith(filter)) {
                     handleList.add(file);
                     break;
@@ -248,7 +254,7 @@ public class FileSelectorBuilder {
     }
 
     private String[] getFileNames(FileHandle[] files) {
-        var names = new String[files.length + 1];
+        String[] names = new String[files.length + 1];
         names[0] = " ";
 
         for (int i = 1; i < files.length + 1; i++) {
@@ -264,7 +270,7 @@ public class FileSelectorBuilder {
     }
 
     private void updateItemIcons(FileSelectorStyle style) {
-        var icons = new Drawable[handles.length + 1];
+        Drawable[] icons = new Drawable[handles.length + 1];
         icons[0] = style.back;
 
         for (int i = 0; i < handles.length; i++) {

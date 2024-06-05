@@ -19,59 +19,20 @@ import com.iapp.lib.ui.screens.RdAssetManager;
 /**
  * Scroll bar with cursor support and additional default settings
  * @author Igor Ivanov
- * @version 1.0
  * */
 public class RdScrollPane extends ScrollPane {
 
-    private RdScrollPaneStyle style;
-    private boolean isOver;
+    private final RdScrollPaneStyle style;
     private final Array<Actor> actorList = new Array<>();
+    private boolean isOver;
+    private LoadingTable loading;
 
     public RdScrollPane(Actor widget) {
-        this(widget, RdAssetManager.current().getSkin());
+        this(widget, "default");
     }
 
-    public RdScrollPane(Actor widget, Skin skin) {
-        this(widget, skin, "default");
-    }
-
-    public RdScrollPane(Actor widget, Skin skin, String styleName) {
-        this(widget, skin.get(styleName, RdScrollPaneStyle.class));
-    }
-
-    /** true if the mouse cursor is over */
-    public boolean isOver() {
-        return isOver;
-    }
-
-    public void setStyle(RdScrollPaneStyle style) {
-        super.setStyle(style);
-        this.style = style;
-    }
-
-    @Override
-    public RdScrollPaneStyle getStyle() {
-        return style;
-    }
-
-    /** updates the list of actors to handle the cursor */
-    @Override
-    public void layout() {
-        super.layout();
-        var local = new Array<Actor>();
-        local.addAll(getChildren());
-
-        while (!local.isEmpty()) {
-            var newLocal = new Array<Actor>();
-            for (var child : local) {
-                if (child instanceof Group && !(child instanceof Button)) {
-                    newLocal.addAll(((Group) child).getChildren());
-                } else {
-                    actorList.add(child);
-                }
-            }
-            local = newLocal;
-        }
+    public RdScrollPane(Actor widget, String styleName) {
+        this(widget, RdAssetManager.current().getSkin().get(styleName, RdScrollPane.RdScrollPaneStyle.class));
     }
 
     public RdScrollPane(Actor widget, RdScrollPaneStyle style) {
@@ -96,20 +57,80 @@ public class RdScrollPane extends ScrollPane {
 
         setFadeScrollBars(style.fadeScrollBars);
         setOverscroll(style.overscrollX, style.overscrollY);
+
+        if (style.loadingStyle != null) {
+            loading = new LoadingTable(style.loadingStyle);
+            loading.setVisible(false);
+        }
+    }
+
+    public LoadingTable getLoading() {
+        return loading;
+    }
+
+    public void setLoading(LoadingTable loading) {
+        this.loading = loading;
+    }
+
+    /** true if the mouse cursor is over */
+    public boolean isOver() {
+        return isOver;
+    }
+
+    /** updates the list of actors to handle the cursor */
+    @Override
+    public void layout() {
+        super.layout();
+        Array<Actor> local = new Array<Actor>();
+        local.addAll(getChildren());
+
+        while (!local.isEmpty()) {
+            Array<Actor> newLocal = new Array<Actor>();
+            for (Actor child : local) {
+                // TODO
+                if (child instanceof Group && !(child instanceof Button)) {
+                    newLocal.addAll(((Group) child).getChildren());
+                } else {
+                    actorList.add(child);
+                }
+            }
+            local = newLocal;
+        }
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
         updateCursor();
+        drawLoading(loading, batch);
     }
 
+    protected void drawLoading(LoadingTable loading, Batch batch) {
+        if (loading == null || !loading.isVisible()) return;
+
+        Drawable background = style.background;
+        float left = 0, right = 0, bottom = 0, top = 0;
+        if (background != null) {
+            left = background.getLeftWidth();
+            right = background.getRightWidth();
+            bottom = background.getBottomHeight();
+            top = background.getTopHeight();
+        }
+
+        loading.setPosition(getX() + left, getY() + bottom);
+        loading.setSize(getWidth() - left - right,
+            getHeight() - bottom - top);
+        loading.act(Gdx.graphics.getDeltaTime());
+        loading.draw(batch, getColor().a);
+    }
+
+    // TODO
     /** updates the cursor state */
     private void updateCursor() {
-        var def = RdApplication.self().getCursor();
+        Cursor def = RdApplication.self().getCursor();
         boolean button = false;
 
-        for (var actor : actorList) {
+        for (Actor actor : actorList) {
 
             if (actor instanceof Button) {
 
@@ -150,17 +171,27 @@ public class RdScrollPane extends ScrollPane {
         public Cursor cursor;
         public boolean fadeScrollBars = true;
         public boolean overscrollX = true, overscrollY = true;
+        public LoadingTable.LoadingStyle loadingStyle;
 
-        public RdScrollPaneStyle() {
-            super();
-        }
+        public RdScrollPaneStyle() {}
 
-        public RdScrollPaneStyle(Drawable background, Drawable hScroll, Drawable hScrollKnob, Drawable vScroll, Drawable vScrollKnob) {
+        public RdScrollPaneStyle(Drawable background, Drawable hScroll, Drawable hScrollKnob,
+                                 Drawable vScroll, Drawable vScrollKnob, Cursor cursor, boolean fadeScrollBars,
+                                 boolean overscrollX, boolean overscrollY, LoadingTable.LoadingStyle loadingStyle) {
             super(background, hScroll, hScrollKnob, vScroll, vScrollKnob);
+            this.cursor = cursor;
+            this.fadeScrollBars = fadeScrollBars;
+            this.overscrollX = overscrollX;
+            this.overscrollY = overscrollY;
+            this.loadingStyle = loadingStyle;
         }
 
-        public RdScrollPaneStyle(ScrollPaneStyle style) {
-            super(style);
+        public RdScrollPaneStyle(RdScrollPaneStyle style) {
+            cursor = style.cursor;
+            fadeScrollBars = style.fadeScrollBars;
+            overscrollX = style.overscrollX;
+            overscrollY = style.overscrollY;
+            loadingStyle = new LoadingTable.LoadingStyle(style.loadingStyle);
         }
     }
 }

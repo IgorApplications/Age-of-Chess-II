@@ -5,6 +5,8 @@ import com.iapp.lib.ui.actors.RdLabel;
 import com.iapp.lib.util.CallListener;
 
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * Application debugging tool
@@ -77,7 +79,7 @@ public final class RdLogger {
     public Activity showFatalScreen(Throwable error) {
         blockedTransition = true;
 
-        var loggingScreen = new LoggingActivity(getDescription(error), description,
+        LoggingActivity loggingScreen = new LoggingActivity(getDescription(error), description,
                 logStyle, descStyle, onFatal);
         RdApplication.self().setFatalScreen(loggingScreen);
 
@@ -90,8 +92,8 @@ public final class RdLogger {
      * */
     public String getDescription(Throwable error) {
 
-        var logText = new StringBuilder(parseThrowable(error));
-        var count = 0;
+        StringBuilder logText = new StringBuilder(parseThrowable(error));
+        long count = 0;
         if (error.getCause() != null) {
             logText.append("\n\nCause-").append(parseThrowable(error.getCause()));
         }
@@ -118,8 +120,8 @@ public final class RdLogger {
 
     /** Logs system information */
     public void logSysInfo() {
-        var properties = System.getProperties();
-        var keys = properties.keys();
+        Properties properties = System.getProperties();
+        Enumeration keys = properties.keys();
         while (keys.hasMoreElements()) {
             String key = (String) keys.nextElement();
             String value = (String) properties.get(key);
@@ -128,7 +130,7 @@ public final class RdLogger {
     }
 
     private String parseThrowable(Throwable t) {
-        var logText = Arrays.toString(t.getStackTrace());
+        String logText = Arrays.toString(t.getStackTrace());
         logText = logText.replaceAll(",", ",\n");
         logText = t + "\n" + logText;
 

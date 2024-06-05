@@ -20,6 +20,7 @@ import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
 import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.StringsGenerator;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
@@ -28,7 +29,6 @@ public class EditMapActivity extends Activity {
     private final EditMapController controller;
     private final MapData mapData;
     private boolean vertically;
-    private int scenario = 0;
     private float coefX, coefY;
 
     private Table content, boardTable;
@@ -128,13 +128,13 @@ public class EditMapActivity extends Activity {
         boardTable = new Table();
         boardTable.setFillParent(true);
 
-        saveExit = new RdImageTextButton(strings.get("exit"));
+        saveExit = new RdImageTextButton(strings.get("[i18n]Exit"));
         saveExit.setImage("iw_back");
-        change = new RdImageTextButton(strings.get("change"));
+        change = new RdImageTextButton(strings.get("[i18n]Change"));
         change.setImage("iw_construction");
-        update = new RdImageTextButton(strings.get("update"));
+        update = new RdImageTextButton(strings.get("[i18n]update"));
         update.setImage("iw_sync");
-        help = new RdImageTextButton(strings.get("help"));
+        help = new RdImageTextButton(strings.get("[i18n]Help"));
         help.setImage("iw_help");
         moddingView = new ModdingView(controller, mapData);
 
@@ -171,7 +171,7 @@ public class EditMapActivity extends Activity {
             public void onChange(Actor actor) {
                 blackout.setVisible(true);
 
-                helpDialog = new RdDialog(strings.get("modding_guide"),
+                helpDialog = new RdDialog(strings.get("[i18n]Modding Guide"),
                         ChessAssetManager.current().getSkin(), "input");
                 helpDialog.getIcon().setDrawable(new TextureRegionDrawable(
                         ChessAssetManager.current().findRegion("icon_info")));
@@ -184,13 +184,13 @@ public class EditMapActivity extends Activity {
                     }
                 });
 
-                var label1 = new RdLabel(strings.get("modding_guide_desc_1"),
+                var label1 = new RdLabel(strings.get("[i18n]\tTextures and atlases must contain elements with names such as: white_pawn, black_pawn, white_rook, black_rook, white_knight, black_knight, white_bishop, black_bishop, white_queen, black_queen, white_king, black_king, background, board. Such elements can replace the standard images that the application provides. The rest of the names will be ignored. Textures must have an extension (.jpg or .png), atlases must be correct and have an extension (.atlas). Atlases are intended for optimization and are optional, you can use only individual images - textures."),
                         ChessAssetManager.current().getSkin());
                 label1.setWrap(true);
-                var label2 = new RdLabel(strings.get("modding_guide_desc_2"),
+                var label2 = new RdLabel(strings.get("[i18n]\tIcons can have any name, but the extension must be optional (.jpg or .png). You can also change the location of the figures using the FEN format and other information about the map."),
                         ChessAssetManager.current().getSkin());
                 label2.setWrap(true);
-                var accept = new RdTextButton(strings.get("accept"),"blue");
+                var accept = new RdTextButton(strings.get("[i18n]accept"),"blue");
                 accept.addListener(new OnChangeListener() {
                     @Override
                     public void onChange(Actor actor) {
@@ -201,7 +201,7 @@ public class EditMapActivity extends Activity {
 
                 var content = new RdTable();
                 content.align(Align.topLeft);
-                var scroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+                var scroll = new RdScrollPane(content);
                 scroll.setFadeScrollBars(false);
                 scroll.setOverscroll(false, false);
                 content.add(label1).expandX().fillX().row();

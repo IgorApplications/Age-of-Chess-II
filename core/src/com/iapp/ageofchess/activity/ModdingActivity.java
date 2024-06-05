@@ -12,8 +12,9 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.ModdingController;
+import com.iapp.ageofchess.graphics.MapEditView;
+import com.iapp.ageofchess.services.LocalFeatures;
 import com.iapp.lib.ui.widgets.ChatView;
-import com.iapp.ageofchess.graphics.EditMapDataView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.modding.TypeMap;
 import com.iapp.ageofchess.services.ChessAssetManager;
@@ -22,22 +23,21 @@ import com.iapp.ageofchess.services.DataManager;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
 import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.ui.widgets.TranslationDialog;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 public class ModdingActivity extends Activity {
 
     private final ModdingController controller;
     private RdImageTextButton back;
-    private RdTextButton createMap;
+    private RdTextButton createMap, translator;
     private WindowGroup windowGroup;
     private Spinner spinner;
     private PropertyTable properties;
-    private RdDialog deleteMap;
 
     public ModdingActivity() {
         controller = new ModdingController(this);
@@ -60,12 +60,13 @@ public class ModdingActivity extends Activity {
         background.setScaling(Scaling.fill);
         getStage().addActor(background);
 
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
         back.padLeft(0).align(Align.left);
         back.getLabelCell().expandX().center();
 
-        createMap = new RdTextButton(strings.get("create_map"),"blue");
+        createMap = new RdTextButton(strings.get("[i18n]Create map"),"blue");
+        translator = new RdTextButton(strings.get("[i18n]Translator"));
     }
 
     @Override
@@ -82,12 +83,20 @@ public class ModdingActivity extends Activity {
             public void onChange(Actor actor) {
                 controller.goToEdit(new MapData(
                         MapData.generateModdingId(ChessAssetManager.current().getDataMaps()),
-                        Files.FileType.External,
+                        ChessConstants.FILE_TYPE,
                         TypeMap.TWO_D,
                         720, 720,
                         0,0,
                         0,0
                 ), true);
+            }
+        });
+        translator.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                TranslationDialog translation = new TranslationDialog("[i18n]Translator");
+                translation.show(getStage());
+                RdApplication.self().addDialog(translation, 900, 900, 10, 10);
             }
         });
     }
@@ -109,14 +118,14 @@ public class ModdingActivity extends Activity {
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
-        properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
         properties.setVisibleBackground(false);
         addMaps(ChessAssetManager.current().getDataMaps());
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("single-player"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Single Player"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -134,16 +143,15 @@ public class ModdingActivity extends Activity {
         super.resize(width, height);
         windowGroup.update();
         WindowUtil.resizeCenter(spinner);
-        WindowUtil.resizeCenter(deleteMap);
     }
 
     private void addMaps(List<MapData> maps) {
-        properties.add(new PropertyTable.Title(strings.get("modding")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Modding")));
 
         for (int i = 0; i < maps.size(); i++) {
             int finalI = i;
             properties.getContent().add(
-                    new EditMapDataView(maps.get(i), new OnChangeListener() {
+                    new MapEditView(maps.get(i), new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
                     showDeleteMap(maps.get(finalI));
@@ -157,15 +165,22 @@ public class ModdingActivity extends Activity {
             }))
             .expandX().fillX().pad(10, 10, 10, 10).row();
         }
-        properties.getContent().add(createMap)
-                .expandX().left().padLeft(5).padBottom(5);
+
+        RdTable bottomTable = new RdTable();
+        bottomTable.add(createMap);
+        if (ChessApplication.self().getLocalFeatures() == LocalFeatures.DEVELOPER) {
+            bottomTable.add(translator).padLeft(5);
+        }
+
+        properties.getContent().add(bottomTable)
+            .expandX().left().padLeft(5).padBottom(5);
     }
 
     private void showDeleteMap(MapData mapData) {
         RdDialog deleteMap = new RdDialogBuilder()
-                .title(strings.get("confirmation"))
-                .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), (dialog, s) -> {
+                .title(strings.get("[i18n]confirmation"))
+                .cancel(strings.get("[i18n]reject"))
+                .accept(strings.get("[i18n]accept"), (dialog, s) -> {
                     Runnable task = () -> DataManager.self().removeMapData(mapData);
                     RdApplication.self().execute(task);
 
@@ -175,8 +190,8 @@ public class ModdingActivity extends Activity {
                     addMaps(ChessAssetManager.current().getDataMaps());
                     dialog.hide();
                 })
-                .text(strings.get("conf_del_map"))
-                .build(ChessAssetManager.current().getSkin(), "input");
+                .text(strings.get("[i18n]Are you sure you want to delete this map? If it is not on our servers, then the action will be irrevocable."))
+                .build("input");
 
         deleteMap.show(getStage());
         deleteMap.setSize(800, 550);

@@ -13,7 +13,7 @@ public class CarballoChessEngine implements ChessEngine {
     private SearchEngine searchEngine;
 
     public void start() {
-        var config = new Config();
+        Config config = new Config();
         config.setTranspositionTableSize(10);
         searchEngine = new SearchEngine(config);
     }
@@ -24,15 +24,15 @@ public class CarballoChessEngine implements ChessEngine {
 
     @SuppressWarnings("DefaultLocale")
     public void getBestMoves(int depth, Consumer<String> onGetting, long minimumDelayMillis) {
-        var searchParams = new SearchParameters();
+        SearchParameters searchParams = new SearchParameters();
         searchParams.setDepth(depth);
 
         Runnable task = () -> {
             long start = System.currentTimeMillis();
             searchEngine.go(searchParams);
-            var move = searchEngine.getBestMove();
+            int move = searchEngine.getBestMove();
             searchEngine.getBoard().doMove(move);
-            var textMoves = searchEngine.getBoard().getMoves();
+            String textMoves = searchEngine.getBoard().getMoves();
             if (textMoves.equals("")) return;
 
             Gdx.app.debug("Carballo get best move",
@@ -40,8 +40,7 @@ public class CarballoChessEngine implements ChessEngine {
             Gdx.app.debug("Carballo get best move",
                 String.format("Text move = %s%n", textMoves));
 
-            var left = minimumDelayMillis - (System.currentTimeMillis() - start);
-
+            long left = minimumDelayMillis - (System.currentTimeMillis() - start);
             try {
                 if (left > 0) Thread.sleep(left);
             } catch (InterruptedException e) {

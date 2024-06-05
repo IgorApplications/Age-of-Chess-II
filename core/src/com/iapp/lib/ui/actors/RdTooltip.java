@@ -28,7 +28,7 @@ public class RdTooltip<T extends Actor> extends InputListener {
     public RdTooltip(@Null T contents, RdTooltipManager manager) {
         this.manager = manager;
 
-        container = new Container<>(contents) {
+        container = new Container<T>(contents) {
             public void act(float delta) {
                 super.act(delta);
                 if (targetActor != null && targetActor.getStage() == null) remove();
@@ -82,7 +82,7 @@ public class RdTooltip<T extends Actor> extends InputListener {
         manager.instant();
 
         if (touchIndependent && Gdx.input.isTouched()) return false;
-        var actor = event.getListenerActor();
+        Actor actor = event.getListenerActor();
 
         setContainerPosition(actor, x, y);
         manager.touchDown(this);
@@ -104,7 +104,7 @@ public class RdTooltip<T extends Actor> extends InputListener {
 
     private void setContainerPosition (Actor actor, float x, float y) {
         this.targetActor = actor;
-        var stage = actor.getStage();
+        Stage stage = actor.getStage();
         if (stage == null) return;
 
         container.setSize(manager.maxWidth, Integer.MAX_VALUE);

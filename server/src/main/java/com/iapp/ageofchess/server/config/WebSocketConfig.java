@@ -15,6 +15,7 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
+    public static final int BYTE_BUFFER_SIZE = 40_000;
     private final WebSocketHandler webSocketHandler;
 
     public WebSocketConfig(WebSocketHandler webSocketHandler) {
@@ -37,7 +38,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
-        container.setMaxBinaryMessageBufferSize(40_000);
+        container.setMaxBinaryMessageBufferSize(BYTE_BUFFER_SIZE);
         return container;
     }
 }

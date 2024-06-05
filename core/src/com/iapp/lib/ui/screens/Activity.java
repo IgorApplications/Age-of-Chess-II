@@ -1,6 +1,7 @@
 package com.iapp.lib.ui.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
@@ -41,7 +42,7 @@ public abstract class Activity {
     /** Creates a scene and sets up an input listener */
     public void show(Activity last) {
         strings = RdApplication.self().getStrings();
-        var defCursor = RdApplication.self().getCursor();
+        Cursor defCursor = RdApplication.self().getCursor();
         if (defCursor != null) {
             Gdx.graphics.setCursor(defCursor);
         }

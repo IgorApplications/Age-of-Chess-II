@@ -34,7 +34,7 @@ android {
     applicationId 'com.iapp.chess'
     minSdkVersion 24
     targetSdkVersion 33
-    versionCode 53
+    versionCode 56
     versionName "2.00.001"
     multiDexEnabled true
   }

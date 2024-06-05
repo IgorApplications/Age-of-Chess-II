@@ -13,12 +13,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.github.tommyettinger.textra.Font;
+import com.iapp.ageofchess.ChessApplication;
+import com.iapp.ageofchess.graphics.MessageView;
 import com.iapp.ageofchess.modding.MapData;
-import com.iapp.lib.ui.actors.RdDialog;
-import com.iapp.lib.ui.actors.RdImageTextButton;
+import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.GrayAssetManager;
 import com.iapp.lib.ui.screens.RdAssetManager;
-import com.iapp.lib.util.CallListener;
+import com.iapp.lib.ui.widgets.*;
 import com.iapp.lib.util.DisposeUtil;
 import com.iapp.lib.util.StreamUtil;
 import com.iapp.lib.util.TextureUtil;
@@ -47,18 +48,18 @@ public class ChessAssetManager extends GrayAssetManager {
     private static final AssetDescriptor<Music> LOSE_SOUND =
             new AssetDescriptor<>("sounds/lose.mp3", Music.class);
 
-    private static final AssetDescriptor<Sound> CLICK_SOUND =
-            new AssetDescriptor<>("sounds/click.mp3", Sound.class);
-
+    private static final AssetDescriptor<Sound> LOCK_SOUND =
+        new AssetDescriptor<>("sounds/lock.mp3", Sound.class);
     private static final AssetDescriptor<Sound> BELL_SOUND =
             new AssetDescriptor<>("sounds/bell.mp3", Sound.class);
-
+    private static final AssetDescriptor<Sound> SHOW_ERROR_SOUND =
+        new AssetDescriptor<>("sounds/show_error.mp3", Sound.class);
     private static final AssetDescriptor<Music> BACKGROUND_MUSIC =
             new AssetDescriptor<>("sounds/background_music.mp3", Music.class);
 
     private TextureAtlas chessAtlas;
 
-    private Sound move, castle, check, bell, click;
+    private Sound move, castle, check, bell, lock, showError;
     private Music backgroundMusic, win,  lose;
 
     private Texture grayLine, blackTexture, darkTexture, whiteTexture, overWhiteTexture,
@@ -69,18 +70,20 @@ public class ChessAssetManager extends GrayAssetManager {
     private RdDialog.RdDialogStyle selectionStyle, resultStyle, infoStyle;
     private Button.ButtonStyle cancelStyle;
     private ImageButton.ImageButtonStyle levelStyle, closedLevelStyle,
-        selectedStyle, avatarStyle, deleteStyle, hideChatStyle, chatLobbyUp,
-        chatLobbyDown, gamesStyle, profileStyle, settingsStyle, loginStyle,
-        logoutStyle, adminStyle, searchPeopleStyle, serverStyle;
-    private RdImageTextButton.RdImageTextButtonStyle coinsStyle;
-    private RdImageTextButton.RdImageTextButtonStyle modeChatStyle;
-
-    private CallListener clickListener;
+        selectedStyle, deleteStyle, loginStyle, logoutStyle, adminStyle, searchPeopleStyle;
 
     private final List<MapData> dataMaps = new ArrayList<>();
 
     public static ChessAssetManager current() {
         return (ChessAssetManager) RdAssetManager.current();
+    }
+
+    public Sound getLock() {
+        return lock;
+    }
+
+    public Sound getShowError() {
+        return showError;
     }
 
     public TextureAtlas.AtlasRegion findChessRegion(String name) {
@@ -93,44 +96,8 @@ public class ChessAssetManager extends GrayAssetManager {
         return dataMaps;
     }
 
-    public ImageButton.ImageButtonStyle getServerStyle() {
-        return serverStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getChatLobbyUp() {
-        return chatLobbyUp;
-    }
-
-    public ImageButton.ImageButtonStyle getChatLobbyDown() {
-        return chatLobbyDown;
-    }
-
-    public RdImageTextButton.RdImageTextButtonStyle getModeChatStyle() {
-        return modeChatStyle;
-    }
-
     public ImageButton.ImageButtonStyle getAdminStyle() {
         return adminStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getHideChatStyle() {
-        return hideChatStyle;
-    }
-
-    public RdImageTextButton.RdImageTextButtonStyle getCoinsStyle() {
-        return coinsStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getGamesStyle() {
-        return gamesStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getProfileStyle() {
-        return profileStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getSettingsStyle() {
-        return settingsStyle;
     }
 
     public ImageButton.ImageButtonStyle getLoginStyle() {
@@ -139,10 +106,6 @@ public class ChessAssetManager extends GrayAssetManager {
 
     public ImageButton.ImageButtonStyle getLogoutStyle() {
         return logoutStyle;
-    }
-
-    public ImageButton.ImageButtonStyle getAvatarStyle() {
-        return avatarStyle;
     }
 
     public ImageButton.ImageButtonStyle getDeleteStyle() {
@@ -225,14 +188,6 @@ public class ChessAssetManager extends GrayAssetManager {
         return lose;
     }
 
-    public Sound getClick() {
-        return click;
-    }
-
-    public CallListener getClickListener() {
-        return clickListener;
-    }
-
     public Music getBackgroundMusic() {
         return backgroundMusic;
     }
@@ -282,7 +237,6 @@ public class ChessAssetManager extends GrayAssetManager {
         DisposeUtil.dispose(win);
         DisposeUtil.dispose(lose);
         DisposeUtil.dispose(bell);
-        DisposeUtil.dispose(click);
         DisposeUtil.dispose(backgroundMusic);
         DisposeUtil.dispose(grayLine);
         DisposeUtil.dispose(blackTexture);
@@ -300,6 +254,7 @@ public class ChessAssetManager extends GrayAssetManager {
         DisposeUtil.dispose(darkRed);
         DisposeUtil.dispose(goldTexture);
         DisposeUtil.dispose(redTexture);
+        DisposeUtil.dispose(showError);
     }
 
     @Override
@@ -314,7 +269,8 @@ public class ChessAssetManager extends GrayAssetManager {
         assetManager.load(BACKGROUND_MUSIC);
         assetManager.load(LOSE_SOUND);
         assetManager.load(BELL_SOUND);
-        assetManager.load(CLICK_SOUND);
+        assetManager.load(LOCK_SOUND);
+        assetManager.load(SHOW_ERROR_SOUND);
     }
 
     @Override
@@ -331,7 +287,8 @@ public class ChessAssetManager extends GrayAssetManager {
         lose = assetManager.get(LOSE_SOUND);
         backgroundMusic = assetManager.get(BACKGROUND_MUSIC);
         bell = assetManager.get(BELL_SOUND);
-        click = assetManager.get(CLICK_SOUND);
+        lock = assetManager.get(LOCK_SOUND);
+        showError = assetManager.get(SHOW_ERROR_SOUND);
 
         grayLine = TextureUtil.create(10, 10, new Color(Color.rgba8888(0, 0, 0, 0.3f)));
         darkTexture = TextureUtil.create(10, 10, new Color(0, 0, 0, 0.3f));
@@ -355,11 +312,148 @@ public class ChessAssetManager extends GrayAssetManager {
         goldTexture = TextureUtil.create(10, 10, Color.GOLD);
         redTexture = TextureUtil.create(10, 10, Color.RED);
 
-        initAppStyles();
-        clickListener = () -> Sounds.self().playClick();
+        initSkin();
+        initLegacyStyles();
     }
 
-    private void initAppStyles() {
+    private void initSkin() {
+        addGraySettingsStyle();
+        addBoardViewStyle();
+        addChatViewStyle();
+        addAvatarViewStyle();
+        addAccountPanelStyle();
+        addMessageViewStyle();
+        addAccountViewStyle();
+    }
+
+    private void addBoardViewStyle() {
+        BoardView.BoardViewStyle style = new BoardView.BoardViewStyle();
+
+        style.moveRegion = findChessRegion("move_icon");
+        style.castleRegion = findChessRegion("castle_icon");
+        style.greenFrame = findChessRegion("green_frame");
+        style.yellowRegion = findChessRegion("yellow_frame");
+        style.greenCross = findChessRegion("green_cross");
+        style.blueFrame = findChessRegion("blue_frame");
+        style.redFrame = findChessRegion("red_frame");
+
+        getSkin().add("default", style);
+    }
+
+    private void addChatViewStyle() {
+        ImageButton.ImageButtonStyle hideChatStyle = new ImageButton.ImageButtonStyle();
+        hideChatStyle.up = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("hide_bg"));
+        hideChatStyle.imageUp = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_up"));
+        hideChatStyle.imageOver = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_over"));
+        hideChatStyle.imageDown = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_down"));
+
+        ImageButton.ImageButtonStyle chatLobbyUp = new ImageButton.ImageButtonStyle(
+            getSkin().get(ImageButton.ImageButtonStyle.class));
+        chatLobbyUp.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_up"));
+
+        ImageButton.ImageButtonStyle chatLobbyDown = new ImageButton.ImageButtonStyle(
+            getSkin().get(ImageButton.ImageButtonStyle.class));
+        chatLobbyDown.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_down"));
+
+        RdImageTextButton.RdImageTextButtonStyle modeChatStyle = new RdImageTextButton.RdImageTextButtonStyle();
+        modeChatStyle.up = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_up"),
+            35, 10, 10, 10));
+        modeChatStyle.over = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_over"),
+            35, 10, 10, 10));
+        modeChatStyle.down = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
+            35, 10, 10, 10));
+        modeChatStyle.checked = new NinePatchDrawable(new NinePatch(
+            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
+            35, 10, 10, 10));
+        modeChatStyle.font = RdAssetManager.current().getSkin().get(Font.class);
+        modeChatStyle.fontColor = Color.WHITE;
+
+        ChatView.ChatViewStyle chatViewStyle = new ChatView.ChatViewStyle();
+        chatViewStyle.chatLobbyUp = chatLobbyUp;
+        chatViewStyle.chatLobbyDown = chatLobbyDown;
+        chatViewStyle.hideChat = hideChatStyle;
+        chatViewStyle.modeChat = modeChatStyle;
+        chatViewStyle.scrollPaneStyle = getSkin().get("sample", RdScrollPane.RdScrollPaneStyle.class);
+        chatViewStyle.lobbyField = getSkin().get(RdTextField.RdTextFieldStyle.class);
+
+        getSkin().add("default", chatViewStyle);
+    }
+
+    public void addAvatarViewStyle() {
+        AvatarView.AvatarViewStyle avatarStyle = new AvatarView.AvatarViewStyle();
+        avatarStyle.up = new TextureRegionDrawable(findChessRegion("avatar_bg"));
+        avatarStyle.over = new TextureRegionDrawable(findChessRegion("avatar_bg_over"));
+        avatarStyle.down = new TextureRegionDrawable(findChessRegion("avatar_bg_down"));
+        avatarStyle.loadingAnim = getSkin().get("logo_anim", AnimatedImage.class);
+        avatarStyle.loadingBg = new TextureRegionDrawable(whiteTexture);
+
+        getSkin().add("default", avatarStyle);
+    }
+
+    public void addGraySettingsStyle() {
+        ImageButton.ImageButtonStyle style = generateAccountStyle(findRegion("iw_settings"), findRegion("iw_settings_down"));
+        getSkin().add("gray_settings", style);
+    }
+
+    public void addAccountPanelStyle() {
+        RdImageTextButton.RdImageTextButtonStyle coinsStyle = new RdImageTextButton.RdImageTextButtonStyle();
+        coinsStyle.up = new NinePatchDrawable(
+            new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_up"),
+                3, 3, 3, 3));
+        coinsStyle.over = new NinePatchDrawable(
+            new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_over"),
+                3, 3, 3, 3));
+        coinsStyle.down = new NinePatchDrawable(
+            new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_down"),
+                3, 3, 3, 3));
+        coinsStyle.imageUp = new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("coin"));
+        coinsStyle.imageOver = new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("coin_over"));
+        coinsStyle.imageDown = new TextureRegionDrawable(
+            ChessAssetManager.current().findChessRegion("coin_down"));
+
+        coinsStyle.font = getSkin().get(Font.class);
+        coinsStyle.fontColor = Color.WHITE;
+
+        AccountPanel.AccountPanelStyle style = new AccountPanel.AccountPanelStyle();
+
+        style.background = new NinePatchDrawable(new NinePatch(findChessRegion("mode_app"),
+            390, 10, 0, 0));
+        style.coinsStyle = coinsStyle;
+        style.gamesStyle = generateAccountStyle(findRegion("iw_menu"), findRegion("iw_menu_down"));
+        style.profileStyle = generateAccountStyle(findRegion("iw_account"), findRegion("iw_account_down"));
+        style.settingsStyle = getSkin().get("gray_settings", ImageButton.ImageButtonStyle.class);
+        style.avatarViewStyle = getSkin().get(AvatarView.AvatarViewStyle.class);
+
+        getSkin().add("default", style);
+    }
+
+    public void addMessageViewStyle() {
+        MessageView.MessageViewStyle style = new MessageView.MessageViewStyle();
+
+        style.avatarViewStyle = getSkin().get(AvatarView.AvatarViewStyle.class);
+        style.background = new NinePatchDrawable(
+            new NinePatch(ChessApplication.self().getAssetManager().findRegion("lite_pane"),
+                10,10,10,10));
+
+        getSkin().add("default", style);
+    }
+
+    public void addAccountViewStyle() {
+        AccountView.AccountViewStyle style = new AccountView.AccountViewStyle();
+
+        style.avatarViewStyle = getSkin().get(AvatarView.AvatarViewStyle.class);
+        style.labelStyle = getSkin().get(RdLabel.RdLabelStyle.class);
+
+        getSkin().add("default", style);
+    }
+
+    @Deprecated
+    private void initLegacyStyles() {
         selectionStyle = new RdDialog.RdDialogStyle();
         selectionStyle.background = new TextureRegionDrawable(ChessAssetManager.current().getBlackTexture());
         selectionStyle.titleFont = getSkin().get(Font.class);
@@ -396,73 +490,19 @@ public class ChessAssetManager extends GrayAssetManager {
         closedLevelStyle = new ImageButton.ImageButtonStyle();
         closedLevelStyle.up = new TextureRegionDrawable(closedLevelUp);
 
-        avatarStyle = new ImageButton.ImageButtonStyle();
-        avatarStyle.up = new TextureRegionDrawable(findChessRegion("avatar_bg"));
-        avatarStyle.over = new TextureRegionDrawable(findChessRegion("avatar_bg_over"));
-        avatarStyle.down = new TextureRegionDrawable(findChessRegion("avatar_bg_down"));
-
         deleteStyle = new ImageButton.ImageButtonStyle();
         deleteStyle.up = new TextureRegionDrawable(findRegion("iw_delete"));
         deleteStyle.over = new TextureRegionDrawable(findRegion("iw_delete_over"));
         deleteStyle.down = new TextureRegionDrawable(findRegion("iw_delete_down"));
 
-        coinsStyle = new RdImageTextButton.RdImageTextButtonStyle();
-        coinsStyle.up = new NinePatchDrawable(
-                new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_up"),
-                        3, 3, 3, 3));
-        coinsStyle.over = new NinePatchDrawable(
-                new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_over"),
-                        3, 3, 3, 3));
-        coinsStyle.down = new NinePatchDrawable(
-                new NinePatch(ChessAssetManager.current().findChessRegion("acc_pane_down"),
-                        3, 3, 3, 3));
-        coinsStyle.imageUp = new TextureRegionDrawable(
-                ChessAssetManager.current().findChessRegion("coin"));
-        coinsStyle.imageOver = new TextureRegionDrawable(
-                ChessAssetManager.current().findChessRegion("coin_over"));
-        coinsStyle.imageDown = new TextureRegionDrawable(
-                ChessAssetManager.current().findChessRegion("coin_down"));
-
-        coinsStyle.font = getSkin().get(Font.class);
-        coinsStyle.fontColor = Color.WHITE;
-
-        hideChatStyle = new ImageButton.ImageButtonStyle();
-        hideChatStyle.up = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("hide_bg"));
-        hideChatStyle.imageUp = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_up"));
-        hideChatStyle.imageOver = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_over"));
-        hideChatStyle.imageDown = new TextureRegionDrawable(ChessAssetManager.current().findChessRegion("chat_hide_down"));
-
-        chatLobbyUp = new ImageButton.ImageButtonStyle(getSkin().get(ImageButton.ImageButtonStyle.class));
-        chatLobbyUp.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_up"));
-
-        chatLobbyDown = new ImageButton.ImageButtonStyle(getSkin().get(ImageButton.ImageButtonStyle.class));
-        chatLobbyDown.imageUp = new TextureRegionDrawable(findRegion("iw_arrow_down"));
-
-        modeChatStyle = new RdImageTextButton.RdImageTextButtonStyle();
-        modeChatStyle.up = new NinePatchDrawable(new NinePatch(
-            ChessAssetManager.current().findChessRegion("mode_chat_up"),
-            35, 10, 10, 10));
-        modeChatStyle.over = new NinePatchDrawable(new NinePatch(
-            ChessAssetManager.current().findChessRegion("mode_chat_over"),
-            35, 10, 10, 10));
-        modeChatStyle.down = new NinePatchDrawable(new NinePatch(
-            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
-            35, 10, 10, 10));
-        modeChatStyle.checked = new NinePatchDrawable(new NinePatch(
-            ChessAssetManager.current().findChessRegion("mode_chat_checked"),
-            35, 10, 10, 10));
-        modeChatStyle.font = RdAssetManager.current().getSkin().get(Font.class);
-        modeChatStyle.fontColor = Color.WHITE;
-
-        gamesStyle = generateAccountStyle(findRegion("iw_menu"), findRegion("iw_menu_down"));
-        profileStyle = generateAccountStyle(findRegion("iw_account"), findRegion("iw_account_down"));
-        settingsStyle = generateAccountStyle(findRegion("iw_settings"), findRegion("iw_settings_down"));
         loginStyle = generateAccountStyle(findRegion("iw_login"), findRegion("iw_login_down"));
         logoutStyle = generateAccountStyle(findRegion("iw_logout"), findRegion("iw_logout_down"));
         adminStyle = generateAccountStyle(findRegion("iw_admin"), findRegion("iw_admin_down"));
         searchPeopleStyle = generateAccountStyle(findRegion("iw_search_people"), findRegion("iw_search_people_down"));
     }
 
+
+    @Deprecated
     private ImageButton.ImageButtonStyle generateAccountStyle(TextureAtlas.AtlasRegion up, TextureAtlas.AtlasRegion down) {
         var accountPaneStyle = new ImageButton.ImageButtonStyle();
         accountPaneStyle.up = new NinePatchDrawable(

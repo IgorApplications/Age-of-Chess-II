@@ -111,7 +111,7 @@ public class RdTooltipManager {
         time = initialTime;
         showTooltip = null;
 
-        for (var tooltip : shown)
+        for (RdTooltip tooltip : shown)
             tooltip.hide();
         shown.clear();
     }

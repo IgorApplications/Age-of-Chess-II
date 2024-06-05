@@ -1,9 +1,11 @@
 package com.iapp.lib.ui.actors;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Null;
+import com.github.tommyettinger.textra.Font;
 import com.iapp.lib.ui.screens.RdAssetManager;
 
 public class RdTextTooltip extends RdTooltip<RdLabel> {
@@ -39,7 +41,7 @@ public class RdTextTooltip extends RdTooltip<RdLabel> {
     public RdTextTooltip(@Null String text, RdTooltipManager manager, RdTextTooltipStyle style) {
         super(null, manager);
 
-        var label = new RdLabel(text, style.labelStyle);
+        RdLabel label = new RdLabel(text, style.labelStyle);
         label.setAlignment(Align.center);
         label.setWrap(true);
         label.layout.setTargetWidth(style.wrapWidth);
@@ -51,9 +53,9 @@ public class RdTextTooltip extends RdTooltip<RdLabel> {
 
     public void setStyle(RdTextTooltipStyle style) {
         if (style == null) throw new NullPointerException("style cannot be null");
-        var font = style.labelStyle.font;
+        Font font = style.labelStyle.font;
 
-        var container = getContainer();
+        Container<RdLabel> container = getContainer();
         container.getActor().setFont(font, false);
         container.getActor().layout.setTargetWidth(style.wrapWidth);
         if (style.labelStyle.color != null) container.getActor().setColor(style.labelStyle.color);
@@ -88,7 +90,7 @@ public class RdTextTooltip extends RdTooltip<RdLabel> {
     }
 
     private static RdTooltipManager getDefaultManager() {
-        var tooltipManager = new RdTooltipManager();
+        RdTooltipManager tooltipManager = new RdTooltipManager();
         tooltipManager.instant();
         return tooltipManager;
     }

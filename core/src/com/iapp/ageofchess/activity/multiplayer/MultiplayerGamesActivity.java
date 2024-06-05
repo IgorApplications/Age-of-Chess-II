@@ -60,7 +60,7 @@ public class MultiplayerGamesActivity extends Activity {
 
     @Override
     public void initActors() {
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
     }
 
@@ -94,11 +94,11 @@ public class MultiplayerGamesActivity extends Activity {
         window.setMovable(false);
         stage.addActor(window);
 
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
         properties.setVisibleBackground(false);
 
-        properties.add(new PropertyTable.Title(strings.get("online_games")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Online games")));
 
         gamesTable = new RdTable("loading");
         gamesTable.align(Align.topLeft);
@@ -107,7 +107,7 @@ public class MultiplayerGamesActivity extends Activity {
         properties.getContent().add(scroll).pad(5, 5, 5,5).expand().fill();
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Multiplayer"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -133,7 +133,7 @@ public class MultiplayerGamesActivity extends Activity {
         gamesTable.clear();
 
         if (matches.isEmpty()) {
-            gamesTable.add(new RdLabel("[#d7d7d7]" + strings.get("no_matches")));
+            gamesTable.add(new RdLabel("[#d7d7d7]" + strings.get("[i18n]there are no matches here yet...")));
         }
 
         for (var match : matches) {
@@ -145,11 +145,11 @@ public class MultiplayerGamesActivity extends Activity {
             }, new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
-                    ChessApplication.self().showConf(strings.get("conf_remove_match"),
+                    ChessApplication.self().showConf(strings.get("[i18n]Are you sure you want to delete the match?"),
                         (dialog, s) -> {
                             dialog.hide();
                             MultiplayerEngine.self().removeMatch(match.getId(),
-                                error -> ChessApplication.self().showError(strings.format("error_remove_match",
+                                error -> ChessApplication.self().showError(strings.format("[i18n]Match deletion error \"{0}\"",
                                     error)));
                         });
                 }

@@ -31,13 +31,15 @@ import com.iapp.lib.ui.screens.RdAssetManager;
  * By default, {@link #getTouchable()} is {@link Touchable#childrenOnly}.
  * <p>
  * The preferred and minimum sizes are that of the children laid out in columns and rows.
- * @author Nathan Sweet */
+ * @author Nathan Sweet
+ * @author Igor Ivanov
+ * */
 public class RdTable extends WidgetGroup {
     static public Color debugTableColor = new Color(0, 0, 1, 1);
     static public Color debugCellColor = new Color(1, 0, 0, 1);
     static public Color debugActorColor = new Color(0, 1, 0, 1);
 
-    static final Pool<RdCell> cellPool = new Pool<>() {
+    static final Pool<RdCell> cellPool = new Pool<RdCell>() {
         protected RdCell newObject() {
             return new RdCell();
         }
@@ -70,57 +72,50 @@ public class RdTable extends WidgetGroup {
     private boolean clip;
     private @Null Skin skin;
     boolean round = true;
-    private RdTable loading;
+    private @Null LoadingTable loading;
 
-    public RdTable() {
-        this(RdAssetManager.current().getSkin());
-    }
+    /** Creates a table by style */
+    public RdTable(RdTableStyle style) {
+        skin = RdAssetManager.current().getSkin();
 
-    /** Creates a table with a skin, which is required to use {@link #add(String)} or {@link #add(String, String)}. */
-    public RdTable(@Null Skin skin) {
-        this.skin = skin;
-
-        rdCellDefaults = obtainCell();
-
-        setTransform(false);
-        setTouchable(Touchable.childrenOnly);
-    }
-
-    /** Creates a table with default background and loading view */
-    public RdTable(Skin skin, String styleName) {
-        this.skin = skin;
-
-        var style = skin.get(styleName, RdTableStyle.class);
         setBackground(style.background);
-        loading = new RdTable(style.loadingBg, style.loadingAnim);
+        loading = new LoadingTable(style.loadingStyle);
         loading.setVisible(false);
 
         rdCellDefaults = obtainCell();
-
         setTransform(false);
         setTouchable(Touchable.childrenOnly);
     }
 
-    /** @see RdTable#RdTable(Skin, String) */
+    /** Creates a table by style name */
     public RdTable(String styleName) {
-        this(RdAssetManager.current().getSkin(), styleName);
-    }
+        skin = RdAssetManager.current().getSkin();
 
-    private RdTable(Drawable loadBg, AnimatedImage loadAnim) {
+        // For use without skin and styles
+        if (skin != null) {
+            if (skin.getAll(RdTableStyle.class).containsKey(styleName)) {
+                RdTableStyle style = skin.get(styleName, RdTableStyle.class);
+                setBackground(style.background);
+                loading = new LoadingTable(style.loadingStyle);
+                loading.setVisible(false);
+            }
+        }
+
         rdCellDefaults = obtainCell();
-
         setTransform(false);
         setTouchable(Touchable.childrenOnly);
-
-        setBackground(loadBg);
-        if (loadAnim != null) add(loadAnim);
     }
 
-    public @Null RdTable getLoading() {
+    /** Creates a table with default style */
+    public RdTable() {
+        this("default");
+    }
+
+    public @Null LoadingTable getLoading() {
         return loading;
     }
 
-    public void setLoading(@Null RdTable loading) {
+    public void setLoading(@Null LoadingTable loading) {
         this.loading = loading;
     }
 
@@ -154,7 +149,7 @@ public class RdTable extends WidgetGroup {
         drawLoading(loading, batch);
     }
 
-    protected void drawLoading(RdTable loading, Batch batch) {
+    protected void drawLoading(LoadingTable loading, Batch batch) {
         if (loading == null || !loading.isVisible()) return;
 
         float left = 0, right = 0, bottom = 0, top = 0;
@@ -165,9 +160,12 @@ public class RdTable extends WidgetGroup {
             top = background.getTopHeight();
         }
 
-        loading.setPosition(getX() + left, getY() + bottom);
-        loading.setSize(getWidth() - left - right,
-                getHeight() - bottom - top);
+        // If the visible size is less than the real size.
+        // For example, when parent is RdScrollPane
+        loading.setPosition(Math.min(getX(), getParent().getX()) + left,
+            Math.max(getY(), getParent().getY()) + bottom);
+        loading.setSize(Math.min(getWidth(), getParent().getWidth()) - left - right,
+                Math.min(getHeight(), getParent().getHeight()) - bottom - top);
         loading.act(Gdx.graphics.getDeltaTime());
         loading.draw(batch, getColor().a);
     }
@@ -181,8 +179,7 @@ public class RdTable extends WidgetGroup {
         background.draw(batch, x, y, getWidth(), getHeight());
     }
 
-    /** Sets the background drawable from the skin and adjusts the table's padding to match the background. This may only be called
-     * if a skin has been set with {@link com.badlogic.gdx.scenes.scene2d.ui.Table#Table(Skin)} or {@link #setSkin(Skin)}.
+    /** Sets the background drawable from the skin and adjusts the table's padding to match the background.
      * @see #setBackground(Drawable) */
     public void setBackground (String drawableName) {
         if (skin == null) throw new IllegalStateException("Table must have a skin set to use this method.");
@@ -217,7 +214,7 @@ public class RdTable extends WidgetGroup {
         return background;
     }
 
-    public @Null Actor hit (float x, float y, boolean touchable) {
+    public @Null Actor hit(float x, float y, boolean touchable) {
         if (clip) {
             if (touchable && getTouchable() == Touchable.disabled) return null;
             if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) return null;
@@ -226,35 +223,35 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Sets {@link #setClip(boolean)} to true. */
-    public RdTable clip () {
+    public RdTable clip() {
         setClip(true);
         return this;
     }
 
-    public RdTable clip (boolean enabled) {
+    public RdTable clip(boolean enabled) {
         setClip(enabled);
         return this;
     }
 
     /** Causes the contents to be clipped if they exceed the table's bounds. Enabling clipping sets {@link #setTransform(boolean)}
      * to true. */
-    public void setClip (boolean enabled) {
+    public void setClip(boolean enabled) {
         clip = enabled;
         setTransform(enabled);
         invalidate();
     }
 
-    public boolean getClip () {
+    public boolean getClip() {
         return clip;
     }
 
-    public void invalidate () {
+    public void invalidate() {
         sizeInvalid = true;
         super.invalidate();
     }
 
     /** Adds a new cell to the table with the specified actor. */
-    public <T extends Actor> RdCell<T> add (@Null T actor) {
+    public <T extends Actor> RdCell<T> add(@Null T actor) {
         RdCell<T> rdCell = obtainCell();
         rdCell.actor = actor;
 
@@ -305,57 +302,34 @@ public class RdTable extends WidgetGroup {
         return rdCell;
     }
 
-    public RdTable add (Actor... actors) {
+    public RdTable add(Actor... actors) {
         for (int i = 0, n = actors.length; i < n; i++)
             add(actors[i]);
         return this;
     }
 
-    /** Adds a new cell with a label. This may only be called if a skin has been set with {@link RdTable#RdTable(Skin)} or
-     * {@link #setSkin(Skin)}. */
-    public RdCell<RdLabel> add (@Null String text) {
+    /** Adds a new cell with a label. */
+    public RdCell<RdLabel> add(@Null String text) {
         if (skin == null) throw new IllegalStateException("Table must have a skin set to use this method.");
-        var label = new RdLabel(text, skin.get("default", RdLabel.RdLabelStyle.class));
+        RdLabel label = new RdLabel(text, skin.get("default", RdLabel.RdLabelStyle.class));
         return add(label);
     }
 
-    /** Adds a new cell with a label. This may only be called if a skin has been set with {@link RdTable#RdTable(Skin)} or
-     * {@link #setSkin(Skin)}. */
-    public RdCell<RdLabel> add (@Null String text, String styleName) {
+    /** Adds a new cell with a label. */
+    public RdCell<RdLabel> add(@Null String text, String styleName) {
         if (skin == null) throw new IllegalStateException("Table must have a skin set to use this method.");
-        var label = new RdLabel(text, skin.get(styleName, RdLabel.RdLabelStyle.class));
-        return add(label);
-    }
-
-    /** Adds a new cell with a label. This may only be called if a skin has been set with {@link RdTable#RdTable(Skin)} or
-     * {@link #setSkin(Skin)}. */
-    public RdCell<RdLabel> add (@Null String text, String fontName, @Null Color color) {
-        if (skin == null) throw new IllegalStateException("Table must have a skin set to use this method.");
-
-        var font = skin.get(fontName, Font.class);
-        var label = new RdLabel(text, new RdLabel.RdLabelStyle(font, color));
-        return add(label);
-    }
-
-    /** Adds a new cell with a label. This may only be called if a skin has been set with {@link RdTable#RdTable(Skin)} or
-     * {@link #setSkin(Skin)}. */
-    public RdCell<RdLabel> add (@Null String text, String fontName, String colorName) {
-        if (skin == null) throw new IllegalStateException("Table must have a skin set to use this method.");
-
-        var font = skin.get(fontName, Font.class);
-        var color = skin.getColor(colorName);
-        var label = new RdLabel(text, new RdLabel.RdLabelStyle(font, color));
+        RdLabel label = new RdLabel(text, skin.get(styleName, RdLabel.RdLabelStyle.class));
         return add(label);
     }
 
     /** Adds a cell without an actor. */
-    public RdCell add () {
+    public RdCell add() {
         return add((Actor)null);
     }
 
     /** Adds a new cell to the table with the specified actors in a {@link Stack}.
      * @param actors May be null or empty to add a stack without any actors. */
-    public RdCell<Stack> stack (@Null Actor... actors) {
+    public RdCell<Stack> stack(@Null Actor... actors) {
         Stack stack = new Stack();
         if (actors != null) {
             for (int i = 0, n = actors.length; i < n; i++)
@@ -364,18 +338,18 @@ public class RdTable extends WidgetGroup {
         return add(stack);
     }
 
-    public boolean removeActor (Actor actor) {
+    public boolean removeActor(Actor actor) {
         return removeActor(actor, true);
     }
 
-    public boolean removeActor (Actor actor, boolean unfocus) {
+    public boolean removeActor(Actor actor, boolean unfocus) {
         if (!super.removeActor(actor, unfocus)) return false;
         RdCell<Actor> rdCell = getCell(actor);
         if (rdCell != null) rdCell.actor = null;
         return true;
     }
 
-    public Actor removeActorAt (int index, boolean unfocus) {
+    public Actor removeActorAt(int index, boolean unfocus) {
         Actor actor = super.removeActorAt(index, unfocus);
         RdCell rdCell = getCell(actor);
         if (rdCell != null) rdCell.actor = null;
@@ -383,7 +357,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Removes all actors and cells from the table. */
-    public void clearChildren (boolean unfocus) {
+    public void clearChildren(boolean unfocus) {
         Object[] cells = this.cells.items;
         for (int i = this.cells.size - 1; i >= 0; i--) {
             RdCell rdCell = (RdCell)cells[i];
@@ -403,7 +377,7 @@ public class RdTable extends WidgetGroup {
 
     /** Removes all actors and cells from the table (same as {@link #clearChildren()}) and additionally resets all table properties
      * and cell, column, and row defaults. */
-    public void reset () {
+    public void reset() {
         clearChildren();
         padTop = backgroundTop;
         padLeft = backgroundLeft;
@@ -421,7 +395,7 @@ public class RdTable extends WidgetGroup {
 
     /** Indicates that subsequent cells should be added to a new row and returns the cell values that will be used as the defaults
      * for all cells in the new row. */
-    public RdCell row () {
+    public RdCell row() {
         if (cells.size > 0) {
             if (!implicitEndRow) {
                 if (cells.peek().endRow) return rowDefaults; // Row was already ended.
@@ -436,7 +410,7 @@ public class RdTable extends WidgetGroup {
         return rowDefaults;
     }
 
-    private void endRow () {
+    private void endRow() {
         Object[] cells = this.cells.items;
         int rowColumns = 0;
         for (int i = this.cells.size - 1; i >= 0; i--) {
@@ -451,7 +425,7 @@ public class RdTable extends WidgetGroup {
 
     /** Gets the cell values that will be used as the defaults for all cells in the specified column. Columns are indexed starting
      * at 0. */
-    public RdCell columnDefaults (int column) {
+    public RdCell columnDefaults(int column) {
         RdCell rdCell = columnDefaults.size > column ? columnDefaults.get(column) : null;
         if (rdCell == null) {
             rdCell = obtainCell();
@@ -467,7 +441,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Returns the cell for the specified actor in this table, or null. */
-    public @Null <T extends Actor> RdCell<T> getCell (T actor) {
+    public @Null <T extends Actor> RdCell<T> getCell(T actor) {
         if (actor == null) throw new IllegalArgumentException("actor cannot be null.");
         Object[] cells = this.cells.items;
         for (int i = 0, n = this.cells.size; i < n; i++) {
@@ -478,41 +452,41 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Returns the cells for this table. */
-    public Array<RdCell> getCells () {
+    public Array<RdCell> getCells() {
         return cells;
     }
 
-    public float getPrefWidth () {
+    public float getPrefWidth() {
         if (sizeInvalid) computeSize();
         float width = tablePrefWidth;
         if (background != null) return Math.max(width, background.getMinWidth());
         return width;
     }
 
-    public float getPrefHeight () {
+    public float getPrefHeight() {
         if (sizeInvalid) computeSize();
         float height = tablePrefHeight;
         if (background != null) return Math.max(height, background.getMinHeight());
         return height;
     }
 
-    public float getMinWidth () {
+    public float getMinWidth() {
         if (sizeInvalid) computeSize();
         return tableMinWidth;
     }
 
-    public float getMinHeight () {
+    public float getMinHeight() {
         if (sizeInvalid) computeSize();
         return tableMinHeight;
     }
 
     /** The cell values that will be used as the defaults for all cells. */
-    public RdCell defaults () {
+    public RdCell defaults() {
         return rdCellDefaults;
     }
 
     /** Sets the padTop, padLeft, padBottom, and padRight around the table to the specified value. */
-    public RdTable pad (Value pad) {
+    public RdTable pad(Value pad) {
         if (pad == null) throw new IllegalArgumentException("pad cannot be null.");
         padTop = pad;
         padLeft = pad;
@@ -522,7 +496,7 @@ public class RdTable extends WidgetGroup {
         return this;
     }
 
-    public RdTable pad (Value top, Value left, Value bottom, Value right) {
+    public RdTable pad(Value top, Value left, Value bottom, Value right) {
         if (top == null) throw new IllegalArgumentException("top cannot be null.");
         if (left == null) throw new IllegalArgumentException("left cannot be null.");
         if (bottom == null) throw new IllegalArgumentException("bottom cannot be null.");
@@ -536,7 +510,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Padding at the top edge of the table. */
-    public RdTable padTop (Value padTop) {
+    public RdTable padTop(Value padTop) {
         if (padTop == null) throw new IllegalArgumentException("padTop cannot be null.");
         this.padTop = padTop;
         sizeInvalid = true;
@@ -544,7 +518,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Padding at the left edge of the table. */
-    public RdTable padLeft (Value padLeft) {
+    public RdTable padLeft(Value padLeft) {
         if (padLeft == null) throw new IllegalArgumentException("padLeft cannot be null.");
         this.padLeft = padLeft;
         sizeInvalid = true;
@@ -552,7 +526,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Padding at the bottom edge of the table. */
-    public RdTable padBottom (Value padBottom) {
+    public RdTable padBottom(Value padBottom) {
         if (padBottom == null) throw new IllegalArgumentException("padBottom cannot be null.");
         this.padBottom = padBottom;
         sizeInvalid = true;
@@ -560,7 +534,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Padding at the right edge of the table. */
-    public RdTable padRight (Value padRight) {
+    public RdTable padRight(Value padRight) {
         if (padRight == null) throw new IllegalArgumentException("padRight cannot be null.");
         this.padRight = padRight;
         sizeInvalid = true;
@@ -568,12 +542,12 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Sets the padTop, padLeft, padBottom, and padRight around the table to the specified value. */
-    public RdTable pad (float pad) {
+    public RdTable pad(float pad) {
         pad(Fixed.valueOf(pad));
         return this;
     }
 
-    public RdTable pad (float top, float left, float bottom, float right) {
+    public RdTable pad(float top, float left, float bottom, float right) {
         padTop = Fixed.valueOf(top);
         padLeft = Fixed.valueOf(left);
         padBottom = Fixed.valueOf(bottom);
@@ -583,28 +557,28 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Padding at the top edge of the table. */
-    public RdTable padTop (float padTop) {
+    public RdTable padTop(float padTop) {
         this.padTop = Fixed.valueOf(padTop);
         sizeInvalid = true;
         return this;
     }
 
     /** Padding at the left edge of the table. */
-    public RdTable padLeft (float padLeft) {
+    public RdTable padLeft(float padLeft) {
         this.padLeft = Fixed.valueOf(padLeft);
         sizeInvalid = true;
         return this;
     }
 
     /** Padding at the bottom edge of the table. */
-    public RdTable padBottom (float padBottom) {
+    public RdTable padBottom(float padBottom) {
         this.padBottom = Fixed.valueOf(padBottom);
         sizeInvalid = true;
         return this;
     }
 
     /** Padding at the right edge of the table. */
-    public RdTable padRight (float padRight) {
+    public RdTable padRight(float padRight) {
         this.padRight = Fixed.valueOf(padRight);
         sizeInvalid = true;
         return this;
@@ -612,61 +586,61 @@ public class RdTable extends WidgetGroup {
 
     /** Alignment of the logical table within the table actor. Set to {@link Align#center}, {@link Align#top}, {@link Align#bottom}
      * , {@link Align#left}, {@link Align#right}, or any combination of those. */
-    public RdTable align (int align) {
+    public RdTable align(int align) {
         this.align = align;
         return this;
     }
 
     /** Sets the alignment of the logical table within the table actor to {@link Align#center}. This clears any other alignment. */
-    public RdTable center () {
+    public RdTable center() {
         align = Align.center;
         return this;
     }
 
     /** Adds {@link Align#top} and clears {@link Align#bottom} for the alignment of the logical table within the table actor. */
-    public RdTable top () {
+    public RdTable top() {
         align |= Align.top;
         align &= ~Align.bottom;
         return this;
     }
 
     /** Adds {@link Align#left} and clears {@link Align#right} for the alignment of the logical table within the table actor. */
-    public RdTable left () {
+    public RdTable left() {
         align |= Align.left;
         align &= ~Align.right;
         return this;
     }
 
     /** Adds {@link Align#bottom} and clears {@link Align#top} for the alignment of the logical table within the table actor. */
-    public RdTable bottom () {
+    public RdTable bottom() {
         align |= Align.bottom;
         align &= ~Align.top;
         return this;
     }
 
     /** Adds {@link Align#right} and clears {@link Align#left} for the alignment of the logical table within the table actor. */
-    public RdTable right () {
+    public RdTable right() {
         align |= Align.right;
         align &= ~Align.left;
         return this;
     }
 
-    public void setDebug (boolean enabled) {
+    public void setDebug(boolean enabled) {
         debug(enabled ? RdTable.Debug.all : RdTable.Debug.none);
     }
 
-    public RdTable debug () {
+    public RdTable debug() {
         super.debug();
         return this;
     }
 
-    public RdTable debugAll () {
+    public RdTable debugAll() {
         super.debugAll();
         return this;
     }
 
     /** Turns on table debug lines. */
-    public RdTable debugTable () {
+    public RdTable debugTable() {
         super.setDebug(true);
         if (debug != RdTable.Debug.table) {
             this.debug = RdTable.Debug.table;
@@ -676,7 +650,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Turns on cell debug lines. */
-    public RdTable debugCell () {
+    public RdTable debugCell() {
         super.setDebug(true);
         if (debug != RdTable.Debug.cell) {
             this.debug = RdTable.Debug.cell;
@@ -686,7 +660,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Turns on actor debug lines. */
-    public RdTable debugActor () {
+    public RdTable debugActor() {
         super.setDebug(true);
         if (debug != RdTable.Debug.actor) {
             this.debug = RdTable.Debug.actor;
@@ -696,7 +670,7 @@ public class RdTable extends WidgetGroup {
     }
 
     /** Turns debug lines on or off. */
-    public RdTable debug (RdTable.Debug debug) {
+    public RdTable debug(RdTable.Debug debug) {
         super.setDebug(debug != RdTable.Debug.none);
         if (this.debug != debug) {
             this.debug = debug;
@@ -708,39 +682,39 @@ public class RdTable extends WidgetGroup {
         return this;
     }
 
-    public RdTable.Debug getTableDebug () {
+    public RdTable.Debug getTableDebug() {
         return debug;
     }
 
-    public Value getPadTopValue () {
+    public Value getPadTopValue() {
         return padTop;
     }
 
-    public float getPadTop () {
+    public float getPadTop() {
         return padTop.get(this);
     }
 
-    public Value getPadLeftValue () {
+    public Value getPadLeftValue() {
         return padLeft;
     }
 
-    public float getPadLeft () {
+    public float getPadLeft() {
         return padLeft.get(this);
     }
 
-    public Value getPadBottomValue () {
+    public Value getPadBottomValue() {
         return padBottom;
     }
 
-    public float getPadBottom () {
+    public float getPadBottom() {
         return padBottom.get(this);
     }
 
-    public Value getPadRightValue () {
+    public Value getPadRightValue() {
         return padRight;
     }
 
-    public float getPadRight () {
+    public float getPadRight() {
         return padRight.get(this);
     }
 
@@ -760,7 +734,7 @@ public class RdTable extends WidgetGroup {
 
     /** Returns the row index for the y coordinate, or -1 if not over a row.
      * @param y The y coordinate, where 0 is the top of the table. */
-    public int getRow (float y) {
+    public int getRow(float y) {
         int n = this.cells.size;
         if (n == 0) return -1;
         y += getPadTop();
@@ -771,10 +745,6 @@ public class RdTable extends WidgetGroup {
             if (c.endRow) row++;
         }
         return -1;
-    }
-
-    public void setSkin (@Null Skin skin) {
-        this.skin = skin;
     }
 
     /** If true (the default), positions and sizes of child actors are rounded and ceiled to the nearest integer value. */
@@ -1371,21 +1341,8 @@ public class RdTable extends WidgetGroup {
 
     public static class RdTableStyle {
 
-        public @Null Drawable background, loadingBg;
-        public @Null AnimatedImage loadingAnim;
-
-        public RdTableStyle(@Null Drawable background, @Null Drawable loadingBg,
-                            @Null  AnimatedImage loadingAnim) {
-            this.background = background;
-            this.loadingBg = loadingBg;
-            this.loadingAnim = loadingAnim;
-        }
-
-        public RdTableStyle(RdTableStyle style) {
-            background = style.background;
-            loadingBg = style.loadingBg;
-            loadingAnim = style.loadingAnim;
-        }
+        public @Null Drawable background;
+        public @Null LoadingTable.LoadingStyle loadingStyle;
 
         public RdTableStyle() {}
     }

@@ -20,13 +20,13 @@ public class TextureUtil {
     public static Texture create(float width, float height, Color color) {
         if (color == null) throw new IllegalArgumentException("color == null");
 
-        var roundedW = Math.round(width);
-        var roundedH = Math.round(height);
+        int roundedW = Math.round(width);
+        int roundedH = Math.round(height);
 
-        var pixmap = new Pixmap(roundedW, roundedH, Pixmap.Format.RGBA8888);
+        Pixmap pixmap = new Pixmap(roundedW, roundedH, Pixmap.Format.RGBA8888);
         pixmap.setColor(color);
         pixmap.fillRectangle(0, 0, roundedW, roundedH);
-        var texture = new Texture(pixmap);
+        Texture texture = new Texture(pixmap);
         pixmap.dispose();
 
         return texture;

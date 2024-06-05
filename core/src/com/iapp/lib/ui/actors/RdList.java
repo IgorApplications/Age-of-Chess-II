@@ -186,8 +186,8 @@ public class RdList<T> extends Widget implements Cullable {
         labels = new RdLabel[items.size];
 
         for (int i = 0; i < items.size; i++) {
-            var item = items.get(i);
-            var label = new RdLabel(item.toString(),
+            T item = items.get(i);
+            RdLabel label = new RdLabel(item.toString(),
                     new RdLabel.RdLabelStyle(style.font, null));
             label.setDefaultToken("[%" + style.scale * 100 + "]");
             labels[i] = label;
@@ -273,7 +273,7 @@ public class RdList<T> extends Widget implements Cullable {
                             fontColorUnselected.g, fontColorUnselected.b));
                 }
 
-                var label = labels[i];
+                RdLabel label = labels[i];
                 label.layout.setBaseColor(labelColor);
                 label.setPosition(x + textOffsetX + itemHeight * coefficient,
                         y + itemY - itemHeight / 2);
@@ -312,7 +312,7 @@ public class RdList<T> extends Widget implements Cullable {
     }*/
 
     protected boolean drawIcon(Batch batch, int index, float x, float y, float itemHeight) {
-        var drawable = getIcon(index);
+        Drawable drawable = getIcon(index);
         if (drawable == null) return false;
 
         drawable.draw(batch, x, y - itemHeight, itemHeight, itemHeight);

@@ -3,6 +3,7 @@ package com.iapp.lib.ui.actors;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.utils.Align;
+import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.util.OnChangeListener;
 
@@ -106,7 +107,7 @@ public class RdDialogBuilder {
      * @return result dialog
      * */
     public RdDialog build(RdDialogBuilderStyle style) {
-        var dialog = new RdDialog(title, style.rdDialogStyle);
+        RdDialog dialog = new RdDialog(title, style.rdDialogStyle);
         if (onHide != null) {
             dialog.setOnCancel(new OnChangeListener() {
                 @Override
@@ -177,22 +178,15 @@ public class RdDialogBuilder {
         return dialog;
     }
 
-    /** @see RdDialogBuilder#build(RdDialogBuilderStyle) */
-    public RdDialog build(Skin skin) {
-         return build(skin.get(RdDialogBuilderStyle.class));
-    }
 
     /** @see RdDialogBuilder#build(RdDialogBuilderStyle) */
-    public RdDialog build(Skin skin, String nameStyle) {
-        return build(skin.get(nameStyle, RdDialogBuilderStyle.class));
+    public RdDialog build(String nameStyle) {
+        return build(RdAssetManager.current().getSkin().get(nameStyle, RdDialogBuilderStyle.class));
     }
 
+    /** @see RdDialogBuilder#build(String) */
     public RdDialog build() {
-        return build(RdAssetManager.current().getSkin());
-    }
-
-    public RdDialog build(String styleName) {
-        return build(RdAssetManager.current().getSkin(), styleName);
+        return build("default");
     }
 
     public static class RdDialogBuilderStyle {

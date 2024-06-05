@@ -70,7 +70,7 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     // dialog objects
     Sprite infoSprite, selectionSprite;
-    MultiplayerSelectionDialog selectionDialog;
+    SelectionDialog selectionDialog;
     ResultDialog resultDialog;
     RdDialog infoDialog;
     RdDialog menuDialog, statisticDialog;
@@ -187,7 +187,8 @@ public abstract class MultiplayerGameActivity extends Activity {
 
         infoSprite = new Sprite();
         selectionSprite = new Sprite();
-        gameBoard = new BoardView(controller);
+        gameBoard = new BoardView(controller, ChessAssetManager.current().getSkin(),
+            ChessConstants.localData.getPiecesSpeed());
         controller.setBoardView(gameBoard);
 
         content = new Table();
@@ -325,18 +326,18 @@ public abstract class MultiplayerGameActivity extends Activity {
                 gameBoard.addBlocked();
 
                 menuDialog = new RdDialogBuilder()
-                        .title(strings.get("game_exit"))
-                        .text(strings.get("game_exit_question"))
-                        .cancel(strings.get("cancel"),
+                        .title(strings.get("[i18n]Exit Game"))
+                        .text(strings.get("[i18n]Are you sure you want to exit the game?"))
+                        .cancel(strings.get("[i18n]cancel"),
                             (dialog, s) -> {
                             blackout.setVisible(false);
                             gameBoard.addUnblocked();
                             menuDialog.hide();
                             menuDialog = null;
                         })
-                        .accept(strings.get("exit"), (dialog, s) ->
+                        .accept(strings.get("[i18n]Exit"), (dialog, s) ->
                             controller.goToMultiplayerScenario())
-                        .build(ChessAssetManager.current().getSkin(), "input");
+                        .build("input");
 
                 menuDialog.getIcon().setDrawable(new TextureRegionDrawable(
                         GrayAssetManager.current().findRegion("icon_conf")));
@@ -413,21 +414,21 @@ public abstract class MultiplayerGameActivity extends Activity {
         Match current = controller.getCurrentMatch();
         // -1 is infinity!
         if (current.getTimeByTurn() != -1 && current.getTimeByTurn() <= 0) {
-            label1 = new RdLabel(strings.get("finish_time_by_turn"));
+            label1 = new RdLabel(strings.get("[i18n]The game ended because the turn time ended"));
         // -1 is infinity!
         } else if ((current.getTimeByWhite() != -1 && current.getTimeByWhite() <= 0)
             || (current.getTimeByBlack() != -1 && current.getTimeByBlack() <= 0)) {
-            label1 = new RdLabel(strings.get("finish_player_time"));
+            label1 = new RdLabel(strings.get("[i18n]The game has ended because the game time has run out"));
         // -1 is infinity!
         } else if (controller.getCurrentMatch().getMaxTurn() != -1 &&
             controller.getCurrentMatch().getMaxTurn() <= controller.getTurn()) {
-            label1 = new RdLabel(strings.get("finish_moves"));
+            label1 = new RdLabel(strings.get("[i18n]Game ended because the maximum number of moves was exceeded"));
         } else if (result == Result.VICTORY) {
-            label1 = new RdLabel(strings.get("finish_victory"));
+            label1 = new RdLabel(strings.get("[i18n]Congratulations, you have won!"));
         } else if (result == Result.DRAWN) {
-            label1 = new RdLabel(strings.get("finish_drawn"));
+            label1 = new RdLabel(strings.get("[i18n]Game over as there are no more possible moves"));
         } else {
-            label1 = new RdLabel(strings.get("finish_lose"));
+            label1 = new RdLabel(strings.get("[i18n]Unfortunately you lost, better luck next time!"));
         }
         label1.setColor(titlePair.getValue());
         label1.setWrap(true);
@@ -445,7 +446,7 @@ public abstract class MultiplayerGameActivity extends Activity {
     }
 
     public void showSelectionDialog(Consumer<TypePiece> selectionListener) {
-        selectionDialog = new MultiplayerSelectionDialog(strings.get("turn_pawn"),
+        selectionDialog = new SelectionDialog(strings.get("[i18n]Turn a pawn into...?"),
                 ChessAssetManager.current().getSelectionStyle(), controller);
 
         selectionDialog.setSelectionListener(typePiece -> {
@@ -478,7 +479,7 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     private void showVictory(ResultDialog dialog, Account first, Account second) {
         RankType type = controller.getCurrentMatch().getRankType();
-        String rankType = (type == RankType.UNRANKED ? "" : strings.get("rank_type"))
+        String rankType = (type == RankType.UNRANKED ? "" : strings.get("[i18n]Rank type is "))
             + SettingsUtil.getRank(controller.getCurrentMatch().getRankType());
 
         var label2 = new RdLabel("[GREEN]" + rankType);
@@ -501,10 +502,10 @@ public abstract class MultiplayerGameActivity extends Activity {
         var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("2. [_]" + first.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + getRankPlus()
-                + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
+                + "    [GOLD]+" + strings.format("[i18n]coins", controller.getCurrentMatch().getSponsored()));
         var label3 = new RdLabel("2. [_]" + second.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + getRankMinus()
-                + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
+                + "    [GOLD]+" + strings.format("[i18n]coins", controller.getCurrentMatch().getSponsored()));
 
         dialog.getContentTable().add(label1).expandX().fillX().row();
         dialog.getContentTable().add(label2).expandX().fillX().row();
@@ -513,13 +514,13 @@ public abstract class MultiplayerGameActivity extends Activity {
 
     private void showLose(ResultDialog dialog, Account first, Account second) {
         RankType type = controller.getCurrentMatch().getRankType();
-        String rankType = (type == RankType.UNRANKED ? "" : strings.get("rank_type"))
+        String rankType = (type == RankType.UNRANKED ? "" : strings.get("[i18n]Rank type is "))
             + SettingsUtil.getRank(controller.getCurrentMatch().getRankType());
 
         var label1 = new RdLabel("[GREEN]" + rankType);
         var label2 = new RdLabel("1. [_]" + first.getFullName() + "[_]" + ": "
                 + "[GREEN]+" + getRankPlus()
-                + "    [GOLD]+" + strings.format("coins", controller.getCurrentMatch().getSponsored()));
+                + "    [GOLD]+" + strings.format("[i18n]coins", controller.getCurrentMatch().getSponsored()));
         var label3 = new RdLabel("2. [_]" + second.getFullName() + "[_]" + ": "
                 + "[RED]-" + getRankMinus());
 

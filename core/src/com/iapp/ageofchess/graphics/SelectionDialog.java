@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.iapp.lib.chess_engine.Chess2dController;
 import com.iapp.lib.chess_engine.Color;
 import com.iapp.lib.chess_engine.TypePiece;
 import com.iapp.ageofchess.controllers.EngineController;
@@ -12,18 +13,21 @@ import com.iapp.lib.ui.actors.RdDialog;
 import com.iapp.lib.ui.actors.RdLabel;
 import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.RdI18NBundle;
 
 import java.util.function.Consumer;
 
 public class SelectionDialog extends RdDialog {
 
-    private final EngineController controller;
+    private final RdI18NBundle strings;
+    private final Chess2dController controller;
     private ImageButton queen, rook, bishop, knight;
     private Consumer<TypePiece> selectionListener = typePiece -> {};
 
-    public SelectionDialog(String title, RdDialogStyle style, EngineController controller) {
+    public SelectionDialog(String title, RdDialogStyle style, Chess2dController controller) {
         super(title, style);
         this.controller = controller;
+        strings = RdApplication.self().getStrings();
 
         init();
         addActors();
@@ -96,7 +100,7 @@ public class SelectionDialog extends RdDialog {
         });
 
 
-        RdLabel title = new RdLabel(RdApplication.self().getStrings().get("turn_pawn"));
+        RdLabel title = new RdLabel(strings.get("[i18n]Turn a pawn into...?"));
         title.setAlignment(Align.center);
         add(title).expandX().fillX().center().colspan(2).row();
         add(queen).expand().fill().bottom();
@@ -111,12 +115,5 @@ public class SelectionDialog extends RdDialog {
 
     public void setSelectionListener(Consumer<TypePiece> selectionListener) {
         this.selectionListener = selectionListener;
-    }
-
-    public void setImagesSize(float width, float height) {
-        queen.getImageCell().size(width, height);
-        rook.getImageCell().size(width, height);
-        bishop.getImageCell().size(width, height);
-        knight.getImageCell().size(width, height);
     }
 }

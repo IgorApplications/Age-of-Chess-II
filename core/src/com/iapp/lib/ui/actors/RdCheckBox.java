@@ -63,7 +63,7 @@ public class RdCheckBox extends ImageButton {
     @Override
     protected void sizeChanged() {
         super.sizeChanged();
-        var size = Math.min(getWidth(), getHeight());
+        float size = Math.min(getWidth(), getHeight());
         setSize(size, size);
     }
 }

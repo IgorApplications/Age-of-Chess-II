@@ -102,7 +102,7 @@ public abstract class RdAssetManager implements Disposable {
      * */
     public TextureAtlas.AtlasRegion findRegion(String name) {
         if (getAtlas() == null) throw new IllegalStateException("Atlas == null");
-        var region = getAtlas().findRegion(name);
+        TextureAtlas.AtlasRegion region = getAtlas().findRegion(name);
         if (region == null) throw new IllegalArgumentException("Region can't' be null! Title of region = " + name);
         return region;
     }
@@ -116,7 +116,7 @@ public abstract class RdAssetManager implements Disposable {
      * */
     public TextureAtlas.AtlasRegion findRegion(String name, int index) {
         if (getAtlas() == null) throw new IllegalStateException("Atlas == null");
-        var region = getAtlas().findRegion(name, index);
+        TextureAtlas.AtlasRegion region = getAtlas().findRegion(name, index);
         if (region == null) throw new IllegalArgumentException("Region can't' be null! Title of region = " + name);
         return region;
     }

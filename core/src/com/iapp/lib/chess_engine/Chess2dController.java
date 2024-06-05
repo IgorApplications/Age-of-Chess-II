@@ -6,6 +6,8 @@ import com.iapp.lib.util.Pair;
 
 public interface Chess2dController {
 
+    Color getColorMove();
+
     byte[][] getMatrix();
 
     TextureAtlas.AtlasRegion getRegion(byte type);

@@ -286,7 +286,7 @@ public class RdSelectBox<T> extends Widget implements Disableable {
     }
 
     protected void drawImage(Batch batch, float x, float y, float size) {
-        var image = getImageDrawable();
+        Drawable image = getImageDrawable();
         if (image == null) return;
         image.draw(batch, x, y, size, size);
     }

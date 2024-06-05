@@ -11,14 +11,14 @@ public class SocketResult {
         this.status = status;
         this.result = result;
         request = req.getRequest();
-        id = req.getId();
+        id = req.getSenderId();
     }
 
     public SocketResult(RequestStatus status, SocketRequest req) {
         this.status = status;
         this.result = null;
         request = req.getRequest();
-        id = req.getId();
+        id = req.getSenderId();
     }
 
     public RequestStatus getStatus() {

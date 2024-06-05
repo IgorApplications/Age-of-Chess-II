@@ -66,7 +66,7 @@ public class Spinner extends RdDialog {
 
         if (isHidden()) {
 
-            var def = RdApplication.self().getCursor();
+            Cursor def = RdApplication.self().getCursor();
             if (style.cursor != null) {
                 Gdx.graphics.setCursor(def);
             }

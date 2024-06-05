@@ -31,7 +31,7 @@ public final class SystemValidator {
 
     /** returns this processor name */
     public static String getProcessorName() {
-        var partsProcessor = System.getenv("PROCESSOR_ARCHITECTURE");
+        String partsProcessor = System.getenv("PROCESSOR_ARCHITECTURE");
         return partsProcessor.replaceAll("\\d*", "").toLowerCase();
     }
 
@@ -42,7 +42,7 @@ public final class SystemValidator {
 
     /** returns this processor architecture */
     public static String getProcessorArchitecture() {
-        var partsProcessor = System.getenv("PROCESSOR_ARCHITECTURE");
+        String partsProcessor = System.getenv("PROCESSOR_ARCHITECTURE");
         return partsProcessor.replaceAll("\\D*", "").toLowerCase();
     }
 }

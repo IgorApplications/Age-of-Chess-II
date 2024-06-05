@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -237,7 +239,7 @@ public class RdTextField extends Widget implements Disableable {
         if (style == null) throw new IllegalArgumentException("style cannot be null.");
         this.style = style;
 
-        var labelStyle = new RdLabel.RdLabelStyle(style.font, style.fontColor);
+        RdLabel.RdLabelStyle labelStyle = new RdLabel.RdLabelStyle(style.font, style.fontColor);
         labelStyle.scale = style.scaleText;
         label = new RdLabel(" ", labelStyle, false);
 
@@ -560,7 +562,7 @@ public class RdTextField extends Widget implements Disableable {
             changeText(cursor, buffer);
         else
             insert(cursor, buffer);
-        text = label.layout.toString();
+        text = buffer.toString();
         updateDisplayText();
         cursor += buffer.length();
 
@@ -701,7 +703,6 @@ public class RdTextField extends Widget implements Disableable {
         clearSelection();
         String oldText = text;
         text = "";
-        if (str.equals("")) label.setText(str);
         paste(str, false);
         if (programmaticChangeEvents) changeText(oldText, text);
         cursor = 0;

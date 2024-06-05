@@ -111,6 +111,12 @@ public abstract class MultiplayerEngineController extends Controller implements 
         return localMatch.getMatchData().getHeight();
     }
 
+    @Override
+    public Color getColorMove() {
+        return game.getColorMove();
+    }
+
+
     public byte[][] getMatrix() {
         var gameMatrix = game.getMatrix();
         var matrix = new byte[gameMatrix.length][gameMatrix[0].length];
@@ -169,10 +175,6 @@ public abstract class MultiplayerEngineController extends Controller implements 
 
     public int getTurn() {
         return game.getTurn();
-    }
-
-    public Color getColorMove() {
-        return game.getColorMove();
     }
 
     public void stop() {}

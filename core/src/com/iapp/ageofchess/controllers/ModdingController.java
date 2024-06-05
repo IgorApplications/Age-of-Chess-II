@@ -36,7 +36,7 @@ public class ModdingController extends Controller {
     }
 
     public void goToEdit(MapData mapData, boolean newMap) {
-        var spinner = new Spinner(strings.get("loading"));
+        var spinner = new Spinner(strings.get("[i18n]Loading"));
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);
@@ -54,7 +54,7 @@ public class ModdingController extends Controller {
                 loadStrings(mapData, resources);
                 loadBytes(mapData, resources);
                 replacePaths(mapData);
-                mapData.setType(Files.FileType.External);
+                mapData.setType(ChessConstants.FILE_TYPE);
 
                 RdApplication.postRunnable(() ->
                     startActivity(new EditMapActivity(mapData, resources, newMap)));
@@ -67,28 +67,28 @@ public class ModdingController extends Controller {
         if (mapData.getType() != Files.FileType.Internal) return;
 
         if (mapData.getAtlasPath() != null) {
-            mapData.setAtlasPath(ChessConstants.STORAGE_DIRECTORY + "/" +
+            mapData.setAtlasPath(
                     mapData.getAtlasPath().replaceAll("map\\d+", "map" + mapData.getId()));
         }
 
         for (int i = 0; i < mapData.getTexturePaths().length; i++) {
-            mapData.getTexturePaths()[i] = ChessConstants.STORAGE_DIRECTORY + "/" +
+            mapData.getTexturePaths()[i] =
                     mapData.getTexturePaths()[i].replaceAll("map\\d+", "map" + mapData.getId());
         }
 
         if (mapData.getMapIconPath() != null) {
-            mapData.setMapIconPath(ChessConstants.STORAGE_DIRECTORY + "/" +
+            mapData.setMapIconPath(
                     mapData.getMapIconPath().replaceAll("map\\d+", "map" + mapData.getId()));
         }
 
         for (int i = 0; i < mapData.getScenarioIconPaths().length; i++) {
             if (mapData.getScenarioIconPaths()[i] == null) continue;
-            mapData.getScenarioIconPaths()[i] = ChessConstants.STORAGE_DIRECTORY + "/" +
+            mapData.getScenarioIconPaths()[i] =
                     mapData.getScenarioIconPaths()[i].replaceAll("map\\d+", "map" + mapData.getId());
         }
 
         if (mapData.getStringsPath() != null) {
-            mapData.setStringsPath(ChessConstants.STORAGE_DIRECTORY + "/" +
+            mapData.setStringsPath(
                     mapData.getStringsPath().replaceAll("map\\d+", "map" + mapData.getId()));
         }
     }
@@ -97,7 +97,7 @@ public class ModdingController extends Controller {
         var currentDate = getCurrentDate();
 
         if (mapData.getStrings() != null) {
-            for (var lang : ChessApplication.self().getLanguages()) {
+            for (var lang : ChessApplication.self().getLanguageCodes()) {
 
                 if (Gdx.files.getFileHandle(mapData.getStringsPath(), mapData.getType())
                         .parent().child("lang_" + lang + ".properties").exists()) {

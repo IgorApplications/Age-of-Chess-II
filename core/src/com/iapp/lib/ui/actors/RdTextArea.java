@@ -12,6 +12,8 @@ import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.LongArray;
 import com.badlogic.gdx.utils.Null;
 import com.github.tommyettinger.textra.Font;
+import com.github.tommyettinger.textra.Layout;
+import com.github.tommyettinger.textra.Line;
 
 /** A text input field with multiple lines. */
 public class RdTextArea extends RdTextField {
@@ -220,14 +222,15 @@ public class RdTextArea extends RdTextField {
         // TODO
 
         //linesShowing
-        var goalLines = (int) Math.floor(linesBreak.size * 0.5f);
+        int goalLines = (int) Math.floor(linesBreak.size * 0.5f);
         if (goalLines < minLines) goalLines = minLines;
         if (goalLines > maxLines) goalLines = maxLines;
         linesShowing = goalLines;
 
-        var layout = label.getWorkingLayout();
+        Layout layout = label.getWorkingLayout();
         if (layout.getLine(layout.lines() - 1)
                 .glyphs.isEmpty() && layout.lines() >= minLines) {
+            // TODO?
             //linesShowing++;
         }
 
@@ -296,8 +299,8 @@ public class RdTextArea extends RdTextField {
     }
 
     protected void drawText (Batch batch, Font font, float x, float y, float maxWidth) {
-        var starts = new IntArray();
-        var ends = new IntArray();
+        IntArray starts = new IntArray();
+        IntArray ends = new IntArray();
 
         for (int i = 0; i < (linesShowing) * 2 && i < linesBreak.size; i += 2) {
             starts.add(linesBreak.items[i]);
@@ -431,7 +434,7 @@ public class RdTextArea extends RdTextField {
     }
 
     private void cutLabel(IntArray starts, IntArray ends) {
-        var all = new LongArray();
+        LongArray all = new LongArray();
         for (int i = 0; i < label.getWorkingLayout().lines(); i++) {
             all.addAll(label.getWorkingLayout().getLine(i).glyphs);
         }
@@ -443,9 +446,10 @@ public class RdTextArea extends RdTextField {
         //label.getWorkingLayout().pushLine();
 
         for (int i = 0; i < starts.size && i < maxLines; i++) {
-            var line = label.getWorkingLayout().getLine(i);
+            Line line = label.getWorkingLayout().getLine(i);
 
             // if the first is an empty string, then there must be a character '\n'
+            // TODO what means '{}'
             if (i == 0 && ends.get(i) == starts.get(i)) {}
             else line.glyphs.clear();
             line.glyphs.addAll(sub(all.items, starts.get(i), ends.get(i)));
@@ -484,7 +488,7 @@ public class RdTextArea extends RdTextField {
     // TODO crushed
     private long[] sub(long[] arr, int start, int end) {
         if (end - start < 0) throw new IllegalArgumentException("end - start < 0");
-        var newArr = new long[end - start];
+        long[] newArr = new long[end - start];
         System.arraycopy(arr, start, newArr, 0, newArr.length);
         return newArr;
     }

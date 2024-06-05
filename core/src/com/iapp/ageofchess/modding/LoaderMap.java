@@ -8,8 +8,9 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.iapp.ageofchess.services.ChessAssetManager;
+import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.DataManager;
-import com.iapp.ageofchess.services.ResourcesLoader;
+import com.iapp.lib.util.AssetsLoader;
 import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.util.CallListener;
@@ -25,16 +26,17 @@ public class LoaderMap {
 
     /**
      * Returns a task for parallel loading of resources from disk,
-     * due to 3 threads it requires large processor resources at the start,
+     * due to 3 tasks it requires large processor resources at the start,
      * but is smoother and faster
      * */
     public TaskLoad getTaskLoadDiskMaps(CallListener onFinish) {
+
         return new TaskLoad() {
             @Override
             public void load() {
                 Runnable task = () -> {
                     var internal = new Array<MapData>();
-                    var external = new Array<MapData>();
+                    var outside = new Array<MapData>();
 
                     internal.add(new MapData(
                             1,
@@ -61,29 +63,29 @@ public class LoaderMap {
                                     "maps/map2/scenario2.png"}
                     ));
 
-                    external.addAll(DataManager.self().readDataMaps());
+                    outside.addAll(DataManager.self().readDataMaps());
 
-                    var internalLoader = new ResourcesLoader(Files.FileType.Internal);
-                    var externalLoader = new ResourcesLoader(Files.FileType.External);
+                    var internalLoader = new AssetsLoader(Files.FileType.Internal);
+                    var outsideLoader = new AssetsLoader(ChessConstants.FILE_TYPE);
 
                     var internal2 = new Array<MapData>();
-                    var external2 = new Array<MapData>();
+                    var outside2 = new Array<MapData>();
 
                     for (var mapData : internal) {
                         if (mapData.loadStrings()) {
                             internal2.add(mapData);
                         }
                     }
-                    for (var madData : external) {
+                    for (var madData : outside) {
                         if (madData.loadStrings()) {
-                            external2.add(madData);
+                            outside2.add(madData);
                         }
                     }
 
                     internal.clear();
-                    external.clear();
+                    outside.clear();
                     internal.addAll(internal2);
-                    external.addAll(external2);
+                    outside.addAll(outside2);
 
                     var internal3 = new Array<MapData>();
                     var external3 = new Array<MapData>();
@@ -98,9 +100,9 @@ public class LoaderMap {
                                 "Bad map (loadTextures) " + RdLogger.self().getDescription(t));
                         }
                     }
-                    for (var dataMap : external) {
+                    for (var dataMap : outside) {
                         try {
-                            if (dataMap.loadTextures(externalLoader.getAssetManager())) {
+                            if (dataMap.loadTextures(outsideLoader.getAssetManager())) {
                                 external3.add(dataMap);
                             }
                         } catch (Throwable t) {
@@ -110,9 +112,9 @@ public class LoaderMap {
                     }
 
                     internal.clear();
-                    external.clear();
+                    outside.clear();
                     internal.addAll(internal3);
-                    external.addAll(external3);
+                    outside.addAll(external3);
 
                     internalLoader.setOnFinish(() -> {
                         int pushIndex = 0;
@@ -123,28 +125,28 @@ public class LoaderMap {
                         }
 
                         setFinished(internalLoader.getAssetManager().isFinished()
-                                && externalLoader.getAssetManager().isFinished());
+                                && outsideLoader.getAssetManager().isFinished());
                         if (isFinished()) {
                             onFinish.call();
                         }
                     });
 
-                    externalLoader.setOnFinish(() -> {
-                        for (var mapData : external) {
+                    outsideLoader.setOnFinish(() -> {
+                        for (var mapData : outside) {
                             mapData.initTextures(
-                                    externalLoader.getAssetManager());
+                                    outsideLoader.getAssetManager());
                             ChessAssetManager.current().getDataMaps().add(mapData);
                         }
 
                         setFinished(internalLoader.getAssetManager().isFinished()
-                                && externalLoader.getAssetManager().isFinished());
+                                && outsideLoader.getAssetManager().isFinished());
                         if (isFinished()) {
                             onFinish.call();
                         }
                     });
 
                     internalLoader.launchLoad();
-                    externalLoader.launchLoad();
+                    outsideLoader.launchLoad();
                 };
                 RdApplication.self().execute(task);
             }
@@ -160,7 +162,7 @@ public class LoaderMap {
         atlasDesc = null;
         textureDesc = null;
 
-        var loader = new ResourcesLoader(mapData.getType());
+        var loader = new AssetsLoader(mapData.getType());
 
         if (mapData.getAtlasPath() != null) {
             atlasDesc = new AssetDescriptor<>(Gdx.files.getFileHandle(

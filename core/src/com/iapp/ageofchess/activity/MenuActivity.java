@@ -28,8 +28,6 @@ import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 import com.iapp.lib.web.AccountType;
 
-import java.util.function.BiConsumer;
-
 public class MenuActivity extends Activity {
 
     private final MenuController controller;
@@ -77,19 +75,19 @@ public class MenuActivity extends Activity {
         title = new Image(ChessAssetManager.current().findChessRegion("app_text_logo"));
         title.setScaling(Scaling.fit);
 
-        multiplayer = new RdImageTextButton(strings.get("multiplayer"),"white_screen");
+        multiplayer = new RdImageTextButton(strings.get("[i18n]Multiplayer"),"white_screen");
         multiplayer.setImage("ib_group");
 
-        singlePlayer = new RdImageTextButton(strings.get("single-player"), "white_screen");
+        singlePlayer = new RdImageTextButton(strings.get("[i18n]Single Player"), "white_screen");
         singlePlayer.setImage("ib_person");
 
-        modding = new RdImageTextButton(strings.get("modding"), "yellow_screen");
+        modding = new RdImageTextButton(strings.get("[i18n]Modding"), "yellow_screen");
         modding.setImage("ib_construction");
 
-        settings = new RdImageTextButton(strings.get("settings"), "blue_screen");
+        settings = new RdImageTextButton(strings.get("[i18n]Settings"), "blue_screen");
         settings.setImage("ib_settings");
 
-        guide = new RdImageTextButton(strings.get("guide"), "blue_screen");
+        guide = new RdImageTextButton(strings.get("[i18n]Guide"), "blue_screen");
         guide.setImage("ib_guide");
 
         if (ChessConstants.loggingAcc == null) {
@@ -102,7 +100,7 @@ public class MenuActivity extends Activity {
         }
 
         if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
-            exit = new RdImageTextButton(strings.get("exit"), "red_screen");
+            exit = new RdImageTextButton(strings.get("[i18n]Exit"), "red_screen");
             exit.setImage("ib_close");
         }
 
@@ -127,7 +125,7 @@ public class MenuActivity extends Activity {
                         controller.showLoginDialog();
                     } else {
                         hideBlackout();
-                        ChessApplication.self().showError(strings.format("error_connect", s));
+                        ChessApplication.self().showError(strings.format("[i18n]Failed to connect to the server '{0}'. Please try again later", s));
                     }
                 });
 
@@ -169,7 +167,7 @@ public class MenuActivity extends Activity {
                             controller.showLoginDialog();
                         } else {
                             hideBlackout();
-                            ChessApplication.self().showError(strings.format("error_connect", s));
+                            ChessApplication.self().showError(strings.format("[i18n]Failed to connect to the server '{0}'. Please try again later", s));
                         }
                     });
 
@@ -193,7 +191,8 @@ public class MenuActivity extends Activity {
                 @Override
                 public void onChange(Actor actor) {
                     ChessApplication.self().showConf(
-                        strings.get("restart"), strings.get("restart_conf"),
+                        strings.get("[i18n]Restart"),
+                        strings.get("[i18n]Are you sure you want to restart the server?"),
                         (dialog, s) -> {
                             dialog.hide();
                             MultiplayerEngine.self().restartServer();

@@ -2,12 +2,15 @@ package com.iapp.lib.util;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Event;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.iapp.lib.ui.actors.RdCheckBox;
 import com.iapp.lib.ui.actors.RdSelectBox;
 import com.iapp.lib.ui.actors.RdSelectionButton;
 import com.iapp.lib.ui.screens.RdLogger;
@@ -61,7 +64,13 @@ public abstract class OnChangeListener extends InputListener {
 
     @Override
     public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-
+        if (event.getListenerActor() instanceof Button
+            || event.getListenerActor() instanceof RdSelectionButton
+            || event.getListenerActor() instanceof RdSelectBox) {
+            if (buttonClick != null && enable) {
+                buttonClick.call();
+            }
+        }
         super.touchUp(event, x, y, pointer, button);
     }
 }

@@ -9,10 +9,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
-import com.iapp.ageofchess.controllers.multiplayer.MultiplayerMenuController;
 import com.iapp.ageofchess.controllers.multiplayer.RankController;
 import com.iapp.ageofchess.graphics.RankView;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
+import com.iapp.lib.util.TasksLoader;
 import com.iapp.lib.web.RankType;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
@@ -43,7 +43,7 @@ public class RankActivity extends Activity {
 
     @Override
     public void initActors() {
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
     }
 
@@ -78,12 +78,13 @@ public class RankActivity extends Activity {
         window.setMovable(false);
         stage.addActor(window);
 
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
         properties.setVisibleBackground(false);
-        properties.add(new PropertyTable.Title(strings.get("rating")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Rating")));
 
-        rankTitle = new RdLabel(strings.format("leaderboard", strings.get("bullet")));
+        String leaderboardKey = "[i18n]Leaderboard \"{0}\"";
+        rankTitle = new RdLabel(strings.format(leaderboardKey, strings.get("bullet")));
         rankTitle.setColor(Color.GOLD);
 
         RdSelectBox<String> rankType = new RdSelectBox<>();
@@ -92,20 +93,21 @@ public class RankActivity extends Activity {
             public void onChange(Actor actor) {
                 if (rankType.getSelectedIndex() == 0) {
                     updateTopTable(RankType.BULLET);
-                    rankTitle.setText(strings.format("leaderboard", strings.get("bullet")));
+                    rankTitle.setText(strings.format(leaderboardKey, strings.get("[i18n]Bullet")));
                 } else if (rankType.getSelectedIndex() == 1) {
                     updateTopTable(RankType.BLITZ);
-                    rankTitle.setText(strings.format("leaderboard", strings.get("blitz")));
+                    rankTitle.setText(strings.format(leaderboardKey, strings.get("[i18n]Blitz")));
                 } else if (rankType.getSelectedIndex() == 2) {
                     updateTopTable(RankType.RAPID);
-                    rankTitle.setText(strings.format("leaderboard", strings.get("rapid")));
+                    rankTitle.setText(strings.format(leaderboardKey, strings.get("[i18n]Rapid")));
                 } else {
                     updateTopTable(RankType.LONG);
-                    rankTitle.setText(strings.format("leaderboard", strings.get("long")));
+                    rankTitle.setText(strings.format(leaderboardKey, strings.get("[i18n]Long")));
                 }
             }
         });
-        rankType.setItems(strings.get("bullet"), strings.get("blitz"), strings.get("rapid"), strings.get("long"));
+        rankType.setItems(strings.get("[i18n]Bullet"), strings.get("[i18n]Blitz"),
+            strings.get("[i18n]Rapid"), strings.get("[i18n]Long"));
         topTable = new RdTable("loading");
         topTable.align(Align.topLeft);
         var scroll = new RdScrollPane(topTable);
@@ -115,13 +117,14 @@ public class RankActivity extends Activity {
         properties.getContent().add(scroll).expand().fill().colspan(2).row();
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Multiplayer"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
         windowGroup.update();
 
         window.getLoading().setVisible(true);
+        window.getLoading().setLoadingText("[i18n]loading...");
         requireTops();
 
         if (last instanceof MultiplayerGameActivity) {
@@ -157,43 +160,97 @@ public class RankActivity extends Activity {
         List<RankView> blitz = new ArrayList<>();
         List<RankView> rapid = new ArrayList<>();
         List<RankView> longRank = new ArrayList<>();
-
-        ratings.put(RankType.BULLET, bullet);
-        ratings.put(RankType.BLITZ, blitz);
-        ratings.put(RankType.RAPID, rapid);
-        ratings.put(RankType.LONG, longRank);
+        TasksLoader loader = new TasksLoader();
 
         MultiplayerEngine.self().getBulletTop(accounts -> {
-            for (int i = 0; i < accounts.size(); i++) {
-                bullet.add(new RankView(i + 1, accounts.get(i), RankType.BULLET));
+
+            for (int i = 1; i <= (accounts.size() + 2) / 3; i++) {
+                int finalI = i;
+                Runnable task = () -> {
+                    for (int j = (finalI - 1) * 3; j < Math.min(accounts.size(), finalI * 3); j++) {
+                        bullet.add(new RankView(j + 1, accounts.get(j), RankType.BULLET));
+                    }
+                };
+                loader.addTask(task);
             }
 
-            if (ratings.size() == 4) updateTopTable(RankType.BULLET);
+            loader.addTask(() -> {
+                ratings.put(RankType.BULLET, bullet);
+                if (ratings.size() == 4) {
+                    updateTopTable(RankType.BULLET);
+                    loader.stop();
+                }
+            });
+
         });
 
         MultiplayerEngine.self().getBlitzTop(accounts -> {
-            for (int i = 0; i < accounts.size(); i++) {
-                blitz.add(new RankView(i + 1, accounts.get(i), RankType.BLITZ));
+
+            for (int i = 1; i <= (accounts.size() + 2) / 3; i++) {
+                int finalI = i;
+                Runnable task = () -> {
+                    for (int j = (finalI - 1) * 3; j < Math.min(accounts.size(), finalI * 3); j++) {
+                        blitz.add(new RankView(j + 1, accounts.get(j), RankType.BLITZ));
+                    }
+                };
+                loader.addTask(task);
             }
 
-            if (ratings.size() == 4) updateTopTable(RankType.BULLET);
+            loader.addTask(() -> {
+                ratings.put(RankType.BLITZ, blitz);
+                if (ratings.size() == 4) {
+                    updateTopTable(RankType.BULLET);
+                    loader.stop();
+                }
+            });
+
         });
 
         MultiplayerEngine.self().getRapidTop(accounts -> {
-            for (int i = 0; i < accounts.size(); i++) {
-                rapid.add(new RankView(i + 1, accounts.get(i), RankType.RAPID));
+
+            for (int i = 1; i <= (accounts.size() + 2) / 3; i++) {
+                int finalI = i;
+                Runnable task = () -> {
+                    for (int j = (finalI - 1) * 3; j < Math.min(accounts.size(), finalI * 3); j++) {
+                        rapid.add(new RankView(j + 1, accounts.get(j), RankType.RAPID));
+                    }
+                };
+                loader.addTask(task);
             }
 
-            if (ratings.size() == 4) updateTopTable(RankType.BULLET);
+            loader.addTask(() -> {
+                ratings.put(RankType.RAPID, rapid);
+                if (ratings.size() == 4) {
+                    updateTopTable(RankType.BULLET);
+                    loader.stop();
+                }
+            });
+
         });
 
         MultiplayerEngine.self().getLongTop(accounts -> {
-            for (int i = 0; i < accounts.size(); i++) {
-                longRank.add(new RankView(i + 1, accounts.get(i), RankType.LONG));
+
+            for (int i = 1; i <= (accounts.size() + 2) / 3; i++) {
+                int finalI = i;
+                Runnable task = () -> {
+                    for (int j = (finalI - 1) * 3; j < Math.min(accounts.size(), finalI * 3); j++) {
+                        longRank.add(new RankView(j + 1, accounts.get(j), RankType.LONG));
+                    }
+                };
+                loader.addTask(task);
             }
 
-            if (ratings.size() == 4) updateTopTable(RankType.BULLET);
+            loader.addTask(() -> {
+                ratings.put(RankType.LONG, longRank);
+                if (ratings.size() == 4) {
+                    updateTopTable(RankType.BULLET);
+                    loader.stop();
+                }
+            });
+
         });
+
+        loader.load();
     }
 
     @Override

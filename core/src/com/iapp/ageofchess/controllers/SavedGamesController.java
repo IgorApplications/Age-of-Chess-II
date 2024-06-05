@@ -27,8 +27,6 @@ public class SavedGamesController extends Controller {
 
     private final SavedGamesActivity activity;
     private RdDialog question;
-    private AssetDescriptor<TextureAtlas> atlasDesc;
-    private AssetDescriptor<Texture>[] textureDesc;
 
     public SavedGamesController(SavedGamesActivity activity) {
         super(activity);
@@ -46,7 +44,7 @@ public class SavedGamesController extends Controller {
         }
         var mapData = state.getMatch().getMatchData();
 
-        var spinner = new Spinner(strings.get("loading"));
+        var spinner = new Spinner(strings.get("[i18n]Loading"));
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);
@@ -58,18 +56,15 @@ public class SavedGamesController extends Controller {
 
     public RdDialog showClearDialog(MatchState ref) {
         question = new RdDialogBuilder()
-                .title(strings.get("confirmation"))
-                .text(strings.get("question_clear_game"))
-                .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
-                    @Override
-                    public void accept(RdDialog dialog, String s) {
-                        ChessConstants.localData.getReferences().remove(ref);
-                        activity.updateSavedGames();
-                        question.hide();
-                    }
+                .title(strings.get("[i18n]confirmation"))
+                .text(strings.get("[i18n]Are you sure you want to clear your saved game?"))
+                .cancel(strings.get("[i18n]cancel"))
+                .accept(strings.get("[i18n]accept"), (dialog, s) -> {
+                    ChessConstants.localData.getReferences().remove(ref);
+                    activity.updateSavedGames();
+                    question.hide();
                 })
-                .build(ChessAssetManager.current().getSkin(), "input");
+                .build("input");
 
         question.getIcon().setDrawable(new TextureRegionDrawable(
                 ChessAssetManager.current().findRegion("icon_conf")));
@@ -81,10 +76,11 @@ public class SavedGamesController extends Controller {
 
     private void showMapNotFound(MatchState state) {
         var mapNotInstalled = new RdDialogBuilder()
-                .title(strings.get("error"))
-                .text(strings.get("map_not_found") + " \"" + state.getMatch().getMapName() + "\"")
-                .accept(strings.get("accept"))
-                .build(ChessAssetManager.current().getSkin(), "input");
+                .title(strings.get("[i18n]error"))
+                .text(strings.get("[i18n]Map not found! Looks like you uninstalled it, please install it. The name of this map is")
+                    + " \"" + state.getMatch().getMapName() + "\"")
+                .accept(strings.get("[i18n]accept"))
+                .build("input");
 
         mapNotInstalled.getIcon().setDrawable(new TextureRegionDrawable(
                 ChessAssetManager.current().findRegion("ib_error")));

@@ -55,8 +55,9 @@ public class ControlGameView extends Table {
         controlContent.pad(5, 5, 5, 5);
         add(controlContent).padBottom(20);
 
-        join = new RdImageTextButton("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
-        start = new RdImageTextButton("[%125]" + strings.get("start"), "blue");
+        join = new RdImageTextButton("[%125]" + (controller.isInside() ?
+            strings.get("[i18n]Disjoin") : strings.get("[i18n]Join")));
+        start = new RdImageTextButton("[%125]" + strings.get("[i18n]Start"), "blue");
         availableColors = new RdSelectBox<>();
         updateControlContent();
 
@@ -86,7 +87,7 @@ public class ControlGameView extends Table {
                 if (controller.getCurrentMatch().getWhitePlayerId() != -1) count++;
 
                 if (count < 2) {
-                    ChessApplication.self().showInfo(strings.get("not_enough_players"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]The game cannot be started because there are not enough players"));
                     return;
                 }
                 MultiplayerEngine.self().start(controller.getMatchId());
@@ -98,10 +99,10 @@ public class ControlGameView extends Table {
         controlContent.clear();
 
         var data = new ArrayList<String>();
-        if (controller.getCurrentMatch().getWhitePlayerId() == -1) data.add("[%125]" + strings.get("white"));
-        if (controller.getCurrentMatch().getBlackPlayerId() == -1) data.add("[%125]" + strings.get("black"));
+        if (controller.getCurrentMatch().getWhitePlayerId() == -1) data.add("[%125]" + strings.get("[i18n]White"));
+        if (controller.getCurrentMatch().getBlackPlayerId() == -1) data.add("[%125]" + strings.get("[i18n]Black"));
         availableColors.setItems(data.toArray(new String[0]));
-        join.setText("[%125]" + (controller.isInside() ? strings.get("disjoin") : strings.get("join")));
+        join.setText("[%125]" + (controller.isInside() ? strings.get("[i18n]Disjoin") : strings.get("[i18n]Join")));
 
         if (menu != null) controlContent.add(menu).padLeft(10);
         if (!availableColors.getItems().isEmpty() || controller.isInside()) {

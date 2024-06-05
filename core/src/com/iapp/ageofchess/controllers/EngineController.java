@@ -41,6 +41,7 @@ public abstract class EngineController extends Controller implements Chess2dCont
     private boolean aiMakeMove;
     final LinkedList<Move> lastMoves = new LinkedList<>();
     Result result = Result.NONE;
+    private boolean blockedHint;
 
     public EngineController(Activity activity, MatchState state) {
         super(activity);
@@ -169,10 +170,6 @@ public abstract class EngineController extends Controller implements Chess2dCont
         return game.getTurn();
     }
 
-    public Color getColorMove() {
-        return game.getColorMove();
-    }
-
     public void stop() {
         whiteEngine.stop();
         blackEngine.stop();
@@ -202,6 +199,11 @@ public abstract class EngineController extends Controller implements Chess2dCont
 
     public boolean isCage(byte type) {
         return game.isCage(type);
+    }
+
+    @Override
+    public Color getColorMove() {
+        return game.getColorMove();
     }
 
     @Override
@@ -295,13 +297,16 @@ public abstract class EngineController extends Controller implements Chess2dCont
                 makeMove(move, pair.getValue());
                 aiMakeMove = false;
             } catch (Throwable t) {
-                Gdx.app.error("makeAiMove", RdLogger.self().getDescription(t));
+                Gdx.app.error("makeAIMove", RdLogger.self().getDescription(t));
                 RdLogger.self().showFatalScreen(t);
             }
         }, 2000);
     }
 
     void getHint(int depth, OnGettingMove onGettingMove) {
+        if (blockedHint) return;
+
+        blockedHint = true;
         getHintEngine().setFen(parseBoardToFen());
         getHintEngine().getBestMoves(depth, textMove -> {
             try {
@@ -312,6 +317,7 @@ public abstract class EngineController extends Controller implements Chess2dCont
                 }
 
                 onGettingMove.onGetting(move, null);
+                blockedHint = false;
             } catch (Throwable t) {
                 Gdx.app.error("getHint", RdLogger.self().getDescription(t));
                 RdLogger.self().showFatalScreen(t);
@@ -390,6 +396,7 @@ public abstract class EngineController extends Controller implements Chess2dCont
     }
 
     private void initChessEngine(GameMode gameMode) {
+
         switch (gameMode) {
             case TWO_PLAYERS:
                 whiteEngine = new CarballoChessEngine();

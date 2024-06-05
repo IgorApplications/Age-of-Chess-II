@@ -23,7 +23,7 @@ import com.iapp.ageofchess.graphics.SelectionDialog;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
 import com.iapp.ageofchess.modding.MatchState;
-import com.iapp.ageofchess.services.Cheats;
+import com.iapp.ageofchess.services.LocalFeatures;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.SettingsUtil;
@@ -39,7 +39,6 @@ import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public abstract class GameActivity extends Activity {
@@ -210,7 +209,8 @@ public abstract class GameActivity extends Activity {
         }
         infoSprite = new Sprite();
         selectionSprite = new Sprite();
-        gameBoard = new BoardView(controller);
+        gameBoard = new BoardView(controller, ChessAssetManager.current().getSkin(),
+            ChessConstants.localData.getPiecesSpeed());
         controller.setBoardView(gameBoard);
 
         content = new Table();
@@ -265,14 +265,14 @@ public abstract class GameActivity extends Activity {
         blackKnight.setText(data[2] == 0 ? "0" : blackSign + data[2]);
         blackBishop.setText(data[3] == 0 ? "0" : blackSign + data[3]);
         blackQueen.setText(data[4] == 0 ? "0" : blackSign + data[4]);
-        blackScore.setText(strings.get("total") + " " + (data[5] == 0 ? "0" : blackSign + data[5]));
+        blackScore.setText(strings.get("[i18n]Total") + " " + (data[5] == 0 ? "0" : blackSign + data[5]));
 
         whitePawn.setText(data[6] == 0 ? "0" : whiteSign + data[6]);
         whiteRook.setText(data[7] == 0 ? "0" : whiteSign + data[7]);
         whiteKnight.setText(data[8] == 0 ? "0" : whiteSign + data[8]);
         whiteBishop.setText(data[9] == 0 ? "0" : whiteSign + data[9]);
         whiteQueen.setText(data[10] == 0 ? "0" : whiteSign + data[10]);
-        whiteScore.setText(strings.get("total") + " " + (data[11] == 0 ? "0" : whiteSign + data[11]));
+        whiteScore.setText(strings.get("[i18n]Total") + " " + (data[11] == 0 ? "0" : whiteSign + data[11]));
     }
 
     private void initFelledPieces() {
@@ -281,14 +281,14 @@ public abstract class GameActivity extends Activity {
         blackKnight = new RdLabel("0");
         blackBishop = new RdLabel("0");
         blackQueen = new RdLabel("0");
-        blackScore = new RdLabel(strings.get("total") + " 0");
+        blackScore = new RdLabel(strings.get("[i18n]Total") + " 0");
 
         whitePawn = new RdLabel("0");
         whiteRook = new RdLabel("0");
         whiteKnight = new RdLabel("0");
         whiteBishop = new RdLabel("0");
         whiteQueen = new RdLabel("0");
-        whiteScore = new RdLabel(strings.get("total") + " 0");
+        whiteScore = new RdLabel(strings.get("[i18n]Total") + " 0");
 
         if (controller.getMatch().getUpperColor() == com.iapp.lib.chess_engine.Color.BLACK) {
             blackPawn.setColor(Color.GREEN);
@@ -382,18 +382,18 @@ public abstract class GameActivity extends Activity {
                 gameBoard.addBlocked();
 
                 menuDialog = new RdDialogBuilder()
-                        .title(strings.get("game_exit"))
-                        .text(strings.get("game_exit_question"))
-                        .cancel(strings.get("cancel"),
+                        .title(strings.get("[i18n]Exit Game"))
+                        .text(strings.get("[i18n]Are you sure you want to exit the game?"))
+                        .cancel(strings.get("[i18n]reject"),
                             (dialog, s) -> {
                             blackout.setVisible(false);
                             gameBoard.addUnblocked();
                             menuDialog.hide();
                             menuDialog = null;
                         })
-                        .accept(strings.get("exit"),
+                        .accept(strings.get("[i18n]Exit"),
                             (dialog, s) -> controller.goToScenario())
-                        .build(ChessAssetManager.current().getSkin(), "input");
+                        .build("input");
 
                 menuDialog.getIcon().setDrawable(new TextureRegionDrawable(
                         GrayAssetManager.current().findRegion("icon_conf")));
@@ -415,16 +415,16 @@ public abstract class GameActivity extends Activity {
                 gameBoard.addBlocked();
 
                 replayDialog = new RdDialogBuilder()
-                        .title(strings.get("start_game_again"))
-                        .text(strings.get("restart_game_question"))
-                        .cancel(strings.get("cancel"), (dialog, s) -> {
+                        .title(strings.get("[i18n]Start game again"))
+                        .text(strings.get("[i18n]Are you sure you want to restart the game?"))
+                        .cancel(strings.get("[i18n]reject"), (dialog, s) -> {
                             blackout.setVisible(false);
                             gameBoard.addUnblocked();
                             replayDialog.hide();
                         })
-                        .accept(strings.get("replay"),
+                        .accept(strings.get("[i18n]Replay"),
                             (dialog, s) -> controller.restart())
-                        .build(ChessAssetManager.current().getSkin(), "input");
+                        .build("input");
 
                 replayDialog.getIcon().setDrawable(new TextureRegionDrawable(
                         GrayAssetManager.current().findRegion("icon_conf")));
@@ -455,7 +455,7 @@ public abstract class GameActivity extends Activity {
         });
 
         // Developer functions
-        if (ChessApplication.self().getCheats() == Cheats.DEVELOPER)
+        if (ChessApplication.self().getCheats() == LocalFeatures.DEVELOPER)
             getStage().addListener(new InputListener() {
                 @Override
                 public boolean keyUp(InputEvent event, int keycode) {
@@ -510,7 +510,7 @@ public abstract class GameActivity extends Activity {
         else if (result == Result.LOSE) showLose(resultDialog);
         else throw new IllegalArgumentException("unknown game mode");
         if (!isRanked) {
-            RdLabel reference = new RdLabel("[GREEN]" + strings.get("ref_non_ranked"));
+            RdLabel reference = new RdLabel("[GREEN]" + strings.get("[i18n]This win is not ranked"));
             resultDialog.getContentTable().add(reference).expandX().left();
         }
 
@@ -521,7 +521,7 @@ public abstract class GameActivity extends Activity {
     }
 
     public void showSelectionDialog(Consumer<TypePiece> selectionListener) {
-        selectionDialog = new SelectionDialog(strings.get("turn_pawn"),
+        selectionDialog = new SelectionDialog(strings.get("[i18n]Turn a pawn into...?"),
                 ChessAssetManager.current().getSelectionStyle(), controller);
 
         selectionDialog.setSelectionListener(typePiece -> {
@@ -559,10 +559,10 @@ public abstract class GameActivity extends Activity {
         bestResultLabel.setColor(Color.GOLD);
 
         if (bestResult != Integer.MAX_VALUE && bestResult < controller.getTurn()) {
-            bestResultLabel.setText(strings.get("best_result")
-                    + " " + strings.format("turns", bestResult));
+            bestResultLabel.setText(strings.get("[i18n]Your best score on this level")
+                    + " " + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", bestResult));
         } else {
-            bestResultLabel.setText(strings.get("your_best_result"));
+            bestResultLabel.setText(strings.get("[i18n]This is your best result on this level!"));
         }
         Image star1, star2, star3;
         if (controller.getTurn() <= 100) star1 = new Image(ChessAssetManager.current().findChessRegion("star"));
@@ -577,18 +577,18 @@ public abstract class GameActivity extends Activity {
         starTable.add(star2).padRight(3);
         starTable.add(star3);
 
-        var turnsLabel = new RdLabel(strings.get("passed_level")
-                + " " + strings.format("turns", controller.getTurn()));
+        var turnsLabel = new RdLabel(strings.get("[i18n]You completed a level in")
+                + " " + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", controller.getTurn()));
         turnsLabel.setWrap(true);
         var gameModeLabel = new RdLabel("", ChessAssetManager.current().getSkin());
         gameModeLabel.setWrap(true);
         if (controller.getMatch().getGameMode() == GameMode.TWO_PLAYERS) {
-            gameModeLabel.setText(strings.get("win_mode") + " [GOLD]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have won") + " [GOLD]" + controller.defineDefaultGameMode());
         } else {
-            gameModeLabel.setText(strings.get("win_ai") + " [GOLD]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have defeated the artificial intelligence") + " [GOLD]" + controller.defineDefaultGameMode());
         }
 
-        var reason = new RdLabel(strings.get("enemy_time_over"),
+        var reason = new RdLabel(strings.get("[i18n]You have won because the enemy's time has run out"),
                 ChessAssetManager.current().getSkin());
         reason.setWrap(true);
 
@@ -604,26 +604,27 @@ public abstract class GameActivity extends Activity {
                 .get(controller.getMatch().getGameMode());
 
         RdLabel info;
-        if (controller.getTurn() == controller.getMatch().getMaxMoves()) info = new RdLabel(strings.get("drawn_max_turns"));
-        else info = new RdLabel(strings.get("drawn_info"));
+        if (controller.getTurn() == controller.getMatch().getMaxMoves()) info = new RdLabel(
+            strings.get("[i18n]Game over because you have reached the maximum number of turns}"));
+        else info = new RdLabel(strings.get("[i18n]Game over as there are no more possible moves"));
         info.setWrap(true);
         info.setColor(Color.GREEN);
 
         var bestResultLabel = new RdLabel("");
         bestResultLabel.setWrap(true);
         if (bestResult != Integer.MAX_VALUE) {
-            bestResultLabel.setText(strings.get("best_passed_level")
-                    +  " " + strings.format("turns", bestResult));
+            bestResultLabel.setText(strings.get("[i18n]You have passed this level for")
+                    +  " " + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", bestResult));
         } else {
-            bestResultLabel.setText(strings.get("not_passed_level"));
+            bestResultLabel.setText(strings.get("[i18n]You have not passed this level yet"));
         }
 
         var gameModeLabel = new RdLabel("");
         gameModeLabel.setWrap(true);
         if (controller.getMatch().getGameMode() == GameMode.TWO_PLAYERS) {
-            gameModeLabel.setText(strings.get("play_mode") + " [GREEN]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have played in the mode") + " [GREEN]" + controller.defineDefaultGameMode());
         } else {
-            gameModeLabel.setText(strings.get("play_ai") + " [GREEN]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have played with AI") + " [GREEN]" + controller.defineDefaultGameMode());
         }
 
         dialog.getContentTable().add(info).expandX().fillX().left().row();
@@ -635,7 +636,7 @@ public abstract class GameActivity extends Activity {
         var bestResult = ChessConstants.localData.getBestResultByLevel()
                 .get(controller.getMatch().getGameMode());
 
-        var info = new RdLabel(strings.get("lose_info"),
+        var info = new RdLabel(strings.get("[i18n]Sorry, you've lost. Next time will definitely"),
                 ChessAssetManager.current().getSkin());
         info.setWrap(true);
         info.setColor(Color.RED);
@@ -644,18 +645,18 @@ public abstract class GameActivity extends Activity {
                 ChessAssetManager.current().getSkin());
         bestResultLabel.setWrap(true);
         if (bestResult != Integer.MAX_VALUE) {
-            bestResultLabel.setText(strings.get("best_passed_level")
-                    +  " " + strings.format("turns", bestResult));
+            bestResultLabel.setText(strings.get("[i18n]You have passed this level for")
+                    +  " " + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", bestResult));
         } else {
-            bestResultLabel.setText(strings.get("not_passed_level"));
+            bestResultLabel.setText(strings.get("[i18n]You have not passed this level yet"));
         }
 
         var gameModeLabel = new RdLabel("", ChessAssetManager.current().getSkin());
         gameModeLabel.setWrap(true);
         if (controller.getMatch().getGameMode() == GameMode.TWO_PLAYERS) {
-            gameModeLabel.setText(strings.get("play_mode") + " [RED]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have played in the mode") + " [RED]" + controller.defineDefaultGameMode());
         } else {
-            gameModeLabel.setText(strings.get("play_ai") + " [RED]" + controller.defineDefaultGameMode());
+            gameModeLabel.setText(strings.get("[i18n]You have played with AI") + " [RED]" + controller.defineDefaultGameMode());
         }
 
         dialog.getContentTable().add(info).expandX().fillX().left().row();
@@ -664,7 +665,7 @@ public abstract class GameActivity extends Activity {
     }
 
     public void showFelledPiecesDialog() {
-        statisticDialog = new RdDialog(strings.get("taken_pieces"), ChessAssetManager.current().getSkin());
+        statisticDialog = new RdDialog(strings.get("[i18n]Taken pieces"), ChessAssetManager.current().getSkin());
         statisticDialog.setOnCancel(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -689,7 +690,7 @@ public abstract class GameActivity extends Activity {
 
         var scrollContent = new Table();
         scrollContent.align(Align.topLeft);
-        scroll = new RdScrollPane(scrollContent, ChessAssetManager.current().getSkin());
+        scroll = new RdScrollPane(scrollContent);
         scroll.setScrollingDisabled(false, true);
 
         statisticDialog.getContentTable().align(Align.topLeft);

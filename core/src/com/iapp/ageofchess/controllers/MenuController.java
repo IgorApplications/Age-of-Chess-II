@@ -40,7 +40,7 @@ public class MenuController extends Controller {
             return;
         }
 
-        loginDialog = new RdDialog(strings.get("login"), ChessAssetManager.current().getSkin());
+        loginDialog = new RdDialog(strings.get("[i18n]Login"), ChessAssetManager.current().getSkin());
         loginDialog.removeActor(loginDialog.getButtonTable());
         loginDialog.padBottom(3);
         loginDialog.setOnCancel(new OnChangeListener() {
@@ -97,23 +97,23 @@ public class MenuController extends Controller {
     }
 
     private RdTable getLoginTable() {
-        var loginTable = new LineTable(strings.get("login"), ChessAssetManager.current().getSkin());
+        var loginTable = new LineTable(strings.get("[i18n]Login"));
         loginTable.align(Align.topLeft);
         loginTable.pad(40, 8, 5, 10);
 
-        var label1 = new RdLabel(strings.get("login_name"));
-        var label2 = new RdLabel(strings.get("password"));
+        var label1 = new RdLabel(strings.get("[i18n]Login name:"));
+        var label2 = new RdLabel(strings.get("[i18n]Password:"));
         var field1 = new RdTextArea("", ChessAssetManager.current().getSkin());
         field1.setMaxLength(20);
-        field1.setMessageText(strings.get("enter_hint"));
+        field1.setMessageText(strings.get("[i18n]enter..."));
 
         var field2 = new RdTextArea("", ChessAssetManager.current().getSkin());
         field2.setMaxLength(20);
-        field2.setMessageText(strings.get("enter_hint"));
+        field2.setMessageText(strings.get("[i18n]enter..."));
         field2.setPasswordMode(true);
         field2.setPasswordCharacter('*');
 
-        var login = new RdTextButton(strings.get("login"));
+        var login = new RdTextButton(strings.get("[i18n]Login"));
 
         loginTable.add(label1).left();
         loginTable.add(field1).padLeft(10).expandX().fillX().padBottom(5).row();
@@ -133,33 +133,33 @@ public class MenuController extends Controller {
     }
 
     private RdTable getRegistrationTable() {
-        var registrationTable = new LineTable(strings.get("registration"), ChessAssetManager.current().getSkin());
+        var registrationTable = new LineTable(strings.get("[i18n]Registration"));
         registrationTable.align(Align.topLeft);
         registrationTable.pad(40, 8, 5, 10);
 
-        var label1 = new RdLabel(strings.get("name_acc"));
-        var label2 = new RdLabel(strings.get("login_name"));
-        var label3 = new RdLabel(strings.get("password"));
-        var label4 = new RdLabel(strings.get("conf_password"));
+        var label1 = new RdLabel(strings.get("[i18n]Application Name"));
+        var label2 = new RdLabel(strings.get("[i18n]Login name:"));
+        var label3 = new RdLabel(strings.get("[i18n]Password:"));
+        var label4 = new RdLabel(strings.get("[i18n]Confirm Password"));
 
         var userName = new RdTextArea("");
         userName.setMaxLength(20);
-        userName.setMessageText(strings.get("enter_hint"));
+        userName.setMessageText(strings.get("[i18n]enter..."));
         var login = new RdTextArea("");
         login.setMaxLength(20);
-        login.setMessageText(strings.get("enter_hint"));
+        login.setMessageText(strings.get("[i18n]enter..."));
         var password1 = new RdTextArea("");
         password1.setMaxLength(20);
-        password1.setMessageText(strings.get("enter_hint"));
+        password1.setMessageText(strings.get("[i18n]enter..."));
         password1.setPasswordMode(true);
         password1.setPasswordCharacter('*');
         var password2 = new RdTextArea("");
         password2.setMaxLength(20);
-        password2.setMessageText(strings.get("enter_hint"));
+        password2.setMessageText(strings.get("[i18n]enter..."));
         password2.setPasswordMode(true);
         password2.setPasswordCharacter('*');
 
-        var registration = new RdTextButton(strings.get("register"));
+        var registration = new RdTextButton(strings.get("[i18n]Register"));
 
         registrationTable.add(label1).left();
         registrationTable.add(userName).expandX().fillX().padBottom(5).row();
@@ -175,31 +175,31 @@ public class MenuController extends Controller {
             @Override
             public void onChange(Actor actor) {
                 if (!password1.getText().equals(password2.getText())) {
-                    ChessApplication.self().showInfo(strings.get("password_mismatch"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]Password mismatch!"));
                     return;
                 }
 
                 if (password1.getText().length() < 6) {
-                    ChessApplication.self().showInfo(strings.get("min_password"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]The password should be at least 6 characters"));
                     return;
                 }
 
                 if (login.getText().length() < 2) {
-                    ChessApplication.self().showInfo(strings.get("min_login"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]Login must be more than 1 character"));
                     return;
                 }
 
                 if (userName.getText().length() < 2) {
-                    ChessApplication.self().showInfo(strings.get("min_username"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]Username must be greater than 1 character"));
                     return;
                 }
 
                 if (!isASCII(login.getText())) {
-                    ChessApplication.self().showInfo(strings.get("login_letters"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]The login should not contain Latin letters!"));
                     return;
                 }
 
-                Spinner spinner = ChessApplication.self().showSpinner(strings.get("creating"));
+                Spinner spinner = ChessApplication.self().showSpinner(strings.get("[i18n]Creating..."));
                 activity.showBlackout();
                 MultiplayerEngine.self().signup(login.getText(), userName.getText(), password1.getText(),
                         () -> {
@@ -208,7 +208,7 @@ public class MenuController extends Controller {
                         },
                         error -> {
                             spinner.hide();
-                            ChessApplication.self().showError(strings.get("signup_failed") + error);
+                            ChessApplication.self().showError(strings.get("[i18n]Signup failed - ") + error);
                             activity.hideBlackout();
                         });
             }
@@ -219,7 +219,7 @@ public class MenuController extends Controller {
 
     private void login(String name, String password) {
 
-        Spinner spinner = ChessApplication.self().showSpinner(strings.get("login"));
+        Spinner spinner = ChessApplication.self().showSpinner(strings.get("[i18n]Login"));
         activity.showBlackout();
         MultiplayerEngine.self().login(name, password,
                 account -> {
@@ -228,30 +228,29 @@ public class MenuController extends Controller {
                     ChessConstants.loggingAcc = account;
 
                     ChessConstants.chatView = new ChatView(MultiplayerEngine.self(),
-                        ChatView.Mode.LOBBY, strings.get("game"),
-                        strings.get("lobby"), 550);
+                        ChatView.Mode.LOBBY, 550);
                     RdApplication.self().getTopActors().add(1, ChessConstants.chatView);
 
-                    MultiplayerEngine.self().getAvatar(account, bytes ->
+                    MultiplayerEngine.self().requireAvatar(account, bytes ->
                         ChessConstants.accountPanel.update(account, bytes));
 
                     spinner.hide();
                     activity.hideBlackout();
                     Runnable task = this::goToMultiplayerMenu;
                     if (loginDialog == null) task.run();
-                    else loginDialog.hide(Actions.run(task));
+                    else loginDialog.afterHide(Actions.run(task));
                 },
                 (error) -> {
                     spinner.hide();
                     activity.hideBlackout();
                     if (activity.getLoginDialog() != null && !activity.getLoginDialog().isHidden()) {
-                        ChessApplication.self().showError(strings.get("login_failed") + error);
+                        ChessApplication.self().showError(strings.get("[18n]Login failed -") + error);
                         return;
                     }
                     ChessConstants.localData.setNameAcc(null);
                     ChessConstants.localData.setPassword(null);
                     showLoginDialog();
-                    ChessApplication.self().showError(strings.get("login_failed") + error);
+                    ChessApplication.self().showError(strings.get("[i18n]Login failed -") + error);
                 });
 
     }

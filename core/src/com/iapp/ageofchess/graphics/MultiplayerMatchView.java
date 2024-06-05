@@ -59,16 +59,16 @@ public class MultiplayerMatchView extends Table {
         if (match.getBlackPlayerId() != -1) count++;
 
         table1.add(iconChessGame);
-        table1.add(new RdLabel(match.getName() + " (" + strings.format("turns", match.getTurn()) + ")"))
+        table1.add(new RdLabel(match.getName() + " (" + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", match.getTurn()) + ")"))
                 .expandX().fillX().row();
 
         table1.add(iconPeoples);
-        table1.add(new RdLabel(strings.get("joined") + count))
+        table1.add(new RdLabel(strings.get("[i18n]Joined") + count))
                 .expandX().fillX().left().row();
 
 
         if (match.getRankType() == RankType.UNRANKED) {
-            table1.add(new RdLabel("[GOLD]" + strings.get("non_ranked")))
+            table1.add(new RdLabel("[GOLD]" + strings.get("[i18n]Not ranked")))
                 .expandX().fillX().colspan(2).row();
         } else {
             table1.add(iconRank);
@@ -114,10 +114,10 @@ public class MultiplayerMatchView extends Table {
 
     private String defineRankType(Match match) {
         switch (match.getRankType()) {
-            case BULLET: return strings.get("bullet");
-            case BLITZ: return strings.get("blitz");
-            case RAPID: return strings.get("rapid");
-            case LONG: return strings.get("long");
+            case BULLET: return strings.get("[i18n]Bullet");
+            case BLITZ: return strings.get("[i18n]Blitz");
+            case RAPID: return strings.get("[i18n]Rapid");
+            case LONG: return strings.get("[i18n]Long");
         }
         throw new IllegalArgumentException("Rank type unknown");
     }

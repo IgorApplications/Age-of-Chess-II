@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MultiplayerMenuActivity extends Activity {
@@ -78,20 +77,20 @@ public class MultiplayerMenuActivity extends Activity {
             }
         });
 
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
 
-        games = new RdImageTextButton(strings.get("play"), "yellow_screen");
+        games = new RdImageTextButton(strings.get("[i18n]Play"), "yellow_screen");
         games.setImage("ib_play");
 
-        createGame = new RdImageTextButton(strings.get("create_online"), "white_screen");
+        createGame = new RdImageTextButton(strings.get("[i18n]Create"), "white_screen");
         createGame.setImage("ib_games");
 
-        rank = new RdImageTextButton(strings.get("rating"), "white_screen");
+        rank = new RdImageTextButton(strings.get("[i18n]Rating"), "white_screen");
         rank.setImage("ib_rating");
 
         messageInput = new RdTextArea("", ChessAssetManager.current().getSkin());
-        messageInput.setMessageText(strings.get("enter_hint"));
+        messageInput.setMessageText(strings.get("[i18n]enter..."));
         messageInput.setMaxLength(300);
     }
 
@@ -154,11 +153,11 @@ public class MultiplayerMenuActivity extends Activity {
         window.setMovable(false);
         stage.addActor(window);
 
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
         properties.setVisibleBackground(false);
 
-        properties.add(new PropertyTable.Title(strings.get("multiplayer")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Multiplayer")));
 
         messagesTable = new RdTable("loading");
         messagesTable.align(Align.topLeft);
@@ -170,7 +169,7 @@ public class MultiplayerMenuActivity extends Activity {
         properties.getContent().add(scroll).pad(5, 5, 5,5).expand().fill();
 
         windowGroup = new WindowGroup(window, back, games, createGame, rank);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Multiplayer"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -239,7 +238,7 @@ public class MultiplayerMenuActivity extends Activity {
                 @Override
                 public void onChange(Actor actor) {
 
-                   ChessApplication.self().showConf(strings.get("conf_del"),
+                   ChessApplication.self().showConf(strings.get("[i18n]Are you sure you want to delete the message?"),
                        (dialog, s) -> {
                            MultiplayerEngine.self().removeMessage(message.getId());
                            dialog.hide();
@@ -260,7 +259,7 @@ public class MultiplayerMenuActivity extends Activity {
 
         for (Account account : accounts.values()) {
 
-            MultiplayerEngine.self().getAvatar(account, bytes -> {
+            MultiplayerEngine.self().requireAvatar(account, bytes -> {
                 List<MessageView> res = idByMessages.get(account.getId());
                 if (res == null) return;
                 for (MessageView message : res) {

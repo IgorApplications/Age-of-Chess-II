@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.util.DisposeUtil;
 import com.iapp.lib.util.TaskLoad;
 
@@ -40,7 +41,7 @@ public class SplashActivity extends Activity {
     /** @see SplashActivity#loadLibrary(Supplier, long, Texture, Texture, TaskLoad...)  */
     public static void loadLibrary(Supplier<Activity> nextScreen, String logoPath,
                                    String titleLogoPath, TaskLoad... taskLoads) {
-        var screen = new SplashActivity(nextScreen, 500,
+        SplashActivity screen = new SplashActivity(nextScreen, 500,
                 logoPath == null ? null : new Texture(logoPath),
                 titleLogoPath == null ? null : new Texture(titleLogoPath),
                 taskLoads);
@@ -57,7 +58,7 @@ public class SplashActivity extends Activity {
      *  */
     public static void loadLibrary(Supplier<Activity> nextScreen, long minDelayMillis,
                                    Texture logo, Texture titleLogo, TaskLoad... taskLoads) {
-        var screen = new SplashActivity(nextScreen, minDelayMillis, logo, titleLogo, taskLoads);
+        SplashActivity screen = new SplashActivity(nextScreen, minDelayMillis, logo, titleLogo, taskLoads);
         RdApplication.self().setScreen(screen);
     }
 
@@ -94,7 +95,7 @@ public class SplashActivity extends Activity {
     @Override
     public void show(Stage stage, Activity last) {
         RdApplication.self().getAssetManager().load();
-        var content = new Table();
+        RdTable content = new RdTable();
         content.setFillParent(true);
 
         content.add(logo).row();

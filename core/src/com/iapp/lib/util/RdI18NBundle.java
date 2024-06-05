@@ -4,12 +4,9 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.StringBuilder;
 import com.badlogic.gdx.utils.*;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.MissingResourceException;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.*;
 
 /** A {@code I18NBundle} provides {@code Locale}-specific resources loaded from property files. A bundle contains a number of
  * named resources, whose names and values are {@code Strings}. A bundle may have a parent bundle, and when a resource is not
@@ -57,7 +54,7 @@ public class RdI18NBundle {
     private static final Locale ROOT_LOCALE = new Locale("", "", "");
 
     private static boolean simpleFormatter = false;
-    private static boolean exceptionOnMissingKey = true;
+    private static boolean exceptionOnMissingKey = false;
 
     /** The parent of this {@code RdI18NBundle} that is used if this bundle doesn't include the requested resource. */
     private RdI18NBundle parent;
@@ -71,6 +68,9 @@ public class RdI18NBundle {
 
     /** The formatter used for argument replacement. */
     private RdTextFormatter formatter;
+
+    /** value by id **/
+    private Map<String, String> valueById = new HashMap<>();
 
     /** returns a copy of the contents of the rows and their keys */
     public ObjectMap<String, String> getProperties() {
@@ -161,6 +161,7 @@ public class RdI18NBundle {
                 && !baseFileHandle.parent().child(
                 baseFileHandle.name() + "_" + locale.getLanguage() + ".properties").exists()) {
             bundle = createBundle(baseFileHandle, Locale.ENGLISH);
+
             return bundle;
         }
 
@@ -208,7 +209,11 @@ public class RdI18NBundle {
 
         if (locale != Locale.ENGLISH) {
             bundle.english = createBundle(baseFileHandle, Locale.ENGLISH);
+            // ENGLISH
+            bundle.english.valueById = bundle.generateKeys(baseFileHandle.parent().child(
+                baseFileHandle.name() + "_" + locale.getLanguage() + ".properties"));
         }
+
         return bundle;
     }
 
@@ -309,7 +314,7 @@ public class RdI18NBundle {
         }
 
         // Load the bundle
-        var bundle = loadBundle(baseFileHandle, encoding, targetLocale);
+        RdI18NBundle bundle = loadBundle(baseFileHandle, encoding, targetLocale);
         if (bundle != null) {
             bundle.parent = parent;
             return bundle;
@@ -423,7 +428,11 @@ public class RdI18NBundle {
         this.formatter = new RdTextFormatter(locale, !simpleFormatter);
     }
 
-    /** Gets a string for the given key from this bundle or one of its parents.
+    /** Gets a string for the given key from this bundle or one of its parent;
+     * Supports the <bold>i18n</bold> format
+     * @see com.iapp.lib.util.StringsGenerator,
+     * that is, everything except the key is ignored,
+     * example: [i18n=key].
      *
      * @param key the key for the desired string
      * @exception NullPointerException if <code>key</code> is <code>null</code>
@@ -431,7 +440,12 @@ public class RdI18NBundle {
      *               returns {@code true}
      * @return the string for the given key or the key surrounded by {@code ???} if it cannot be found and
      *         {@link #getExceptionOnMissingKey()} returns {@code false} */
-    public String get (String key) {
+    public String get(String key) {
+        if (key.startsWith("[i18n]")) {
+            String value = key.substring(6);
+            key = String.valueOf(english.valueById.get(value));
+        }
+
         String result = properties.get(key);
         if (result == null) {
             if (english != null) {
@@ -448,18 +462,26 @@ public class RdI18NBundle {
                     return "???" + key + "???";
             }
         }
-        return result.replaceAll("\t",  "      ");
+        return applyDefines(result);
     }
 
     /** Gets the string with the specified key from this bundle or one of its parent after replacing the given arguments if they
-     * occur.
+     * occur;
+     * Supports the <bold>i18n</bold> format
+     * @see com.iapp.lib.util.StringsGenerator,
+     * that is, everything except the key is ignored,
+     * example: [i18n=key].
      *
      * @param key the key for the desired string
      * @param args the arguments to be replaced in the string associated to the given key.
      * @exception NullPointerException if <code>key</code> is <code>null</code>
      * @exception MissingResourceException if no string for the given key can be found
      * @return the string for the given key formatted with the given arguments */
-    public String format (String key, Object... args) {
+    public String format(String key, Object... args) {
+        if (key.startsWith("[i18n]")) {
+            String value = key.substring(6);
+            key = String.valueOf(english.valueById.get(value));
+        }
         return formatter.format(get(key), args);
     }
 
@@ -474,5 +496,52 @@ public class RdI18NBundle {
         for (String s : keys) {
             properties.put(s, placeholder);
         }
+    }
+
+    private String applyDefines(String s) {
+        s = s.replaceAll("\t",  "      ");
+        s = s.replaceAll("\\[p]", "•");
+        s = s.replaceAll("%t", "\t");
+        s = s.replaceAll("%n", "\n");
+        return s;
+    }
+
+    private Map<String, String> generateKeys(FileHandle handle) {
+        Map<String, String> valueById = new HashMap<>();
+        BufferedReader reader = new BufferedReader(handle.reader("UTF-8"));
+
+        List<String> lines = new ArrayList<>();
+        while (true) {
+            try {
+                if (!reader.ready()) break;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            try {
+                lines.add(reader.readLine());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        System.out.println(lines);
+        for (String el : lines) {
+            if (!el.equals("") && !el.startsWith("#")) {
+                String[] subArr = el.split("=");
+                if (subArr.length <= 1) continue;
+
+                StringBuilder part2 = new StringBuilder();
+                for (int i = 1; i < subArr.length; i++) {
+                    part2.append(subArr[i]);
+                    if (i != subArr.length - 1) {
+                        part2.append("=");
+                    }
+                }
+
+                valueById.put(part2.toString(), subArr[0]);
+            }
+        }
+
+        return valueById;
     }
 }

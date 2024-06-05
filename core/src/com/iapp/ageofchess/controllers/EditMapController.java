@@ -26,7 +26,7 @@ import com.iapp.ageofchess.modding.MapResources;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.DataManager;
-import com.iapp.ageofchess.services.ResourcesLoader;
+import com.iapp.lib.util.AssetsLoader;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Controller;
 import com.iapp.lib.ui.screens.RdApplication;
@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -90,27 +89,30 @@ public class EditMapController extends Controller {
 
     public void showConfExit() {
         activity.getBlackout().setVisible(true);
-        String text = newMap ? strings.get("conf_exit_new_mod") : strings.get("conf_exit_mod");
+        String text = newMap ?
+            strings.get("[i18n]Are you sure to create a new map?")
+            : strings.get("[i18n]Are you sure you want to save your changes?");
+
         RdDialog confExit = new RdDialogBuilder()
-                .title(strings.get("confirmation"))
+                .title(strings.get("[i18n]confirmation"))
                 .text(text)
                 .onHide((dialog, s) -> {
                     activity.getConfExit().hide();
                     activity.getBlackout().setVisible(false);
                 })
-                .cancel(strings.get("not_save"),
+                .cancel(strings.get("[i18n]Not save"),
                     (dialog, s) -> goToModding())
-                .accept(strings.get("save"), (dialog, s) -> {
+                .accept(strings.get("[i18n]Save"), (dialog, s) -> {
                     for (int i = 0; i < mapData.getScenarios().length; i++) {
                         var part1 = mapData.getScenarios()[i].split(" ")[0];
                         if (part1.matches(".*(k.*k).*") || part1.matches(".*(K.*K).*")
                             || !part1.contains("k") || !part1.contains("K")) {
-                            ChessApplication.self().showError(strings.format("incorrect_scenario", i + 1));
+                            ChessApplication.self().showError(strings.format("[i18n]Incorrect number of kings in scenario number {0}. You ", i + 1));
                             return;
                         }
                     }
 
-                    var spinner = new Spinner(strings.get("loading"));
+                    var spinner = new Spinner(strings.get("[i18n]Loading"));
                     activity.setSpinner(spinner);
                     spinner.show(RdApplication.self().getStage());
                     spinner.setSize(400, 100);
@@ -135,7 +137,7 @@ public class EditMapController extends Controller {
                     };
                     RdApplication.self().execute(task);
                 })
-                .build(ChessAssetManager.current().getSkin(), "input");
+                .build("input");
 
         confExit.getIcon().setDrawable(new TextureRegionDrawable(
                 ChessAssetManager.current().findRegion("icon_conf")));
@@ -159,13 +161,14 @@ public class EditMapController extends Controller {
 
     public void getEditMap(Stage stage) {
         activity.getBlackout().setVisible(true);
-        RdDialog dialog = new RdDialog(strings.get("map_change"), ChessAssetManager.current().getSkin());
+        RdDialog dialog = new RdDialog(strings.get("[i18n]Map change"), ChessAssetManager.current().getSkin());
         dialog.setOnCancel(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 for (int i = 0; i < mapData.getScenarios().length; i++) {
                     if (!Game.isValidFEN(mapData.getScenarios()[i])) {
-                        ChessApplication.self().showError(strings.format("incorrect_fen", (i + 1)));
+                        ChessApplication.self().showError(
+                            strings.format("[i18n]Incorrect FEN format in scenario configuration, scenario number {0}.", (i + 1)));
                         return;
                     }
                 }
@@ -173,7 +176,7 @@ public class EditMapController extends Controller {
                 activity.getBlackout().setVisible(false);
             }
         });
-        PropertyTable properties = new PropertyTable(500, ChessAssetManager.current().getSkin());
+        PropertyTable properties = new PropertyTable(500);
         dialog.getContentTable().add(properties).expand().fill();
 
         addTextures(properties);
@@ -189,24 +192,24 @@ public class EditMapController extends Controller {
     }
 
     private void addTextures(PropertyTable properties) {
-        RdSelectBox<String> textures = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
+        RdSelectBox<String> textures = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         textures.setItems(mapData.getNameTextures());
-        RdTextButton removeTexture = new RdTextButton(strings.get("remove"));
-        RdTextButton loadTexture = new RdTextButton(strings.get("load"), "blue");
+        RdTextButton removeTexture = new RdTextButton(strings.get("[i18n]remove"));
+        RdTextButton loadTexture = new RdTextButton(strings.get("[i18n]load"), "blue");
 
         loadTexture.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 Consumer<FileHandle> onSelect = handle -> {
                     if (!reservedNames.contains(handle.nameWithoutExtension())) {
-                        ChessApplication.self().showError(strings.get("wrong_name") + reservedNames.toString()
+                        ChessApplication.self().showError(strings.get("[i18n]Texture names should only be: ") + reservedNames.toString()
                                         .replaceAll("\\[", "|").replaceAll("]", "|"));
                         return;
                     }
                     // Report!
                     if (contains(mapData.getNameTextures(), handle.nameWithoutExtension())) return;
 
-                    var spinner = new Spinner(strings.get("loading"));
+                    var spinner = new Spinner(strings.get("[i18n]Loading"));
                     activity.setSpinner(spinner);
                     spinner.show(RdApplication.self().getStage());
                     spinner.setSize(400, 100);
@@ -231,10 +234,10 @@ public class EditMapController extends Controller {
             }
         });
 
-        properties.add(new PropertyTable.Title(strings.get("textures")));
-        properties.add(new PropertyTable.Element(strings.get("load_texture"), loadTexture));
-        properties.add(new PropertyTable.Element(strings.get("content_textures"), textures));
-        properties.add(new PropertyTable.Element(strings.get("remove_texture"), removeTexture));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Textures")));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Load texture"), loadTexture));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Content (all textures)"), textures));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove selected texture"), removeTexture));
     }
 
     private void addMapIconTexture(PropertyTable properties) {
@@ -242,8 +245,8 @@ public class EditMapController extends Controller {
                 : Gdx.files.getFileHandle(mapData.getMapIconPath(), mapData.getType()).nameWithoutExtension();
 
         var mapIcon = new RdLabel(name);
-        var loadIcon = new RdTextButton(strings.get("load"), "blue");
-        var removeIcon = new RdTextButton(strings.get("remove"));
+        var loadIcon = new RdTextButton(strings.get("[i18n]load"), "blue");
+        var removeIcon = new RdTextButton(strings.get("[i18n]remove"));
 
         loadIcon.addListener(new OnChangeListener() {
             @Override
@@ -252,7 +255,8 @@ public class EditMapController extends Controller {
                 Consumer<FileHandle> onSelect = handle -> {
                     // Report!
                     if (reservedNames.contains(handle.nameWithoutExtension())) {
-                        ChessApplication.self().showError(strings.get("name_reserved"));
+                        ChessApplication.self().showError(
+                            strings.get("[i18n]This name is reserved for checkerboard and background images"));
                         return;
                     }
 
@@ -260,7 +264,7 @@ public class EditMapController extends Controller {
                             Gdx.files.getFileHandle(mapData.getMapIconPath(), mapData.getType())
                             .name().equals(handle.name())) return;
 
-                    var spinner = new Spinner(strings.get("loading"));
+                    var spinner = new Spinner(strings.get("[i18n]Loading"));
                     activity.setSpinner(spinner);
                     spinner.show(RdApplication.self().getStage());
                     spinner.setSize(400, 100);
@@ -286,24 +290,25 @@ public class EditMapController extends Controller {
             }
         });
 
-        properties.add(new PropertyTable.Element(strings.get("map_icon"), mapIcon));
-        properties.add(new PropertyTable.Element(strings.get("load_icon"), loadIcon));
-        properties.add(new PropertyTable.Element(strings.get("remove_icon"), removeIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Current map icon"), mapIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Load Icon"), loadIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove Icon"), removeIcon));
     }
 
     private void addAtlas(PropertyTable properties) {
         var atlasEl = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
         atlasEl.setItems(getAtlasElements());
 
-        var removeAtlas = new RdTextButton(strings.get("remove"));
-        var loadAtlas = new RdTextButton(strings.get("load"), "blue");
+        var removeAtlas = new RdTextButton(strings.get("[i18n]remove"));
+        var loadAtlas = new RdTextButton(strings.get("[i18n]load"), "blue");
 
         loadAtlas.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 Consumer<FileHandle> onSelect = handle -> {
                     if (checkAtlasNames(handle)) {
-                        ChessApplication.self().showError(strings.get("wrong_names"));
+                        ChessApplication.self().showError(strings.format(
+                            "[i18n] Texture names should only be: {0}", reservedNames.toString()));
                         return;
                     }
 
@@ -314,7 +319,7 @@ public class EditMapController extends Controller {
                     var atlasPngs = getAtlasPngs(handle);
                     if (!atlasPngs.getKey()) return;
 
-                    var spinner = new Spinner(strings.get("loading"));
+                    var spinner = new Spinner(strings.get("[i18n]Loading"));
                     activity.setSpinner(spinner);
                     spinner.show(RdApplication.self().getStage());
                     spinner.setSize(400, 100);
@@ -339,10 +344,10 @@ public class EditMapController extends Controller {
             }
         });
 
-        properties.add(new PropertyTable.Title(strings.get("atlas")));
-        properties.add(new PropertyTable.Element(strings.get("loading_atlas"), loadAtlas));
-        properties.add(new PropertyTable.Element(strings.get("content_atlas"), atlasEl));
-        properties.add(new PropertyTable.Element(strings.get("remove_atlas"), removeAtlas));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Textures atlas")));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Load atlas"), loadAtlas));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Content atlas (regions)"), atlasEl));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove atlas"), removeAtlas));
     }
 
     private void addScenarios(PropertyTable properties) {
@@ -353,12 +358,12 @@ public class EditMapController extends Controller {
         scenariosList.setSelectedIndex(index);
 
         var rankScenario = new RdLabel(getRanked(index));
-        var createScenario = new RdTextButton(strings.get("create"), "blue");
-        var removeScenario = new RdTextButton(strings.get("remove"));
+        var createScenario = new RdTextButton(strings.get("[i18n]create"), "blue");
+        var removeScenario = new RdTextButton(strings.get("[i18n]remove"));
 
         var scenarioIcon = new RdLabel(getScenarioIcon(index));
-        var loadIcon = new RdTextButton(strings.get("load"), "blue");
-        var removeIcon = new RdTextButton(strings.get("remove"));
+        var loadIcon = new RdTextButton(strings.get("[i18n]load"), "blue");
+        var removeIcon = new RdTextButton(strings.get("[i18n]remove"));
 
         scenariosList.addListener(new OnChangeListener() {
             @Override
@@ -390,7 +395,7 @@ public class EditMapController extends Controller {
                 stringsScenario.setItems(getScenariosList());
 
                 for (var lang : resources.getStrings().keys()) {
-                    lang = ChessApplication.self().getDisplayLanguages().get(ChessApplication.self().getLanguages().indexOf(lang));
+                    lang = RdApplication.self().getDisplayLanguages()[indexOf(ChessApplication.self().getLanguageCodes(), lang)];
 
                     putString(lang, "title_scenario_" + (mapData.getScenarios().length), "null");
                     putString(lang, "desc_scenario_" + (mapData.getScenarios().length), "null");
@@ -458,7 +463,7 @@ public class EditMapController extends Controller {
                Consumer<FileHandle> onSelect = handle -> {
                     int index = getScenarioIndex(scenariosList);
                     if (reservedNames.contains(handle.nameWithoutExtension())) {
-                        ChessApplication.self().showError(strings.get("name_reserved"));
+                        ChessApplication.self().showError(strings.get("[i18n]This name is reserved for checkerboard and background images"));
                         return;
                     }
 
@@ -467,7 +472,7 @@ public class EditMapController extends Controller {
                             Gdx.files.getFileHandle(mapData.getScenarioIconPaths()[index], mapData.getType())
                             .name().equals(handle.name())) return;
 
-                    var spinner = new Spinner(strings.get("loading"));
+                    var spinner = new Spinner(strings.get("[i18n]Loading"));
                     activity.setSpinner(spinner);
                     spinner.show(RdApplication.self().getStage());
                     spinner.setSize(400, 100);
@@ -495,25 +500,25 @@ public class EditMapController extends Controller {
             }
         });
 
-        properties.add(new PropertyTable.Title(strings.get("scenarios")));
-        properties.add(new PropertyTable.Element(strings.get("list_scenarios"), scenariosList));
-        properties.add(new PropertyTable.Element(strings.get("create_scenario"), createScenario));
-        properties.add(new PropertyTable.Element(strings.get("remove_scenario"), removeScenario));
-        properties.add(new PropertyTable.Element(strings.get("ranked_scenario"), rankScenario));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Scenarios")));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]List of scenarios"), scenariosList));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Create scenario"), createScenario));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove scenario"), removeScenario));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Ranked scenario"), rankScenario));
 
-        properties.add(new PropertyTable.Element(strings.get("scenario_icon"), scenarioIcon));
-        properties.add(new PropertyTable.Element(strings.get("load_icon_scenario"), loadIcon));
-        properties.add(new PropertyTable.Element(strings.get("remove_icon_scenario"), removeIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Scenario icon"), scenarioIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Load scenario icon"), loadIcon));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove scenario icon"), removeIcon));
     }
 
     private void addDescription(PropertyTable properties) {
         var englishKey = Locale.ENGLISH.getDisplayLanguage(Locale.ENGLISH);
-        properties.add(new PropertyTable.Title(strings.get("mod_desc")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Description")));
 
         var lang = new RdSelectBox<String>(ChessAssetManager.current().getSkin());
-        lang.setItems(ChessApplication.self().getDisplayLanguages().toArray(new String[0]));
-        var addLang = new RdTextButton(strings.get("add"), "blue");
-        var removeLang = new RdTextButton(strings.get("remove"));
+        lang.setItems(ChessApplication.self().getDisplayLanguages());
+        var addLang = new RdTextButton(strings.get("[i18n]add"), "blue");
+        var removeLang = new RdTextButton(strings.get("[i18n]remove"));
 
         var name = new RdTextArea("", ChessAssetManager.current().getSkin());
         //name.setPrefLines(2);
@@ -578,8 +583,8 @@ public class EditMapController extends Controller {
 
                 var langMap = new ObjectMap<>(resources.getStrings().get("en"));
                 resources.getStrings().put(
-                        ChessApplication.self().getLanguages().get(
-                                ChessApplication.self().getDisplayLanguages().indexOf(lang.getSelected())), langMap);
+                        ChessApplication.self().getLanguageCodes()
+                                [indexOf(ChessApplication.self().getDisplayLanguages(), lang.getSelected())], langMap);
                 mapLang.setItems(getMapLanguages());
             }
         });
@@ -591,8 +596,8 @@ public class EditMapController extends Controller {
                         || !mapLang.getItems().contains(lang.getSelected(), false)) return;
 
                 resources.getStrings()
-                        .remove(ChessApplication.self().getLanguages().get(
-                                ChessApplication.self().getDisplayLanguages().indexOf(lang.getSelected())));
+                        .remove(ChessApplication.self().getLanguageCodes()
+                                [indexOf(ChessApplication.self().getDisplayLanguages(), lang.getSelected())]);
                 mapLang.setItems(getMapLanguages());
             }
         });
@@ -631,19 +636,19 @@ public class EditMapController extends Controller {
             }
         });
 
-        properties.add(new PropertyTable.Element(strings.get("available_lang"), lang));
-        properties.add(new PropertyTable.Element(strings.get("add_lang"), addLang));
-        properties.add(new PropertyTable.Element(strings.get("remove_lang"), removeLang));
-        properties.add(new PropertyTable.Element(strings.get("map_lang"), mapLang));
-        properties.add(new PropertyTable.Element(strings.get("mod_name"), name));
-        properties.add(new PropertyTable.Element(strings.get("mod_desc"), description));
-        properties.add(new PropertyTable.Element(strings.get("mod_author"), author));
-        properties.add(new PropertyTable.Element(strings.get("mod_created"), created));
-        properties.add(new PropertyTable.Element(strings.get("mod_updated"), updated));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Available languages"), lang));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Add language]"), addLang));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Remove language"), removeLang));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Map languages"), mapLang));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Name"), name));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Description"), description));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Author"), author));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Created"), created));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Updated"), updated));
 
-        properties.add(new PropertyTable.Element(strings.get("list_scenarios"), stringsScenario));
-        properties.add(new PropertyTable.Element(strings.get("name_scenario"), titleScenario));
-        properties.add(new PropertyTable.Element(strings.get("desc_scenario"), descScenario));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]List of scenarios"), stringsScenario));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Scenario name"), titleScenario));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Scenario description"), descScenario));
     }
 
     private void addSettingsMap(PropertyTable properties) {
@@ -654,13 +659,13 @@ public class EditMapController extends Controller {
         var padBottom = new RdTextArea(String.valueOf(mapData.getPadBottom()), ChessAssetManager.current().getSkin());
         var padTop = new RdTextArea(String.valueOf(mapData.getPadTop()), ChessAssetManager.current().getSkin());
 
-        properties.add(new PropertyTable.Title(strings.get("map_settings")));
-        properties.add(new PropertyTable.Element(strings.get("width_board"), mapWidth));
-        properties.add(new PropertyTable.Element(strings.get("height_board"), mapHeight));
-        properties.add(new PropertyTable.Element(strings.get("pad_left_board"), padLeft));
-        properties.add(new PropertyTable.Element(strings.get("pad_right_board"), padRight));
-        properties.add(new PropertyTable.Element(strings.get("pad_bottom_board"), padBottom));
-        properties.add(new PropertyTable.Element(strings.get("pad_top_board"), padTop));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Map settings")));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Width of the checkerboard in pixels"), mapWidth));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Height of the checkerboard in pixels"), mapHeight));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Chessboard left padding in pixels (sides)"), padLeft));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Chessboard Right Padding in Pixels (sides)"), padRight));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Chessboard bottom padding in pixels (sides)"), padBottom));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Chessboard top padding in pixels (sides)"), padTop));
 
         mapWidth.addListener(new OnChangeListener() {
             @Override
@@ -721,7 +726,7 @@ public class EditMapController extends Controller {
 
     private void loadTexture(FileHandle handle, CallListener callListener) {
         var desc = new AssetDescriptor<>(handle, Texture.class);
-        var loader = new ResourcesLoader(Files.FileType.Absolute);
+        var loader = new AssetsLoader(Files.FileType.Absolute);
         loader.getAssetManager().load(desc);
         mapData.setTexturePaths(Arrays.copyOf(mapData.getTexturePaths(), mapData.getTexturePaths().length + 1));
         mapData.getTexturePaths()[mapData.getTexturePaths().length - 1]
@@ -765,15 +770,17 @@ public class EditMapController extends Controller {
             }
         });
         loader.launchLoad();
+
     }
 
     private void loadMapIcon(FileHandle handle, CallListener callListener) {
         var desc = new AssetDescriptor<>(handle, Texture.class);
-        var loader = new ResourcesLoader(Files.FileType.Absolute);
+        var loader = new AssetsLoader(Files.FileType.Absolute);
         loader.getAssetManager().load(desc);
 
         if (mapData.getMapIconPath() != null) {
-            int index = findIndex(resources.getTextureNames(), Gdx.files.external(mapData.getMapIconPath()).name());
+            int index = findIndex(resources.getTextureNames(),
+                Gdx.files.getFileHandle(mapData.getMapIconPath(), mapData.getType()).name());
             resources.setTextures(remove(resources.getTextures(), index));
             resources.setTextureNames(remove(resources.getTextureNames(), index));
         }
@@ -889,7 +896,7 @@ public class EditMapController extends Controller {
 
     private void loadAtlas(FileHandle handle, Array<FileHandle> atlasPngs, CallListener callListener) {
         var desc = new AssetDescriptor<>(handle, TextureAtlas.class);
-        var loader = new ResourcesLoader(Files.FileType.Absolute);
+        var loader = new AssetsLoader(Files.FileType.Absolute);
         loader.getAssetManager().load(desc);
         mapData.setAtlasPath(
                 String.format("%s/map%d/%s", ChessConstants.MAPS_DIRECTORY,
@@ -974,7 +981,7 @@ public class EditMapController extends Controller {
 
     private void loadScenarioIcon(FileHandle handle, int index, CallListener callListener) {
         var desc = new AssetDescriptor<>(handle, Texture.class);
-        var loader = new ResourcesLoader(Files.FileType.Absolute);
+        var loader = new AssetsLoader(Files.FileType.Absolute);
         loader.getAssetManager().load(desc);
 
         mapData.getScenarioIconPaths()[index] =
@@ -1085,7 +1092,8 @@ public class EditMapController extends Controller {
 
     // lang is short title language!
     private void putString(String lang, String key, String value) {
-        lang = ChessApplication.self().getLanguages().get(ChessApplication.self().getDisplayLanguages().indexOf(lang));
+        lang = ChessApplication.self().getLanguageCodes()
+            [indexOf(ChessApplication.self().getDisplayLanguages(), lang)];
 
         var langStrings = resources.getStrings()
                 .get(lang);
@@ -1100,8 +1108,8 @@ public class EditMapController extends Controller {
 
         for (int i = 0; i < data.length; i++) {
             var current = keys.next();
-            var index = ChessApplication.self().getLanguages().indexOf(current);
-            data[i] = ChessApplication.self().getDisplayLanguages().get(index);
+            var index = indexOf(ChessApplication.self().getLanguageCodes(), current);
+            data[i] = ChessApplication.self().getDisplayLanguages()[index];
         }
 
         return data;
@@ -1109,7 +1117,8 @@ public class EditMapController extends Controller {
 
     // lang is short title language!
     private String getString(String lang, String key) {
-        lang = ChessApplication.self().getLanguages().get(ChessApplication.self().getDisplayLanguages().indexOf(lang));
+        lang = ChessApplication.self().getLanguageCodes()
+            [indexOf(ChessApplication.self().getDisplayLanguages(), lang)];
 
         if (!resources.getStrings().containsKey(lang)) return "null";
         var result = resources.getStrings().get(lang).get(key);
@@ -1230,5 +1239,14 @@ public class EditMapController extends Controller {
         }
 
         return true;
+    }
+
+    private int indexOf(String[] array, String el) {
+        for (int i = 0; i < array.length; i++) {
+            if (array[i].equals(el)) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

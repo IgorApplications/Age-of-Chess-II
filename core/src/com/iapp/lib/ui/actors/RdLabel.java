@@ -7,11 +7,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Null;
 import com.github.tommyettinger.textra.Font;
 import com.github.tommyettinger.textra.TypingLabel;
-import com.iapp.lib.ui.screens.GrayAssetManager;
 import com.iapp.lib.ui.screens.RdAssetManager;
 
 /**
- * @version 1.0
+ * @author Igor Ivanov
  * */
 public class RdLabel extends TypingLabel {
 
@@ -81,7 +80,7 @@ public class RdLabel extends TypingLabel {
     }
 
     private static Label.LabelStyle valueOf(RdLabelStyle labelStyle) {
-        var style = new Label.LabelStyle(null, labelStyle.color);
+        Label.LabelStyle style = new Label.LabelStyle(null, labelStyle.color);
         style.background = labelStyle.background;
         return style;
     }

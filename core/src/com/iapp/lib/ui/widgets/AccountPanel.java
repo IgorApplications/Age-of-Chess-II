@@ -4,11 +4,11 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.web.Account;
-import com.iapp.ageofchess.services.ChessAssetManager;
-import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.ui.actors.RdImageTextButton;
 import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.util.OnChangeListener;
@@ -29,8 +29,16 @@ public class AccountPanel extends Table {
 
     private boolean initListeners;
 
+    public AccountPanel(AccountPanelStyle style) {
+        init(style);
+    }
+
+    public AccountPanel(String styleName) {
+        this(RdAssetManager.current().getSkin().get(styleName, AccountPanel.AccountPanelStyle.class));
+    }
+
     public AccountPanel() {
-        init();
+        this("default");
     }
 
     public AvatarView getAvatarView() {
@@ -79,19 +87,17 @@ public class AccountPanel extends Table {
         });
     }
 
-    private void init() {
-        setBackground(new NinePatchDrawable(new NinePatch(
-                ChessAssetManager.current().findChessRegion("mode_app"),
-                390, 10, 0, 0)));
+    private void init(AccountPanelStyle style) {
+        setBackground(style.background);
         align(Align.topRight);
         padRight(10);
 
-        avatarView = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-        games = new ImageButton(ChessAssetManager.current().getGamesStyle());
-        see = new ImageButton(ChessAssetManager.current().getProfileStyle());
-        settings = new ImageButton(ChessAssetManager.current().getSettingsStyle());
+        avatarView = new AvatarView(style.avatarViewStyle);
+        games = new ImageButton(style.gamesStyle);
+        see = new ImageButton(style.profileStyle);
+        settings = new ImageButton(style.settingsStyle);
 
-        coins = new RdImageTextButton("", ChessAssetManager.current().getCoinsStyle());
+        coins = new RdImageTextButton("", style.coinsStyle);
         coins.getLabelCell().align(Align.right);
         coins.padLeft(10);
         coins.padRight(10);
@@ -111,7 +117,7 @@ public class AccountPanel extends Table {
 
     public void update(Account account, byte[] avatar) {
         avatarView.update(account, avatar);
-        coins.setText(getCoinsStr(ChessConstants.loggingAcc.getCoins()));
+        coins.setText(getCoinsStr(account.getCoins()));
     }
 
     private String getCoinsStr(long coins) {
@@ -119,5 +125,14 @@ public class AccountPanel extends Table {
         return "[GOLD]" + coins;
     }
 
+    public static class AccountPanelStyle {
 
+        public Drawable background;
+        public ImageButton.ImageButtonStyle gamesStyle;
+        public ImageButton.ImageButtonStyle profileStyle;
+        public ImageButton.ImageButtonStyle settingsStyle;
+        public RdImageTextButton.RdImageTextButtonStyle coinsStyle;
+        public AvatarView.AvatarViewStyle avatarViewStyle;
+
+    }
 }

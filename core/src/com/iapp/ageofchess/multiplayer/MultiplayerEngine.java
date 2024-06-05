@@ -8,6 +8,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.modding.LocalMatch;
+import com.iapp.lib.ui.actors.RdDialog;
+import com.iapp.lib.ui.widgets.AccountPanel;
 import com.iapp.lib.web.*;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.ui.screens.RdApplication;
@@ -29,13 +31,15 @@ import java.util.function.Consumer;
  * on requests and update listeners
  * @author Igor Ivanov
  * <p>
+ *
  * the binary protocol works in the following format:
  * send:
- * 0 (update avatar): [0] - request, [1] - id size, [2:n] - id, [n+1:] - avatar
- * 1 (get avatar): [0] - request, [1] - id size, [2:] - id
+ * 0 (update avatar): [0] - request, [1] - id size, [2:n] - id, [n+1:] - avatar;
+ * 1 (get avatar): [0] - request, [1] - id size, [2:] - id;
+ * 2 (read data): [0] - request, [1] - id request;
  * update server:
- * 0 (result update avatar): [0] - request, [1] - RequestStatus ordinal
- * 1 (result get avatar): [0] - request, [1] - RequestStatus ordinal, [2] - id size, [2:n] - id, [n+1:] - avatar
+ * 0 (result update avatar): [0] - request, [1] - RequestStatus ordinal;
+ * 1 (result get avatar): [0] - request, [1] - RequestStatus ordinal, [2] - id size, [2:n] - id, [n+1:] - avatar;
  *
  * */
 public class MultiplayerEngine implements Client {
@@ -44,6 +48,9 @@ public class MultiplayerEngine implements Client {
 
     private final Gson gson;
     private final AtomicBoolean initEngine = new AtomicBoolean(false);
+
+    /** control server listeners */
+    private final Map<Byte, Consumer<byte[]>> onPartData = RdApplication.self().getLauncher().concurrentHashMap();
 
     /** punish callbacks */
     private volatile Consumer<String> onPunishError;
@@ -127,6 +134,14 @@ public class MultiplayerEngine implements Client {
         socket.send(new SocketRequest("/api/v1/server/restart"));
     }
 
+    public void readDataFromServer(String absPath, Consumer<byte[]> onPart) {
+        // only developers
+        byte id = generateServerDataId();
+        onPartData.put(id, onPart);
+        socket.send(new SocketRequest("/api/v1/server/readData",
+            Long.toString(id), absPath));
+    }
+
     public void tryConnect(BiConsumer<Boolean, String> onTryConnect) {
         if (socket.isOpen()) {
             onTryConnect.accept(true, "");
@@ -147,7 +162,7 @@ public class MultiplayerEngine implements Client {
         loginTime.set(RdApplication.self().getLauncher().currentMillis());
 
         var login = new Login("",
-            ChessConstants.localData.getLocale().getLanguage(),
+            ChessConstants.localData.getLangCode(),
             Locale.getDefault().getLanguage(),
             Locale.getDefault().getCountry(),
             SystemValidator.getOperationSystem().replaceAll("\\s", ""));
@@ -186,9 +201,14 @@ public class MultiplayerEngine implements Client {
     }
 
     @Override
-    public void getAvatar(Account account, Consumer<byte[]> getAvatar) {
+    public void requireAvatar(Account account, Consumer<byte[]> getAvatar) {
         putOnAvatar(account.getId(), getAvatar);
         socket.send(BinaryRequests.getAvatar((byte) 1, account.getId()));
+    }
+
+    @Override
+    public AccountPanel currentAccountPanel() {
+        return ChessConstants.accountPanel;
     }
 
     private byte[] getCacheAvatar(long id) {
@@ -368,15 +388,6 @@ public class MultiplayerEngine implements Client {
         onUpdateMatch = onUpdate;
     }
 
-    public void setOnUpdateMatch(long matchId, Consumer<Match> onUpdate, boolean realtime) {
-        this.matchId = matchId;
-        onUpdateMatch = onUpdate;
-        if (realtime && onUpdateMatch != null && lastMatch != null
-            && (this.matchId == matchId || this.matchId == -1)) {
-            onUpdateMatch.accept(lastMatch);
-        }
-    }
-
     public void start(long matchId) {
         socket.send(new SocketRequest("/api/v1/games/start", String.valueOf(matchId)));
     }
@@ -484,6 +495,21 @@ public class MultiplayerEngine implements Client {
                             list.clear();
                         });
 
+                        break;
+                    }
+
+                    case 2: {
+
+                        Consumer<byte[]> onPart = onPartData.get(packet[1]);
+                        if (onPart == null) {
+                            Gdx.app.error("readDataServer", "onPart == null");
+                        } else {
+                            RdApplication.postRunnable(() -> {
+                                onPart.accept(BinaryRequests.sub(packet, 2, packet.length));
+                            });
+                        }
+
+                        break;
                     }
                 }
 
@@ -525,9 +551,9 @@ public class MultiplayerEngine implements Client {
 
             case "/login": {
 
+                loginTime.set(-1);
                 if (socketRes.getStatus() == RequestStatus.DONE) {
                     parseJson(socketRes.getResult(), Account.class, loginAccount, loginError);
-                    loginTime.set(-1);
                 } else {
                     RdApplication.postRunnable(() ->
                         loginError.accept(socketRes.getStatus().toString()));
@@ -763,13 +789,24 @@ public class MultiplayerEngine implements Client {
             if (socketRes.getStatus() != RequestStatus.DONE) {
                 Gdx.app.error("error send lobby", socketRes.getStatus().toString());
                 if (socketRes.getStatus() == RequestStatus.BANNED) {
-                    ChessConstants.chatView.updateLocalLobbyMessages("self_banned");
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("self_banned"));
+
                 } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA) {
-                    ChessConstants.chatView.updateLocalLobbyMessages("wrong");
+
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("wrong"));
+
                 } else if (socketRes.getStatus() == RequestStatus.DENIED) {
-                    ChessConstants.chatView.updateLocalLobbyMessages("denied");
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("denied"));
+
+
                 } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND_COMMAND) {
-                    ChessConstants.chatView.updateLocalLobbyMessages("unknown");
+
+                    RdApplication.postRunnable(() ->
+                        ChessConstants.chatView.updateLocalLobbyMessages("unknown"));
+
                 }
             }
 
@@ -872,7 +909,8 @@ public class MultiplayerEngine implements Client {
                             + ": " + socketRes.getResult());
 
                         if (createdError != null && socketRes.getId() == ChessConstants.loggingAcc.getId()) {
-                            createdError.accept(socketRes.getStatus().toString() + ": " + socketRes.getResult());
+                            RdApplication.postRunnable(() ->
+                                createdError.accept(socketRes.getStatus().toString() + ": " + socketRes.getResult()));
                         }
                     }
 
@@ -883,13 +921,24 @@ public class MultiplayerEngine implements Client {
                     if (socketRes.getStatus() != RequestStatus.DONE) {
                         Gdx.app.error("error send message in match", socketRes.getStatus().toString());
                         if (socketRes.getStatus() == RequestStatus.BANNED) {
-                            ChessConstants.chatView.updateLocalGameMessages("self_banned");
+                            RdApplication.postRunnable(() ->
+                                ChessConstants.chatView.updateLocalGameMessages("self_banned"));
+
                         } else if (socketRes.getStatus() == RequestStatus.INCORRECT_DATA) {
-                            ChessConstants.chatView.updateLocalGameMessages("wrong");
+
+                            RdApplication.postRunnable(() ->
+                                ChessConstants.chatView.updateLocalGameMessages("wrong"));
+
                         } else if (socketRes.getStatus() == RequestStatus.DENIED) {
-                            ChessConstants.chatView.updateLocalGameMessages("denied");
+
+                            RdApplication.postRunnable(() ->
+                                ChessConstants.chatView.updateLocalGameMessages("denied"));
+
                         } else if (socketRes.getStatus() == RequestStatus.NOT_FOUND) {
-                            ChessConstants.chatView.updateLocalGameMessages("unknown");
+
+                            RdApplication.postRunnable(() ->
+                                ChessConstants.chatView.updateLocalGameMessages("unknown"));
+
                         }
                     }
 
@@ -1035,12 +1084,14 @@ public class MultiplayerEngine implements Client {
             while (true) {
 
                 if (loginTime.get() != -1 && RdApplication.self().getLauncher().currentMillis() - loginTime.get() > 15_000) {
-                    loginError.accept("Timeout");
-                    loginTime.set(-1);
+                    RdApplication.postRunnable(() -> {
+                        loginError.accept("Timeout");
+                        loginTime.set(-1);
+                    });
                 }
 
                 if (!socket.isConnecting() && !socket.isOpen()) {
-                    Gdx.app.log("multiplayerThread","Try connect");
+                    Gdx.app.log("multiplayerThread", "Try connect");
                     socket.connect();
                     reset.set(ChessConstants.loggingAcc != null);
                 } else if (reset.get()) {
@@ -1081,5 +1132,15 @@ public class MultiplayerEngine implements Client {
             sum += account.getId() * 31;
         }
         return sum;
+    }
+
+    private byte generateServerDataId() {
+        Set<Byte> existed = onPartData.keySet();
+        for (byte id = 0 ; id < Byte.MAX_VALUE - 2; id++) {
+            if (!existed.contains(id)) {
+                return id;
+            }
+        }
+        throw new IllegalStateException("There are no more identifiers for reading data from the server!");
     }
 }

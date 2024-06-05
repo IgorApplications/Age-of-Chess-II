@@ -1,5 +1,6 @@
 package com.iapp.lib.ui.actors;
 
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
@@ -57,14 +58,14 @@ public class WindowGroup extends Table {
      *  */
     public void update() {
         if (!getActions().isEmpty()) return;
-        var stage = RdApplication.self().getStage();
+        Stage stage = RdApplication.self().getStage();
 
         if (stage.getWidth() > stage.getHeight()) {
             clear();
             buttonsTable = new RdTable();
             buttonsTable.align(Align.top);
 
-            for (var button : buttons) {
+            for (Button button : buttons) {
                 buttonsTable.add(button).minWidth(style.buttonMinWidth).fillX().row();
             }
 

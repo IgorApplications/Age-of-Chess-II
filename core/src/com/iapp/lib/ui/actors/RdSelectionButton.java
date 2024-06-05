@@ -78,7 +78,7 @@ public class RdSelectionButton extends RdTable {
         if (buttonCells.size == 0) return;
 
         float cellWidth = getWidth() / buttonCells.size;
-        for (var cell : buttonCells) {
+        for (RdCell<RdImageTextButton> cell : buttonCells) {
             cell.width(cellWidth);
         }
 
@@ -88,7 +88,7 @@ public class RdSelectionButton extends RdTable {
     private void addSelection(RdImageTextButton button) {
         button.getLabel().setEllipsis("...");
         group.add(button);
-        var cell = add(button);
+        RdCell<RdImageTextButton> cell = add(button);
         buttonCells.add(cell);
     }
 }

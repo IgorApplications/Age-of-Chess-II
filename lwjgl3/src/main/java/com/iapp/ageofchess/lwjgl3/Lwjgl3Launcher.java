@@ -5,7 +5,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.github.czyzby.websocket.CommonWebSockets;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.services.ApplicationMode;
-import com.iapp.ageofchess.services.Cheats;
+import com.iapp.ageofchess.services.LocalFeatures;
 import com.iapp.ageofchess.services.ServerMode;
 import com.iapp.lib.util.SystemValidator;
 
@@ -19,7 +19,7 @@ public class Lwjgl3Launcher {
     private static Lwjgl3Application createApplication() {
         CommonWebSockets.initiate();
         return new Lwjgl3Application(new ChessApplication(
-            new RdLwjgl3Launcher(), ServerMode.SERVER, ApplicationMode.RELEASE, Cheats.USER), getDefaultConfiguration());
+            new RdLwjgl3Launcher(), ServerMode.LOCAL, ApplicationMode.DEBUG, LocalFeatures.DEVELOPER), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

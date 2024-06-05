@@ -3,19 +3,19 @@ package com.iapp.ageofchess.controllers.multiplayer;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerGameActivity;
 import com.iapp.ageofchess.activity.multiplayer.MultiplayerMenuActivity;
-import com.iapp.lib.ui.widgets.BoardView;
-import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.LocalMatch;
-import com.iapp.lib.web.Account;
 import com.iapp.ageofchess.multiplayer.Match;
 import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.ageofchess.services.SettingsUtil;
 import com.iapp.ageofchess.services.Sounds;
 import com.iapp.lib.chess_engine.*;
+import com.iapp.lib.ui.widgets.BoardView;
+import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.lib.util.CallListener;
 import com.iapp.lib.util.DisposeUtil;
+import com.iapp.lib.web.Account;
 
 import java.util.LinkedList;
 import java.util.Optional;
@@ -302,7 +302,9 @@ public class MultiplayerGameController extends MultiplayerEngineController {
                 }
                 var color = game.getColorMove();
 
-                if (color == userColor) {
+                // if not inside, then sees the moves of both players
+                // but if not inside, then their moves are not duplicated!
+                if (color == userColor || !isInside()) {
                     this.last = last;
                     // unblock
                     makeMove(key, lastMove.getValue(), false);
@@ -398,8 +400,8 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     // ---------------------------------------------------------------------------------------------------------------
 
     public String defineColorMove() {
-        if (getColorMove() == Color.WHITE) return strings.get("white_upper");
-        return strings.get("black_upper");
+        if (getColorMove() == Color.WHITE) return strings.get("[i18n]White");
+        return strings.get("[i18n]Black");
     }
 
     public int[] getFelledPieces() {
@@ -438,16 +440,16 @@ public class MultiplayerGameController extends MultiplayerEngineController {
     }
 
     public String defineDefaultGameMode() {
-        if (localMatch.getGameMode() == GameMode.TWO_PLAYERS) return strings.get("two_players");
-        else if (localMatch.getGameMode() == GameMode.NOVICE) return strings.get("novice");
-        else if (localMatch.getGameMode() == GameMode.EASY) return strings.get("easy");
-        else if (localMatch.getGameMode() == GameMode.AVERAGE) return strings.get("average");
-        else if (localMatch.getGameMode() == GameMode.HARD) return strings.get("hard");
-        else if (localMatch.getGameMode() == GameMode.EPIC) return strings.get("epic");
-        else if (localMatch.getGameMode() == GameMode.MASTER_CANDIDATE) return strings.get("candidate_master");
-        else if (localMatch.getGameMode() == GameMode.MASTER) return strings.get("master");
-        else if (localMatch.getGameMode() == GameMode.GRADMASTER) return strings.get("grandmaster");
-        else if (localMatch.getGameMode() == GameMode.MULTIPLAYER) return strings.get("multiplayer");
+        if (localMatch.getGameMode() == GameMode.TWO_PLAYERS) return strings.get("[i18n]Two Players Mode");
+        else if (localMatch.getGameMode() == GameMode.NOVICE) return strings.get("[i18n]Novice Level");
+        else if (localMatch.getGameMode() == GameMode.EASY) return strings.get("[i18n]Level Easy");
+        else if (localMatch.getGameMode() == GameMode.AVERAGE) return strings.get("[i18n]Average level");
+        else if (localMatch.getGameMode() == GameMode.HARD) return strings.get("[i18n]Hard level");
+        else if (localMatch.getGameMode() == GameMode.EPIC) return strings.get("[i18n]Level Epic");
+        else if (localMatch.getGameMode() == GameMode.MASTER_CANDIDATE) return strings.get("[i18n]Candidate Master");
+        else if (localMatch.getGameMode() == GameMode.MASTER) return strings.get("[i18n]Master");
+        else if (localMatch.getGameMode() == GameMode.GRADMASTER) return strings.get("[18n]Grandmaster");
+        else if (localMatch.getGameMode() == GameMode.MULTIPLAYER) return strings.get("[i18n]Multiplayer");
         else throw new IllegalArgumentException("unknown game mode");
     }
 

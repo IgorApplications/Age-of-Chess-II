@@ -55,7 +55,7 @@ public final class BinaryRequests {
     public static Pair<RequestStatus, Pair<Long, byte[]>> parseResultGetAvatar(byte[] array) {
         RequestStatus requestStatus = RequestStatus.values()[array[1]];
         byte idSize = array[2];
-        var id = new BigInteger(sub(array, 3, idSize + 3)).longValue();
+        long id = new BigInteger(sub(array, 3, idSize + 3)).longValue();
 
         if (requestStatus != RequestStatus.DONE) {
             return new Pair<>(requestStatus, new Pair<>(id, null));
@@ -77,7 +77,32 @@ public final class BinaryRequests {
         return new BigInteger(sub(message, 2, idSize + 2)).longValue();
     }
 
-    private static byte[] sub(byte[] arr, int start, int end) {
+    /**
+     * 2 (read data): [0] - request;
+     * */
+    public static byte[][] splitArray(byte request, byte reqId, byte[] array, int size) {
+        int partCount = Math.max(array.length / size, 1);
+
+        byte[][] matrix = new byte[partCount][];
+        for (int i = 0; i < partCount - 1; i++) {
+            matrix[i] = sub(array, i * size, (i + 1) * size, request, reqId);
+        }
+        // adds the remainder of the division, unaccounted bits (array.length)
+        matrix[partCount - 1] = sub(array, (partCount - 1) * size, array.length, request, reqId);
+
+        return matrix;
+    }
+
+    public static byte[] sub(byte[] arr, int start, int end, byte... startAdditional) {
+        byte[] newArr = new byte[end - start + startAdditional.length];
+
+        System.arraycopy(arr, 0, newArr, startAdditional.length, arr.length);
+        System.arraycopy(startAdditional, 0, newArr, 0, startAdditional.length);
+
+        return newArr;
+    }
+
+    public static byte[] sub(byte[] arr, int start, int end) {
         byte[] newArr = new byte[end - start];
         System.arraycopy(arr, start, newArr, 0, newArr.length);
         return newArr;

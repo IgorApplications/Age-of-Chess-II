@@ -33,10 +33,11 @@ public class IgorChessEngineAdapter implements ChessEngine {
             long start = System.currentTimeMillis();
 
             engine.getMove(game, depth, game.getColorMove(), (move, typePiece) -> {
-                var textMoves = getFenMove(
+                String textMoves = getFenMove(
                         Move.valueOf(move.getPieceX(), 7 - move.getPieceY(),
                         move.getMoveX(), 7 - move.getMoveY()));
 
+                // updating a piece always occurs on the queen
                 if (game.isUpdated(move)) {
                     textMoves += game.getColorMove() == Color.BLACK ? "q" : "Q";
                 }
@@ -46,7 +47,7 @@ public class IgorChessEngineAdapter implements ChessEngine {
                 Gdx.app.debug("IgorChessEngine get best move",
                     String.format("Text move = %s%n", textMoves));
 
-                var left = minDelayMillis - (System.currentTimeMillis() - start);
+                long left = minDelayMillis - (System.currentTimeMillis() - start);
 
                 try {
                     if (left > 0) Thread.sleep(left);
@@ -74,8 +75,6 @@ public class IgorChessEngineAdapter implements ChessEngine {
         transition += String.valueOf(move.getPieceY() + 1);
         transition += vertical.get((int) move.getMoveX());
         transition += String.valueOf(move.getMoveY() + 1);
-        // TODO castle
-        //if (game.isCastleMove(move)) transition += game.getColorMove() == Color.WHITE ? "Q" : "q";
 
         return transition;
     }

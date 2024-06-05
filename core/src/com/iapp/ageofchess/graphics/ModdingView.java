@@ -17,7 +17,9 @@ import com.iapp.ageofchess.controllers.EditMapController;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.lib.ui.actors.*;
+import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.OnChangeListener;
+import com.iapp.lib.util.RdI18NBundle;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -30,6 +32,7 @@ public class ModdingView extends Image {
     private final Stage stage;
     private final TextureAtlas.AtlasRegion yellowRegion;
 
+    private RdI18NBundle strings;
     private double padLeft, padBottom, cellWidth, cellHeight;
     private PieceView[][] pieceViews = new PieceView[8][8];
     private PieceView selected;
@@ -41,6 +44,7 @@ public class ModdingView extends Image {
         this.data = data;
         stage = controller.getActivity().getStage();
         yellowRegion = ChessAssetManager.current().findChessRegion("yellow_frame");
+        strings = RdApplication.self().getStrings();
     }
 
     public int getScenario() {
@@ -117,7 +121,7 @@ public class ModdingView extends Image {
 
     private void showSelectionDialog(PieceView piece) {
         controller.getActivity().getBlackout().setVisible(true);
-        var dialog = new RdDialog(controller.getStrings().get("piece_replacement"),
+        var dialog = new RdDialog(strings.get("[i18n]Piece replacement"),
                 ChessAssetManager.current().getSkin(), "input");
         dialog.setOnCancel(new OnChangeListener() {
             @Override
@@ -130,7 +134,7 @@ public class ModdingView extends Image {
         var group = new ButtonGroup<ImageButton>();
 
         var content = new Table();
-        var scroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        var scroll = new RdScrollPane(content);
         scroll.setFadeScrollBars(false);
         scroll.setOverscroll(false, false);
         scroll.setScrollingDisabled(true, false);
@@ -153,7 +157,7 @@ public class ModdingView extends Image {
         content.add(generateButton(null, piece, group)).size(128, 128).pad(3, 3, 3, 3);
         dialog.getContentTable().add(scroll).expand().fill();
 
-        var replace = new RdTextButton(controller.getStrings().get("replace"), "blue");
+        var replace = new RdTextButton(strings.get("[i18n]Replace"), "blue");
         replace.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -165,7 +169,7 @@ public class ModdingView extends Image {
                 controller.getActivity().getBlackout().setVisible(false);
             }
         });
-        var cancel = new RdTextButton(controller.getStrings().get("cancel"));
+        var cancel = new RdTextButton(strings.get("[i18n]reject"));
         cancel.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {

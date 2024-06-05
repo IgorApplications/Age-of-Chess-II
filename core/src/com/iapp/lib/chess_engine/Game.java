@@ -54,7 +54,7 @@ public class Game {
     }
 
     public static boolean isValidFEN(String fen) {
-        var parts = fen.split(" ");
+        String[] parts = fen.split(" ");
 
         if (parts.length > 3) return false;
         if (parts.length == 3 && (!checkRightPart(parts[1]) || !checkRightPart(parts[2]))) {
@@ -72,11 +72,11 @@ public class Game {
                 .replaceAll("3", "111")
                 .replaceAll("2", "11");
 
-        var chars = List.of('r', 'n', 'b', 'q', 'k', 'p', '1', 'R', 'N', 'B', 'Q', 'K', 'P');
-        var lines = parts[0].split("/");
+        List<Character> chars = new ArrayList<>(Arrays.asList('r', 'n', 'b', 'q', 'k', 'p', '1', 'R', 'N', 'B', 'Q', 'K', 'P'));
+        String[] lines = parts[0].split("/");
         if (lines.length != 8) return false;
 
-        for (var line : lines) {
+        for (String line : lines) {
             if (line.length() != 8) return false;
 
             for (char c : line.toCharArray()) {
@@ -295,11 +295,11 @@ public class Game {
 
     public void updatePawn(int pawnX, int pawnY, byte type) {
         int sign = current.getPiece(pawnX, pawnY) > 0 ? 1 : -1;
-        current.setPiece(pawnX, pawnY, (byte) (type * sign));
+        current.updatePiece(pawnX, pawnY, (byte) (type * sign));
     }
 
     public Pair<Integer, Integer> getCheckKing() {
-        var matrix = getMatrix();
+        byte[][] matrix = getMatrix();
         for (int i = 0; i < matrix.length; i++) {
             for (int j = 0; j < matrix[i].length; j++) {
                 if (isCheckKing(j, i)) {
@@ -573,12 +573,14 @@ public class Game {
             pawnMoves.add(Move.valueOf(x, y, x + 1, y + direction));
         }
 
+        // take on the pass
         if (((y == 3 && figureColor == lower) || (y == 4 && figureColor == upper))
                 && ((getColor(x - 1, y)) != colorMove && getColor(x + 1, y) != colorMove)) {
 
             Move move = findChange();
 
-            if ((move.getPieceY() + -direction * 2) == move.getMoveY()) {
+            // only pawn
+            if (isPawn(move.getMoveX(), move.getMoveY()) && (move.getPieceY() + -direction * 2) == move.getMoveY()) {
 
                 if (x - 1 == move.getMoveX() && y == move.getMoveY()) {
                     pawnMoves.add(Move.valueOf(x, y, x - 1, y + direction));
@@ -615,29 +617,29 @@ public class Game {
         if (!isKing(pieceX, pieceY) || isKingMadeMove()) return new Array<>(0);
 
         Color kingColor = getColor(pieceX, pieceY);
-        Array<Move> checkMoves = new Array<>();
+        Array<Move> castleMoves = new Array<>();
 
         if ((kingColor == upper && pieceY == 0) || (kingColor == lower && pieceY == 7)) {
             if (pieceX == 3) {
                 if (checkTreePosition(pieceX, pieceY, -1) && checkQueenCastleByRook(kingColor)) {
-                    checkMoves.add(Move.valueOf(pieceX, pieceY, pieceX - 2, pieceY));
+                    castleMoves.add(Move.valueOf(pieceX, pieceY, pieceX - 2, pieceY));
                 }
 
                 if (checkFourPosition(pieceX, pieceY, 1)  && checkKingCastleByRook(kingColor)) {
-                    checkMoves.add(Move.valueOf(pieceX, pieceY, pieceX + 2, pieceY));
+                    castleMoves.add(Move.valueOf(pieceX, pieceY, pieceX + 2, pieceY));
                 }
             } else if (pieceX == 4) {
                 if (checkFourPosition(pieceX, pieceY, -1) && checkQueenCastleByRook(kingColor)) {
-                    checkMoves.add(Move.valueOf(pieceX, pieceY, pieceX - 2, pieceY));
+                    castleMoves.add(Move.valueOf(pieceX, pieceY, pieceX - 2, pieceY));
                 }
 
                 if (checkTreePosition(pieceX, pieceY, 1) && checkKingCastleByRook(kingColor)) {
-                    checkMoves.add(Move.valueOf(pieceX, pieceY, pieceX + 2, pieceY));
+                    castleMoves.add(Move.valueOf(pieceX, pieceY, pieceX + 2, pieceY));
                 }
             }
         }
 
-        return checkMoves;
+        return castleMoves;
     }
 
     private boolean checkKingCastleByRook(Color color) {

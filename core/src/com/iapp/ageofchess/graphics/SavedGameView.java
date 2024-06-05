@@ -17,6 +17,7 @@ import com.iapp.lib.util.OnChangeListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 
 public class SavedGameView extends Table {
@@ -25,7 +26,7 @@ public class SavedGameView extends Table {
         var strings = ChessApplication.self().getStrings();
 
         var formatter = new SimpleDateFormat("dd MMMM yyyy hh:mm",
-                ChessConstants.localData.getLocale());
+                new Locale(ChessConstants.localData.getLangCode()));
         formatter.setTimeZone(TimeZone.getDefault());
         setBackground(new NinePatchDrawable(
                 new NinePatch(ChessApplication.self().getAssetManager().findRegion("lite_pane"),
@@ -36,7 +37,7 @@ public class SavedGameView extends Table {
         var pair = SettingsUtil.defineResult(state.getResult());
         var result = new RdLabel("[%75]" + pair.getKey());
         result.setColor(pair.getValue());
-        var turns = new RdLabel("[%75]" + strings.format("turns", state.getGame().getTurn()));
+        var turns = new RdLabel("[%75]" + strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", state.getGame().getTurn()));
         var ranked = getRanked(state);
 
         var content = new Table();
@@ -80,12 +81,11 @@ public class SavedGameView extends Table {
         var ranked = new RdLabel("");
         var rankedFlag = state.getMatch().isRanked();
         if (rankedFlag) {
-            ranked.setText("[%75][GOLD]" + strings.get("ranked"));
+            ranked.setText("[%75][GOLD]" + strings.get("[i18n]ranked"));
             table.add(new Image(ChessAssetManager.current().findChessRegion("cup")));
         } else {
-            ranked.setText("[%75]" + strings.get("non_ranked"));
+            ranked.setText("[%75]" + strings.get("[i18n]Not ranked"));
         }
-        //ranked.setPadBottom(15);
         table.add(ranked).padLeft(5);
 
         return table;

@@ -39,13 +39,19 @@ public class BoardMatrix {
     static final int ID_SIZE = 8;
     static final int INDENT_WALL = 2;
 
-    private static final Map<Character, Byte> fenByPieces  = new HashMap<>(Map.of(
-            'K', WHITE_KING,  'Q', WHITE_QUEEN, 'B', WHITE_BISHOP,
-            'N', WHITE_KNIGHT, 'R', WHITE_ROOK, 'P', WHITE_PAWN,
-            '1', CAGE,
-            'p', BLACK_PAWN, 'r', BLACK_ROOK, 'n', BLACK_KNIGHT));
+    private static final Map<Character, Byte> fenByPieces = new HashMap<>();
 
     static {
+        fenByPieces.put('K', WHITE_KING);
+        fenByPieces.put('Q', WHITE_QUEEN);
+        fenByPieces.put('B', WHITE_BISHOP);
+        fenByPieces.put('N', WHITE_KNIGHT);
+        fenByPieces.put('R', WHITE_ROOK);
+        fenByPieces.put('P', WHITE_PAWN);
+        fenByPieces.put('1', CAGE);
+        fenByPieces.put('p', BLACK_PAWN);
+        fenByPieces.put('r', BLACK_ROOK);
+        fenByPieces.put('n', BLACK_KNIGHT);
         fenByPieces.put('b', BLACK_BISHOP);
         fenByPieces.put('q', BLACK_QUEEN);
         fenByPieces.put('k', BLACK_KING);
@@ -72,7 +78,7 @@ public class BoardMatrix {
                 .replaceAll("4", "1111").replaceAll("5", "11111")
                 .replaceAll("6", "111111").replaceAll("7", "1111111")
                 .replaceAll("8", "11111111");
-        var tokens = fen.split(" ");
+        String[] tokens = fen.split(" ");
 
         id = new byte[][] {
                 {-1, -1, -1, -1, -1, -1, -1, -1},
@@ -101,41 +107,45 @@ public class BoardMatrix {
         };
 
         byte idPiece = 0;
-        var lines = tokens[0].split("/");
+        String[] lines = tokens[0].split("/");
         for (int i = 0; i < lines.length; i++) {
-            var array = lines[i].toCharArray();
+            char[] array = lines[i].toCharArray();
 
             for (int j = 0; j < array.length; j++) {
-                var type = fenByPieces.get(array[j]);
+                byte type = fenByPieces.get(array[j]);
                 if (type == CAGE) id[i][j] = -1;
                 else id[i][j] = idPiece++;
                 matrix[i + INDENT_WALL][j + INDENT_WALL] = type;
             }
         }
 
+        for (int i = 0; i < 6; i++) {
+            flags.set(i, true);
+        }
+
         if (tokens.length > 2) {
             if (!tokens[2].contains("Q") && !tokens[2].contains("K")) {
-                flags.set(0, true);
+                flags.set(0, false);
 
             } else {
                 if (!tokens[2].contains("Q")) {
-                    flags.set(2, true);
+                    flags.set(2, false);
                 }
 
                 if (!tokens[2].contains("K")) {
-                    flags.set(3, true);
+                    flags.set(3, false);
                 }
             }
 
             if (!tokens[2].contains("q") && !tokens[2].contains("k")) {
-                flags.set(1, true);
+                flags.set(1, false);
             } else {
                 if (!tokens[2].contains("q")) {
-                    flags.set(4, true);
+                    flags.set(4, false);
                 }
 
                 if (!tokens[2].contains("k")) {
-                    flags.set(5, true);
+                    flags.set(5, false);
                 }
             }
         }
@@ -177,6 +187,10 @@ public class BoardMatrix {
         if (upper == Color.WHITE) {
             flipBoard();
         }
+
+        for (int i = 0; i < 6; i++) {
+            flags.set(i, false);
+        }
     }
 
     boolean isWhiteKingMadeMove() {
@@ -187,6 +201,7 @@ public class BoardMatrix {
     boolean isBlackKingMadeMove() {
         return flags.get(1);
     }
+
     public boolean isLeftWhiteRookMadeMove() {
         return flags.get(2);
     }
@@ -249,7 +264,7 @@ public class BoardMatrix {
         matrix[y + INDENT_WALL][x + INDENT_WALL] = matrix[pieceY + INDENT_WALL][pieceX + INDENT_WALL];
     }
 
-    void setPiece(int pieceX, int pieceY, byte piece) {
+    void updatePiece(int pieceX, int pieceY, byte piece) {
         if (piece == CAGE) throw new IllegalArgumentException();
         matrix[pieceY + INDENT_WALL][pieceX + INDENT_WALL] = piece;
     }
@@ -274,10 +289,10 @@ public class BoardMatrix {
     }
 
     private void flipBoard() {
-        var line1 = matrix[2];
-        var line2 = matrix[3];
-        var line3 = matrix[4];
-        var line4 = matrix[5];
+        byte[] line1 = matrix[2];
+        byte[] line2 = matrix[3];
+        byte[] line3 = matrix[4];
+        byte[] line4 = matrix[5];
 
         matrix[2] = matrix[9];
         matrix[3] = matrix[8];

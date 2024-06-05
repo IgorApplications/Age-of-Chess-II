@@ -24,31 +24,19 @@ public class LineTable extends RdTable {
     private String textTitle = "";
     private RdCell<Image> left, right;
 
-    public LineTable(String textTitle, Skin skin) {
-        super(skin);
-        style = skin.get(LineTable.LineTableStyle.class);
-        this.textTitle = textTitle;
-        initialize();
-    }
-
-    public LineTable(String textTitle, Skin skin, String name) {
-        super(skin);
-        style = skin.get(name, LineTable.LineTableStyle.class);
-        this.textTitle = textTitle;
-        initialize();
-    }
-
     public LineTable(String textTitle, LineTableStyle style) {
         this.style = style;
         this.textTitle = textTitle;
         initialize();
     }
 
-    public LineTable(String textTitle) {
-        this(textTitle, RdAssetManager.current().getSkin());
+    public LineTable(String styleName, String textTitle) {
+        this(textTitle, RdAssetManager.current().getSkin().get(styleName, LineTable.LineTableStyle.class));
     }
 
-    boolean first;
+    public LineTable(String textTitle) {
+        this("default", textTitle);
+    }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {

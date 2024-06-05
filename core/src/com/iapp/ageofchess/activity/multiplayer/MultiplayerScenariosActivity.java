@@ -13,7 +13,8 @@ import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.activity.GameActivity;
 import com.iapp.ageofchess.controllers.multiplayer.MultiplayerScenariosController;
-import com.iapp.ageofchess.graphics.MapDataView;
+import com.iapp.ageofchess.graphics.MapScenariosView;
+import com.iapp.ageofchess.graphics.MapView;
 import com.iapp.ageofchess.graphics.ScenarioView;
 import com.iapp.ageofchess.modding.MapData;
 import com.iapp.ageofchess.multiplayer.Match;
@@ -25,7 +26,6 @@ import com.iapp.lib.ui.screens.RdLogger;
 import com.iapp.lib.util.*;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 public class MultiplayerScenariosActivity extends Activity {
 
@@ -52,7 +52,7 @@ public class MultiplayerScenariosActivity extends Activity {
 
     @Override
     public void initActors() {
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
     }
 
@@ -93,16 +93,16 @@ public class MultiplayerScenariosActivity extends Activity {
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
         properties.setVisibleBackground(false);
 
-        properties.add(new PropertyTable.Title(strings.get("scenario_selection")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Scene selection")));
         addMapInfo(properties.getContent(), ChessAssetManager.current().getDataMaps());
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Multiplayer"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -129,7 +129,7 @@ public class MultiplayerScenariosActivity extends Activity {
         for (int i = 0; i < maps.size(); i++) {
             int finalI = i;
 
-            content.add(new MapDataView(maps.get(i), new OnChangeListener() {
+            content.add(new MapScenariosView(maps.get(i), new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
                     if (match != null) {
@@ -138,7 +138,8 @@ public class MultiplayerScenariosActivity extends Activity {
                         showScenarios(maps.get(finalI));
                     }
                 }
-            })).expandX().fillX().pad(10, 10, 10, 10).row();
+            }) {
+            }).expandX().fillX().pad(10, 10, 10, 10).row();
         }
     }
 
@@ -148,11 +149,11 @@ public class MultiplayerScenariosActivity extends Activity {
             return;
         }
 
-        scenarios = new RdDialog(strings.get("scenarios"), ChessAssetManager.current().getSkin());
+        scenarios = new RdDialog(strings.get("[i18n]Scenarios"), ChessAssetManager.current().getSkin());
 
         var content = new RdTable();
         content.align(Align.topLeft);
-        var scrollPane = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        var scrollPane = new RdScrollPane(content);
         scrollPane.setScrollingDisabled(true, false);
 
         for (int i = 0; i < mapData.getScenarios().length; i++) {
@@ -162,7 +163,7 @@ public class MultiplayerScenariosActivity extends Activity {
                 content.add(new ScenarioView(mapData, i, new OnChangeListener() {
                             @Override
                             public void onChange(Actor actor) {
-                                scenarios.hide(Actions.run(() ->
+                                scenarios.afterHide(Actions.run(() ->
                                     controller.goToCreation(mapData, finalI)));
 
                             }
@@ -174,14 +175,14 @@ public class MultiplayerScenariosActivity extends Activity {
 
                 int index = badScenarios.size;
                 var badScenario = new RdDialogBuilder()
-                        .title(strings.get("error"))
+                        .title(strings.get("[i18n]Error"))
                         .text(RdLogger.self().getDescription(t))
-                        .accept(strings.get("accept"),
+                        .accept(strings.get("[i18n]accept"),
                             (dialog, s) -> {
                                 badScenarios.get(index).hide();
                                 badScenarios.removeValue(badScenarios.get(index), true);
                             })
-                        .build(ChessAssetManager.current().getSkin(), "input");
+                        .build("input");
 
                 badScenarios.add(badScenario);
                 badScenario.getIcon().setDrawable(new TextureRegionDrawable(

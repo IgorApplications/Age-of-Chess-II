@@ -24,7 +24,6 @@ import java.util.function.BiConsumer;
 public class SettingsController extends Controller {
 
     private final SettingsActivity activity;
-    private RdDialog dialog;
 
     public SettingsController(SettingsActivity activity) {
         super(activity);
@@ -36,15 +35,10 @@ public class SettingsController extends Controller {
     }
 
     public void updateLang(int index) {
-        if (ChessApplication.self().getLanguageLocales().get(index).getLanguage()
-                .equals(ChessConstants.localData.getLocale().getLanguage())) return;
+        if (RdApplication.self().getLanguageCodes()[index]
+                .equals(ChessConstants.localData.getLangCode())) return;
 
-        ChessConstants.localData.setLocale(ChessApplication.self().getLanguageLocales().get(index));
-
-        RdApplication.self().setStrings(
-                RdI18NBundle.createBundle(
-                        Gdx.files.internal("languages/lang"),
-                        ChessConstants.localData.getLocale()));
+        ChessConstants.localData.setLocale(RdApplication.self().getLanguageCodes()[index]);
         ChessApplication.self().initialize();
 
         startActivity(new SettingsActivity(),
@@ -65,8 +59,20 @@ public class SettingsController extends Controller {
         ChessConstants.localData.setEnableSounds(checked);
     }
 
+    public void updateVolumeEffects(String text) {
+        float volume = Integer.parseInt(text.substring(0, text.length() - 1)) / 100f;
+        ChessConstants.localData.setEffectsVolume(volume);
+        Sounds.self().setVolumeEffects(volume);
+    }
+
+    public void updateVolumeMusic(String text) {
+        float volume = Integer.parseInt(text.substring(0, text.length() - 1)) / 100f;
+        ChessConstants.localData.setMusicVolume(volume);
+        Sounds.self().setVolumeMusic(volume);
+    }
+
     public void updateFPS(String selected) {
-        if (selected.equals(strings.get("infinity"))) ChessConstants.localData.setFps(LocalData.Fps.INFINITY);
+        if (selected.equals(strings.get("[i18n]infinity"))) ChessConstants.localData.setFps(LocalData.Fps.INFINITY);
         else ChessConstants.localData.setFps(LocalData.Fps.of(Integer.parseInt(selected.replaceAll(" fps", ""))));
         RdApplication.self().setFps(ChessConstants.localData.getFps().getValue());
     }
@@ -76,30 +82,15 @@ public class SettingsController extends Controller {
         ChessApplication.self().getLoggingView().setVisible(checked);
     }
 
-    public RdDialog resetSettings() {
-        dialog = new RdDialogBuilder()
-                .title(strings.get("confirmation"))
-                .text(strings.get("reset_question"))
-                .cancel(strings.get("cancel"))
-                .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
-                    @Override
-                    public void accept(RdDialog dialog, String s) {
-                        ChessConstants.localData = new LocalData();
-                        ChessConstants.localData.setLocale(Locale.getDefault());
-                        ChessApplication.self().initialize();
+    public void resetSettings() {
+        ChessApplication.self().showConf(strings.get("[i18n]Are you sure you want to reset the application preferences?"),
+            (dialog, result) -> {
+            ChessConstants.localData = new LocalData();
+            ChessConstants.localData.setLocale(RdApplication.self().getDefaultLanguage());
+            ChessApplication.self().initialize();
 
-                        startActivity(new SettingsActivity());
-                    }
-                })
-                .build(ChessAssetManager.current().getSkin(), "input");
-
-        dialog.getIcon().setDrawable(new TextureRegionDrawable(
-                GrayAssetManager.current().findRegion("icon_warn")));
-        dialog.getIcon().setScaling(Scaling.fit);
-        dialog.show(activity.getStage());
-        dialog.setSize(800, 550);
-
-        return dialog;
+            startActivity(new SettingsActivity());
+        });
     }
 
     public void updateFullScreen(boolean checked) {

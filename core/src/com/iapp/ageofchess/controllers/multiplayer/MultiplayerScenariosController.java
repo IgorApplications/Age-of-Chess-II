@@ -52,7 +52,7 @@ public class MultiplayerScenariosController extends Controller {
                 .rankType(match.getRankType());
         LocalMatch localMatch = new LocalMatch(CreationActivity.generateMatchId(), builder);
 
-        Spinner spinner = new Spinner(strings.get("loading"), ChessAssetManager.current().getSkin());
+        Spinner spinner = new Spinner(strings.get("[i18n]Loading"), ChessAssetManager.current().getSkin());
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);
@@ -64,7 +64,7 @@ public class MultiplayerScenariosController extends Controller {
 
                 spinner.hide();
                 // error entry into match
-                ChessApplication.self().showError(strings.format("error_enter", error));
+                ChessApplication.self().showError(strings.format("[i18n]Error entry into match '{0}'", error));
 
             }
         );

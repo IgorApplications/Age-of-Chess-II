@@ -1,5 +1,6 @@
 package com.iapp.ageofchess.activity;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
@@ -61,62 +62,67 @@ public class CreationActivity extends Activity {
         content.setFillParent(true);
         window = new RdWindow("",  "screen_window");
         window.setMovable(false);
-        properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
 
         name = new RdTextArea("", ChessAssetManager.current().getSkin());
         name.setMaxLength(15);
         pieceColor = new RdSelectionButton(
                 ChessAssetManager.current().getSkin(),
-                new String[]{strings.get("white"), strings.get("black")});
+                new String[]{strings.get("[i18n]White"), strings.get("[i18n]Black")});
 
         flippedPieces = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
         matchDescription = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
         blockedHints = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
 
-        var infinity = strings.get("infinity");
+        String infinity = strings.get("[i18n]infinity");
+        String minByMoveKey = "[i18n]{0,choice,1#1 minute|1<{0,number} minutes}/move";
+        String turnsKey = "[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}";
+        String minutesKey = "[i18n]{0,choice,1#1 minute|1<{0,number} minutes}";
+        String hoursKey = "[i18n]{0,choice,1#1 hour|1<{0,number} hours}";
+
         timeByTurn = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         timeByTurn.setItems(
                 infinity,
-                strings.format("min_by_move", 1), strings.format("min_by_move", 2),
-                strings.format("min_by_move", 3), strings.format("min_by_move", 4),
-                strings.format("min_by_move", 5));
+                strings.format(minByMoveKey, 1), strings.format(minByMoveKey, 2),
+                strings.format(minByMoveKey, 3), strings.format(minByMoveKey, 4),
+                strings.format(minByMoveKey, 5));
 
         maxTurns = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         maxTurns.setItems(
                 infinity,
-                strings.format("turns", 5), strings.format("turns", 10),
-                strings.format("turns", 15), strings.format("turns", 20),
-                strings.format("turns", 25), strings.format("turns", 30),
-                strings.format("turns", 35), strings.format("turns", 40),
-                strings.format("turns", 45), strings.format("turns", 50),
-                strings.format("turns", 55), strings.format("turns", 60),
-                strings.format("turns", 65), strings.format("turns", 70),
-                strings.format("turns", 75), strings.format("turns", 80),
-                strings.format("turns", 85), strings.format("turns", 90),
-                strings.format("turns", 95), strings.format("turns", 100));
+                strings.format(turnsKey, 5), strings.format(turnsKey, 10),
+                strings.format(turnsKey, 15), strings.format(turnsKey, 20),
+                strings.format(turnsKey, 25), strings.format(turnsKey, 30),
+                strings.format(turnsKey, 35), strings.format(turnsKey, 40),
+                strings.format(turnsKey, 45), strings.format(turnsKey, 50),
+                strings.format(turnsKey, 55), strings.format(turnsKey, 60),
+                strings.format(turnsKey, 65), strings.format(turnsKey, 70),
+                strings.format(turnsKey, 75), strings.format(turnsKey, 80),
+                strings.format(turnsKey, 85), strings.format(turnsKey, 90),
+                strings.format(turnsKey, 95), strings.format(turnsKey, 100));
 
         timeByGame = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         timeByGame.setItems(
                 infinity,
-                strings.format("minutes", 5),
-                strings.format("minutes", 10),
-                strings.format("minutes", 20),
-                strings.format("minutes", 30),
-                strings.format("minutes", 40),
-                strings.format("minutes", 50),
-                strings.format("hours", 1),
-                strings.format("hours", 2));
+                strings.format(minutesKey, 5),
+                strings.format(minutesKey, 10),
+                strings.format(minutesKey, 20),
+                strings.format(minutesKey, 30),
+                strings.format(minutesKey, 40),
+                strings.format(minutesKey, 50),
+                strings.format(hoursKey, 1),
+                strings.format(hoursKey, 2));
 
         turnModeSelection = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         turnModeSelection.setItems(
-                strings.get("concurrent"),
-                strings.get("concurrent_fast"));
+                strings.get("[i18n]Alternately"),
+                strings.get("[i18n]Alternately/Fast"));
 
-        create = new RdTextButton(strings.get("create"), "blue");
+        create = new RdTextButton(strings.get("[i18n]create"), "blue");
 
         randomColor = new RdCheckBox("check_box");
 
@@ -198,32 +204,32 @@ public class CreationActivity extends Activity {
         var turnModeHint = new RdImageTextButton("", "circle");
         turnModeHint.getLabelCell().reset();
         turnModeHint.setImage("ib_question");
-        var turnModeTool = new RdTextTooltip(strings.get("turn_mode_hint"));
+        var turnModeTool = new RdTextTooltip(strings.get("[i18n]In alternately mode, you always have to wait for the end of the time per turn"));
         turnModeHint.addListener(turnModeTool);
 
-        properties.add(new PropertyTable.Title(strings.get("game_creation")));
-        properties.add(new PropertyTable.Element(strings.get("game_name"), name));
-        properties.add(new PropertyTable.Element(strings.get("upper_color"), pieceColor));
-        properties.add(new PropertyTable.Element(strings.get("random_color"), randomColor));
-        properties.add(new PropertyTable.Element(strings.get("match_info"), matchDescription));
-        properties.add(new PropertyTable.Element(strings.get("blocked_hints"), blockedHints));
-        properties.add(new PropertyTable.Element(strings.get("max_turns"), maxTurns));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Game creation")));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Game name"), name));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Shape color"), pieceColor));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Random color"), randomColor));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Display match info on enter"), matchDescription));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Block hints"), blockedHints));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Max turns"), maxTurns));
 
         // Two players mode
         if (ChessConstants.localData.getGameMode() == GameMode.TWO_PLAYERS) {
-            properties.add(new PropertyTable.Element(strings.get("flipped_pieces"), flippedPieces));
-            properties.add(new PropertyTable.Element(strings.get("game_mode"), turnModeHint, turnModeSelection));
-            properties.add(new PropertyTable.Element(strings.get("game_time"), timeByGame));
-            properties.add(new PropertyTable.Element(strings.get("time_turn"), timeByTurn));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Flipped pieces"), flippedPieces));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Game mode"), turnModeHint, turnModeSelection));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Time for the whole game for one person"), timeByGame));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Time to turn"), timeByTurn));
         } else {
             flippedPieces.setChecked(false);
-            timeByGame.setSelected(strings.get("infinity"));
-            timeByTurn.setSelected(strings.get("infinity"));
+            timeByGame.setSelected(strings.get("[i18n]infinity"));
+            timeByTurn.setSelected(strings.get("[i18n]infinity"));
         }
         properties.add(new PropertyTable.Element("", create));
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("single-player"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Single Player"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);

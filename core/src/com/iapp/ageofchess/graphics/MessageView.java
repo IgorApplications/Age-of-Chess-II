@@ -4,10 +4,12 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Disposable;
 import com.iapp.ageofchess.ChessApplication;
+import com.iapp.lib.ui.screens.RdAssetManager;
 import com.iapp.lib.ui.widgets.AvatarView;
 import com.iapp.lib.web.Account;
 import com.iapp.lib.web.AccountType;
@@ -21,22 +23,20 @@ import com.iapp.lib.util.OnChangeListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class MessageView extends Table implements Disposable {
 
     private static final SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm",
-            ChessConstants.localData.getLocale());
+        new Locale(ChessConstants.localData.getLangCode()));
     private final AvatarView avatarView;
 
-    public MessageView(Message message, Account account, OnChangeListener onAvatar,
-                       OnChangeListener onDelete) {
-        setBackground(new NinePatchDrawable(
-                new NinePatch(ChessApplication.self().getAssetManager().findRegion("lite_pane"),
-                        10,10,10,10)));
+    public MessageView(MessageViewStyle style, Message message, Account account,
+                       OnChangeListener onAvatar, OnChangeListener onDelete) {
+        setBackground(style.background);
         align(Align.topLeft);
 
-        avatarView = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-
+        avatarView = new AvatarView(style.avatarViewStyle);
         avatarView.align(Align.topLeft);
         avatarView.addListener(onAvatar);
 
@@ -50,6 +50,17 @@ public class MessageView extends Table implements Disposable {
 
         add(avatarView).align(Align.topLeft).padRight(12);
         add(table2).expand().fill();
+    }
+
+    public MessageView(String styleName, Message message, Account account,
+                       OnChangeListener onAvatar, OnChangeListener onDelete) {
+        this(RdAssetManager.current().getSkin().get(styleName, MessageViewStyle.class),
+            message, account, onAvatar, onDelete);
+    }
+
+    public MessageView(Message message, Account account,
+                       OnChangeListener onAvatar, OnChangeListener onDelete) {
+        this("default", message, account, onAvatar, onDelete);
     }
 
     public AvatarView getAvatarView() {
@@ -94,5 +105,11 @@ public class MessageView extends Table implements Disposable {
     @Override
     public void dispose() {
         DisposeUtil.dispose(avatarView);
+    }
+
+    public static class MessageViewStyle {
+        public AvatarView.AvatarViewStyle avatarViewStyle;
+        public Drawable background;
+
     }
 }

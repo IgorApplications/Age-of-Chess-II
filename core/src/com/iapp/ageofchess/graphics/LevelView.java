@@ -30,7 +30,7 @@ public class LevelView extends ImageButton {
         var labelName = new RdLabel("[%125]" + name);
         labelName.setAlignment(Align.center);
         var labelTurns = new RdLabel(bestResult != Integer.MAX_VALUE ?
-                strings.format("turns", bestResult) : "???");
+                strings.format("[i18n]{0,choice,1#1 turn|1<{0,number,integer} turns}", bestResult) : "???");
         labelTurns.setAlignment(Align.center);
 
         content.add(labelName).expandX().fillX().center().row();
@@ -45,7 +45,7 @@ public class LevelView extends ImageButton {
         super(ChessAssetManager.current().getClosedLevelStyle());
         var strings = ChessApplication.self().getStrings();
         var content = new RdTable();
-        var text = new RdLabel(strings.get("closed"));
+        var text = new RdLabel(strings.get("[i18n]Closed"));
         var lock = new Image(ChessAssetManager.current().findChessRegion("lock_up_icon"));
 
         content.add(text);

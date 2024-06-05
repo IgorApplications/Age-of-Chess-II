@@ -21,7 +21,7 @@ public class CreationController extends Controller {
     }
 
     public void launchGame(LocalMatch localMatch) {
-        var spinner = new Spinner(strings.get("loading"), ChessAssetManager.current().getSkin());
+        var spinner = new Spinner(strings.get("[i18n]Loading"), ChessAssetManager.current().getSkin());
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);

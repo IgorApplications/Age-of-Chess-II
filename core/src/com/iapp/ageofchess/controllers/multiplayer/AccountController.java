@@ -43,16 +43,17 @@ public class AccountController {
     private final RdI18NBundle strings;
     private final Map<Long, Consumer<List<Match>>> idByOnMatches = RdApplication.self().getLauncher().concurrentHashMap();
     @SuppressWarnings("SimpleDateFormat")
-    private final SimpleDateFormat birthdayFormatter = new SimpleDateFormat("d MMMM yyyy", ChessConstants.localData.getLocale());
-    private final SimpleDateFormat createdFormatter = new SimpleDateFormat("d MMM yyyy", ChessConstants.localData.getLocale());
+    private final SimpleDateFormat birthdayFormatter = new SimpleDateFormat("d MMMM yyyy",
+        new Locale(ChessConstants.localData.getLangCode()));
+    private final SimpleDateFormat createdFormatter = new SimpleDateFormat("d MMM yyyy",
+        new Locale(ChessConstants.localData.getLangCode()));
     private final String[] accountTypeStrings;
     private final List<RdDialog> hiddens = new ArrayList<>();
-    private RdDialog fileSelector;
-    private RdDialog adminWarnDialog;
 
     public AccountController() {
         strings = RdApplication.self().getStrings();
-        accountTypeStrings = new String[]{strings.get("user"), strings.get("moderator"), strings.get("executor"), strings.get("developer")};
+        accountTypeStrings = new String[]{strings.get("[i18n]User"), strings.get("[i18n]Moderator"),
+            strings.get("[i18n]Executor"), strings.get("[i18n]Developer")};
     }
 
     public void seeAccount(long id, List<RdDialog> hidden) {
@@ -95,8 +96,8 @@ public class AccountController {
 
     private RdDialog showWatchingDialog(boolean self, float width, float height) {
 
-        String title = strings.get("view_acc");
-        if (self) title = strings.get("acc_management");
+        String title = strings.get("[i18n]View account");
+        if (self) title = strings.get("[i18n]Account management");
 
         var dialog = new RdDialog(title);
         dialog.getLoading().setVisible(true);
@@ -130,7 +131,7 @@ public class AccountController {
         RdTable buttons = new RdTable();
         buttons.align(Align.topLeft);
         RdTable content = new RdTable();
-        RdScrollPane contentScroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        RdScrollPane contentScroll = new RdScrollPane(content);
         contentScroll.setScrollingDisabled(true, false);
 
         NinePatchDrawable panelBg = new NinePatchDrawable(
@@ -153,8 +154,8 @@ public class AccountController {
         part5.setBackground(panelBg);
 
         RdTable avatarTable = new RdTable();
-        var avatar = new AvatarView(ChessAssetManager.current().getAvatarStyle());
-        MultiplayerEngine.self().getAvatar(account, bytes ->
+        var avatar = new AvatarView();
+        MultiplayerEngine.self().requireAvatar(account, bytes ->
             avatar.update(account, bytes));
 
         if (edit && self || !self && ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
@@ -201,7 +202,7 @@ public class AccountController {
         }
 
         if (self && edit) {
-            ImageButton settings = new ImageButton(ChessAssetManager.current().getSettingsStyle());
+            ImageButton settings = new ImageButton(ChessAssetManager.current().getSkin(), "gray_settings");
             ImageButton search = new ImageButton(ChessAssetManager.current().getSearchPeopleStyle());
             buttons.add(settings).minSize(110).row();
             buttons.add(search).minSize(110).row();
@@ -215,9 +216,9 @@ public class AccountController {
             });
 
         } else {
-            RdImageTextButton games = new RdImageTextButton(strings.get("games"));
-            RdImageTextButton report = new RdImageTextButton(strings.get("report"));
-            RdImageTextButton admin = new RdImageTextButton(strings.get("admin"));
+            RdImageTextButton games = new RdImageTextButton(strings.get("[i18n]Games"));
+            RdImageTextButton report = new RdImageTextButton(strings.get("[i18n]Report"));
+            RdImageTextButton admin = new RdImageTextButton(strings.get("[i18n]Admin"));
 
             games.addListener(new OnChangeListener() {
                 @Override
@@ -247,11 +248,7 @@ public class AccountController {
         dialog.setOnCancel(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                var action = Actions.fadeOut(0.4f, Interpolation.fade);
-                var sequence  = new SequenceAction();
-                sequence.addAction(action);
-                sequence.addAction(Actions.run(avatar::dispose));
-                dialog.hide(sequence);
+                dialog.afterHide(Actions.run(avatar::dispose));
             }
         });
 
@@ -293,15 +290,15 @@ public class AccountController {
         RdTable buttons = new RdTable();
         buttons.align(Align.topLeft);
 
-        ImageButton settings = new ImageButton(ChessAssetManager.current().getSettingsStyle());
+        ImageButton settings = new ImageButton(ChessAssetManager.current().getSkin(), "gray_settings");
         ImageButton searchOp = new ImageButton(ChessAssetManager.current().getSearchPeopleStyle());
         buttons.add(settings).minSize(110).row();
         buttons.add(searchOp).minSize(110).row();
 
         RdTextArea field = new RdTextArea("", ChessAssetManager.current().getSkin());
         field.setMaxLength(20);
-        field.setMessageText(strings.get("enter_acc_name"));
-        RdImageTextButton search = new RdImageTextButton(strings.get("search"), "blue");
+        field.setMessageText(strings.get("[i18n]Enter account name..."));
+        RdImageTextButton search = new RdImageTextButton(strings.get("[i18n]search"), "blue");
 
         content.add(field).expandX().fillX().padRight(5);
         content.add(search).minWidth(200).row();
@@ -354,15 +351,15 @@ public class AccountController {
     //   ------------------------------------------------------------------------------------------------------------
 
     private void addProfilePanel(Account account, RdTable part5, RdDialog dialog, boolean self) {
-        RdTextButton change = new RdTextButton(strings.get("profile"), "blue");
-        RdTextButton view = new RdTextButton(strings.get("see"));
+        RdTextButton change = new RdTextButton(strings.get("[i18n]Profile"), "blue");
+        RdTextButton view = new RdTextButton(strings.get("[i18n]See"));
 
-        part5.add(new RdLabel(strings.get("change_profile"))).expandX()
+        part5.add(new RdLabel(strings.get("[i18n]Change profile"))).expandX()
             .left().minWidth(250).padTop(7);
         part5.add(change).minWidth(250).fillX().row();
 
         if (self) {
-            part5.add(new RdLabel(strings.get("see_profile")))
+            part5.add(new RdLabel(strings.get("[i18n]See profile")))
                 .expandX().left();
             part5.add(view).fillX().row();
         }
@@ -384,7 +381,7 @@ public class AccountController {
     }
 
     private void showChangeDialog(RdDialog watchingDialog, Account account, boolean self) {
-        var changeDialog = new RdDialog(strings.get("change_account"), ChessAssetManager.current().getSkin(), "input");
+        var changeDialog = new RdDialog(strings.get("[i18n]Change account"), "input");
         changeDialog.getIcon().setDrawable(new TextureRegionDrawable(
             ChessAssetManager.current().findRegion("icon_conf")));
         changeDialog.getIcon().setScaling(Scaling.fit);
@@ -394,7 +391,7 @@ public class AccountController {
         var content = new RdTable();
         content.padTop(5);
         content.align(Align.topLeft);
-        var scroll = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        var scroll = new RdScrollPane(content);
         scroll.setFadeScrollBars(false);
         scroll.setOverscroll(false, false);
         scroll.setScrollingDisabled(true, false);
@@ -403,7 +400,7 @@ public class AccountController {
         nameInput.setMaxLength(20);
         if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
 
-            var label2 = new RdLabel(strings.get("name"));
+            var label2 = new RdLabel(strings.get("[i18n]Name:"));
             label2.setWrap(true);
 
             content.add(label2).width(350).fillX().padBottom(5);
@@ -414,7 +411,7 @@ public class AccountController {
         RdTextArea userNameInput = new RdTextArea(account.getFullName(), ChessAssetManager.current().getSkin());
         userNameInput.setMaxLength(20);
         if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
-            var label3 = new RdLabel(strings.get("username"));
+            var label3 = new RdLabel(strings.get("[i18n]Username:"));
             label3.setWrap(true);
 
             content.add(label3).fillX().width(350).padBottom(5);
@@ -422,7 +419,7 @@ public class AccountController {
             content.row();
         }
 
-        var label4 = new RdLabel(strings.get("quote"));
+        var label4 = new RdLabel(strings.get("[i18n]Quote:"));
         label4.setWrap(true);
         var quote = new RdTextArea(account.getQuote(), ChessAssetManager.current().getSkin());
         quote.setMaxLength(50);
@@ -431,7 +428,7 @@ public class AccountController {
         content.add(quote).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        var label5 = new RdLabel(strings.get("gender"), ChessAssetManager.current().getSkin());
+        var label5 = new RdLabel(strings.get("[i18n]Gender:"), ChessAssetManager.current().getSkin());
         label5.setWrap(true);
 
         var gender = new RdSelectBox<>(ChessAssetManager.current().getSkin());
@@ -442,19 +439,19 @@ public class AccountController {
         content.add(gender).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        RdLabel label6 = new RdLabel(strings.get("country"), ChessAssetManager.current().getSkin());
+        RdLabel label6 = new RdLabel(strings.get("[i18n]Country: "), ChessAssetManager.current().getSkin());
         label6.setWrap(true);
 
         RdSelectBox<String> country = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         country.setItems(SettingsUtil.getDisplayCountries());
         country.setSelected(new Locale("en", account.getCountry())
-            .getDisplayCountry(ChessConstants.localData.getLocale()));
+            .getDisplayCountry(new Locale(ChessConstants.localData.getLangCode())));
 
         content.add(label6).width(350).fillX().padBottom(5);
         content.add(country).width(450).padBottom(5).expandX().fillX();
         content.row();
 
-        RdLabel label7 = new RdLabel(strings.get("birthday"), ChessAssetManager.current().getSkin());
+        RdLabel label7 = new RdLabel(strings.get("[i18n]Birthday:"), ChessAssetManager.current().getSkin());
         label7.setWrap(true);
 
         RdSelectBox<String> day = new RdSelectBox<>(ChessAssetManager.current().getSkin());
@@ -497,10 +494,10 @@ public class AccountController {
         longRank.setMaxLength(20);
 
         if (ChessConstants.loggingAcc.getType().ordinal() >= AccountType.EXECUTOR.ordinal()) {
-            RdLabel label8 = new RdLabel(strings.get("bullet") + ": ");
-            RdLabel label9 = new RdLabel(strings.get("blitz") + ": ");
-            RdLabel label10 = new RdLabel(strings.get("rapid") + ": ");
-            RdLabel label11 = new RdLabel(strings.get("long") + ": ");
+            RdLabel label8 = new RdLabel(strings.get("[i18n]Bullet") + ": ");
+            RdLabel label9 = new RdLabel(strings.get("[i18n]Blitz") + ": ");
+            RdLabel label10 = new RdLabel(strings.get("[i18n]Rapid") + ": ");
+            RdLabel label11 = new RdLabel(strings.get("[i18n]Long") + ": ");
 
             content.add(label8).width(350).fillX().padBottom(5);
             content.add(bullet).width(450).padBottom(5).expandX().fillX();
@@ -517,13 +514,14 @@ public class AccountController {
         }
 
         // buttons ----------------------------------------------------------------------------------------------------
-        var accept = new RdTextButton(strings.get("apply"), "blue");
+        var accept = new RdTextButton(strings.get("[i18n]apply"), "blue");
 
         accept.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 if (!isASCII(nameInput.getText())) {
-                    ChessApplication.self().showError(strings.get("login_letters"));
+                    ChessApplication.self().showError(strings.get(
+                        "[i18n]The login should not contain Latin letters!"));
                     return;
                 }
                 account.setUsername(nameInput.getText());
@@ -547,24 +545,25 @@ public class AccountController {
                     account.setDateBirth(calendar.getTimeInMillis());
                 }
 
+                String incorrectChangeRank = "[i18n]rating change field {0} contains invalid characters";
                 if (!FLOAT_PATTERN.matcher(bullet.getText()).matches()) {
                     ChessApplication.self().showError(
-                        strings.format("incorrect_change_rank", strings.get("bullet")));
+                        strings.format(incorrectChangeRank, strings.get("[i18n]Bullet")));
                     return;
                 }
                 if (!FLOAT_PATTERN.matcher(blitz.getText()).matches()) {
                     ChessApplication.self().showError(
-                        strings.format("incorrect_change_rank", strings.get("blitz")));
+                        strings.format(incorrectChangeRank, strings.get("[i18n]Blitz")));
                     return;
                 }
                 if (!FLOAT_PATTERN.matcher(rapid.getText()).matches()) {
                     ChessApplication.self().showError(
-                        strings.format("incorrect_change_rank", strings.get("rapid")));
+                        strings.format(incorrectChangeRank, strings.get("[i18n]Rapid")));
                     return;
                 }
                 if (!FLOAT_PATTERN.matcher(longRank.getText()).matches()) {
                     ChessApplication.self().showError(
-                        strings.format("incorrect_change_rank", strings.get("long")));
+                        strings.format(incorrectChangeRank, strings.get("[i18n]Long")));
                     return;
                 }
 
@@ -581,9 +580,12 @@ public class AccountController {
 
                 MultiplayerEngine.self().changeAccount(account, requestStatus -> {
                     if (requestStatus != RequestStatus.DONE) {
-                        ChessApplication.self().showError(strings.format("error_change_profile", requestStatus.toString()));
+                        ChessApplication.self().showError(strings.format(
+                            "[i18n]Profile changes not confirmed, error status \"{0}\"",
+                            requestStatus.toString()));
                     } else {
-                        ChessApplication.self().showAccept(strings.get("done_change_profile"));
+                        ChessApplication.self().showAccept(strings.get(
+                            "[i18n]Changes profile confirmed and submitted"));
                     }
                 });
 
@@ -591,7 +593,7 @@ public class AccountController {
 
             }
         });
-        var cancel = new RdTextButton(strings.get("cancel"));
+        var cancel = new RdTextButton(strings.get("[i18n]reject"));
         cancel.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
@@ -613,37 +615,28 @@ public class AccountController {
     // ----------------------------------------------------------------------------------------------------------------
 
     private void showUpdatingAvatarView(Account account, AvatarView avatarView) {
-        fileSelector = new FileSelectorBuilder()
-            .title(strings.get("file_selector"))
-            .endFilters(".png", ".jpg")
-            .cancel(strings.get("cancel"))
-            .select(strings.get("select"), handle ->
-                loadAvatar(handle, bytes -> {
 
-                    if (bytes.length >= 39_000) {
-                        ChessApplication.self().showError(strings.get("error_large_avatar"));
-                        return;
-                    }
+        ChessApplication.self().showSelector(handle -> {
+            loadAvatar(handle, bytes -> {
 
-                    fileSelector.hide();
-                    MultiplayerEngine.self().changeAvatar(account.getId(), bytes,
-                        requestStatus -> {
-                            if (requestStatus == RequestStatus.DONE) {
-                                ChessApplication.self().showAccept(strings.get("done_change_avatar"));
-                                updateAvatar(avatarView);
-                            } else {
-                                ChessApplication.self().showError(strings.get("error_change_avatar"));
-                            }
-                        });
+                if (bytes.length >= 39_000) {
+                    ChessApplication.self().showError(strings.get("[i18n]The avatar is too large, it must be less than 38 Kbyte\n"));
+                    return;
+                }
 
-                }))
-            .build();
+                MultiplayerEngine.self().changeAvatar(account.getId(), bytes,
+                    requestStatus -> {
+                        if (requestStatus == RequestStatus.DONE) {
+                            ChessApplication.self().showAccept(strings.get("[i18n]Avatar changed successfully"));
+                            updateAvatar(avatarView);
+                        } else {
+                            ChessApplication.self().showError(strings.get("[i18n]Error updating avatar, error status -\n"));
+                        }
+                    });
+            });
 
-        fileSelector.show(RdApplication.self().getStage());
-        fileSelector.setSize(900, 800);
+        }, ".png", ".jpg");
 
-        RdApplication.self().addDialog(fileSelector, WindowUtil::resizeCenter);
-        RdApplication.self().resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     // show games ---------------------------------------------------------------------------------------------------
@@ -653,7 +646,7 @@ public class AccountController {
 
     private void showGames(RdDialog parent, Account account) {
         RdI18NBundle strings = RdApplication.self().getStrings();
-        RdDialog games = new RdDialog(strings.get("viewing_games"));
+        RdDialog games = new RdDialog(strings.get("[i18n]Viewing games"));
         games.getLoading().setVisible(true);
 
         RdTable content = new RdTable();
@@ -692,11 +685,11 @@ public class AccountController {
                                             if (parent == null) {
                                                 RdApplication.self().setScreen(new MultiplayerScenariosActivity(match));
                                             } else {
-                                                parent.hide(seq2);
+                                                parent.afterHide(seq2);
                                             }
 
                                         }));
-                                        games.hide(seq1);
+                                        games.afterHide(seq1);
 
                                     }
                                 },
@@ -715,13 +708,13 @@ public class AccountController {
     // ---------------------------------------------------------------------------------------------------------------
 
     private void showAdminDialog(Account account) {
-        RdDialog adminDialog = new RdDialog(strings.get("moderation"), "input");
+        RdDialog adminDialog = new RdDialog(strings.get("[i18n]Moderation"), "input");
         adminDialog.getContentTable().align(Align.topLeft);
 
         List<Punishment> punishments = new ArrayList<>();
 
         // actors
-        RdLabel hintType = new RdLabel(strings.get("account_rights"));
+        RdLabel hintType = new RdLabel(strings.get("[i18n]Account rights"));
         RdSelectBox<String> typeAccount = new RdSelectBox<>();
         typeAccount.setItems(getAvailableTypeAccount());
 
@@ -730,25 +723,26 @@ public class AccountController {
             typeAccount.setSelectedIndex(account.getType().ordinal());
         }
 
-        RdLabel hintMoney = new RdLabel(strings.get("add_subtract_coins"));
+        RdLabel hintMoney = new RdLabel(strings.get("[i18n]Add/subtract coins"));
         RdTextArea moneyField = new RdTextArea("");
-        moneyField.setMessageText(strings.get("coins_hint"));
+        moneyField.setMessageText(strings.get("[i18n]coins..."));
         moneyField.setMaxLength(6);
 
-        RdLabel hintWarn = new RdLabel(strings.get("warn_hint"));
+        RdLabel hintWarn = new RdLabel(strings.get("[i18n]Add warning"));
         RdImageTextButton warn = new RdImageTextButton("");
-        warn.setText(strings.get("warn"));
+        warn.setText(strings.get("[i18n]warn"));
 
-        RdLabel hintMute = new RdLabel(strings.get("mute_hint"));
-        RdImageTextButton mute = new RdImageTextButton(strings.get("mute"));
-        mute.setText(strings.get("mute"));
+        RdLabel hintMute = new RdLabel(strings.get("[i18n]Add mute"));
+        RdImageTextButton mute = new RdImageTextButton(strings.get("[i18n]mute"));
+        mute.setText(strings.get("[i18n]mute"));
 
-        RdLabel hintBan = new RdLabel(strings.get("ban_hint"));
-        RdImageTextButton ban = new RdImageTextButton(strings.get("ban"));
-        ban.setText(strings.get("ban"));
+        RdLabel hintBan = new RdLabel(strings.get("[i18n]Add ban"));
+        RdImageTextButton ban = new RdImageTextButton(strings.get("[i18n]ban"));
+        ban.setText(strings.get("[i18n]ban"));
 
-        RdImageTextButton apply = new RdImageTextButton(strings.get("apply"), "blue");
-        RdImageTextButton cancel = new RdImageTextButton(strings.get("cancel"));
+        RdImageTextButton apply = new RdImageTextButton(strings.get("[i18n]apply"), "blue");
+        RdImageTextButton cancel = new RdImageTextButton(strings.get("[i18n]reject"));
+        String reasonPunishment = strings.get("[i18n]Enter the reason for punishment/removal of punishment (in English)");
 
         // listeners
         typeAccount.addListener(new OnChangeListener() {
@@ -758,7 +752,7 @@ public class AccountController {
         warn.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                ChessApplication.self().showInput(strings.get("reason_punishment"),
+                ChessApplication.self().showInput(strings.get(reasonPunishment),
                     (dialog, s) -> {
                         dialog.hide();
                         punishments.add(new Punishment(-1, ChessConstants.loggingAcc.getId(), s, Flag.WARN, true));
@@ -768,7 +762,7 @@ public class AccountController {
         mute.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                ChessApplication.self().showInput(strings.get("reason_punishment"),
+                ChessApplication.self().showInput(strings.get(reasonPunishment),
                     (dialog, s) -> {
                         dialog.hide();
                         punishments.add(new Punishment(-1, ChessConstants.loggingAcc.getId(), s, Flag.MUTE, true));
@@ -778,7 +772,7 @@ public class AccountController {
         ban.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                ChessApplication.self().showInput(strings.get("reason_punishment"),
+                ChessApplication.self().showInput(strings.get(reasonPunishment),
                     (dialog, s) -> {
                         dialog.hide();
                         punishments.add(new Punishment(-1, ChessConstants.loggingAcc.getId(), s, Flag.BAN, true));
@@ -791,11 +785,11 @@ public class AccountController {
 
                 String confPunishments = "";
                 if (!punishments.isEmpty()) {
-                    confPunishments = strings.format("conf_punishments", punishments.size());
+                    confPunishments = strings.format("[i18n]You apply {0} punishments. ", punishments.size());
                 }
 
-                ChessApplication.self().showConfWarn(strings.get("apply"),
-                    strings.get("admin_changes_account_conf") + confPunishments,
+                ChessApplication.self().showConfWarn(strings.get("[i18n]apply"),
+                    strings.get("[i18n]Are you sure you want to apply the changes? This may be irreversible or there will be account issues.") + confPunishments,
                     (dialog, s) -> {
                         dialog.hide();
                         applyChanges(adminDialog, account, moneyField.getText(),
@@ -854,7 +848,7 @@ public class AccountController {
                               int typeSelectedIndex, List<Punishment> punishments) {
 
         if (!moneyCoins.equals("") && !moneyCoins.matches("(-)?\\d+")) {
-            ChessApplication.self().showError(strings.get("incorrect_money"));
+            ChessApplication.self().showError(strings.get("[i18n]Incorrect coin format to add/subtract"));
             return;
         }
 
@@ -870,9 +864,9 @@ public class AccountController {
         MultiplayerEngine.self().changeAccount(account, requestStatus -> {
             adminDialog.hide();
             if (requestStatus == RequestStatus.DONE) {
-                ChessApplication.self().showAccept(strings.get("admin_changes_done"));
+                ChessApplication.self().showAccept(strings.get("[i18n]Changes submitted successfully"));
             } else {
-                ChessApplication.self().showError(strings.get("admin_changes_error"));
+                ChessApplication.self().showError(strings.get("[i18n]Error when trying to change account"));
             }
         });
     }
@@ -887,7 +881,7 @@ public class AccountController {
 
     private void addAccountInfo(Account account, RdTable part1) {
 
-        var locale = new Locale(ChessConstants.localData.getLocale().getLanguage(), account.getCountry());
+        var locale = new Locale(ChessConstants.localData.getLangCode(), account.getCountry());
         var name = new RdLabel(account.getUsername());
         var status = new RdLabel(getAccountStatus(account));
         var userName = new RdLabel(account.getFullName());
@@ -895,7 +889,8 @@ public class AccountController {
         var birth = new RdLabel("n/d");
         if (account.getDateBirth() != 0) birth.setText(birthdayFormatter.format(account.getDateBirth()));
 
-        var country = new RdLabel(locale.getDisplayCountry(ChessConstants.localData.getLocale()));
+        var country = new RdLabel(locale.getDisplayCountry(
+            new Locale(ChessConstants.localData.getLangCode())));
         if (account.getCountry().equals("")) country.setText("n/d");
         var quote = new RdLabel(account.getQuote());
         quote.setWrap(true);
@@ -927,12 +922,12 @@ public class AccountController {
     }
 
     private void addLoginPanel(Account account, RdTable part2) {
-        RdLabel loginHint = new RdLabel(strings.get("login") + ": ");
-        RdLabel passwordHint = new RdLabel(strings.get("password"));
+        RdLabel loginHint = new RdLabel(strings.get("[i18n]Login") + ": ");
+        RdLabel passwordHint = new RdLabel(strings.get("[i18n]Password:"));
         RdLabel password = new RdLabel("******");
         password.setAlignment(Align.right);
 
-        LineTable lineTable1 = new LineTable(strings.get("login_op"));
+        LineTable lineTable1 = new LineTable(strings.get("[i18n]Login options:"));
         lineTable1.add(loginHint).expandX().fillX();
         lineTable1.add(new RdLabel("[GREEN]" + account.getUsername())).row();
         lineTable1.add(passwordHint).expandX().fillX();
@@ -942,29 +937,30 @@ public class AccountController {
     }
 
     private void addChangePassword(Account account, RdTable part3, boolean self) {
-        var lineTable2 = new LineTable(strings.get("change_password"));
+        var lineTable2 = new LineTable(strings.get("[i18n]Change password"));
 
         var inputPassword = new RdTextArea("", ChessAssetManager.current().getSkin());
         inputPassword.setMaxLength(20);
         inputPassword.setPasswordCharacter('*');
         inputPassword.setPasswordMode(true);
-        inputPassword.setMessageText(strings.get("enter_hint"));
+        inputPassword.setMessageText(strings.get("[i18n]enter..."));
+
         var confPassword = new RdTextArea("", ChessAssetManager.current().getSkin());
         confPassword.setMaxLength(20);
         confPassword.setPasswordMode(true);
         confPassword.setPasswordCharacter('*');
-        confPassword.setMessageText(strings.get("enter_hint"));
-        var changePassword = new RdTextButton(strings.get("change"));
+        confPassword.setMessageText(strings.get("[i18n]enter..."));
+        var changePassword = new RdTextButton(strings.get("[i18n]Change"));
 
         changePassword.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
                 if (inputPassword.getText().length() < 6) {
-                    ChessApplication.self().showInfo(strings.get("min_password"));
+                    ChessApplication.self().showInfo(strings.get("[i18n]The password should be at least 6 characters"));
                     return;
                 }
                 if (!inputPassword.getText().equals(confPassword.getText())) {
-                    ChessApplication.self().showInfo(strings.get("password_mismatch"));
+                    ChessApplication.self().showInfo(strings.get("[1i8n]Password mismatch!"));
                     return;
                 }
 
@@ -973,9 +969,9 @@ public class AccountController {
                 account.setPassword(inputPassword.getText());
                 MultiplayerEngine.self().changeAccount(account, requestStatus -> {
                     if (requestStatus != RequestStatus.DONE) {
-                        ChessApplication.self().showError(strings.get("error_change_password") + requestStatus);
+                        ChessApplication.self().showError(strings.get("[i18n]Password change not confirmed, error status - ") + requestStatus);
                     } else {
-                        ChessApplication.self().showAccept(strings.get("done_change_password"));
+                        ChessApplication.self().showAccept(strings.get("[i18n]Password changes confirmed and sent"));
                     }
                 });
 
@@ -994,13 +990,13 @@ public class AccountController {
     }
 
     private void addRankPanel(Account account, RdTable part4) {
-        RdLabel bullet = new RdLabel("[_]" + strings.get("bullet") + "[]: ");
+        RdLabel bullet = new RdLabel("[_]" + strings.get("[i18n]Bullet") + "[]: ");
         bullet.setAlignment(Align.topLeft);
-        RdLabel blitz = new RdLabel("[_]" + strings.get("blitz") + "[]: ");
+        RdLabel blitz = new RdLabel("[_]" + strings.get("[i18n]Blitz") + "[]: ");
         blitz.setAlignment(Align.topLeft);
-        RdLabel rapid = new RdLabel("[_]" + strings.get("rapid") + "[]: ");
+        RdLabel rapid = new RdLabel("[_]" + strings.get("[i18n]Rapid") + "[]: ");
         rapid.setAlignment(Align.topLeft);
-        RdLabel longRank = new RdLabel("[_]" + strings.get("long") + "[]: ");
+        RdLabel longRank = new RdLabel("[_]" + strings.get("[i18n]Long") + "[]: ");
         longRank.setAlignment(Align.topLeft);
 
         part4.add(bullet).expandX().align(Align.left);
@@ -1014,7 +1010,7 @@ public class AccountController {
     }
 
     private void updateAvatar(AvatarView avatarView) {
-        MultiplayerEngine.self().getAvatar(ChessConstants.loggingAcc,
+        MultiplayerEngine.self().requireAvatar(ChessConstants.loggingAcc,
             bytes -> {
                 ChessConstants.accountPanel
                     .update(ChessConstants.loggingAcc, bytes);
@@ -1024,7 +1020,7 @@ public class AccountController {
 
     private void loadAvatar(FileHandle handle, Consumer<byte[]> onFinish) {
 
-        Spinner spinner = ChessApplication.self().showSpinner(strings.get("loading"));
+        Spinner spinner = ChessApplication.self().showSpinner(strings.get("[i18n]Loading"));
         Runnable task = () -> {
             var bytes = handle.readBytes();
             spinner.hide();
@@ -1036,10 +1032,10 @@ public class AccountController {
 
     private String getAccountStatus(Account account) {
         StringBuilder status = new StringBuilder();
-        if (account.getType() == AccountType.DEVELOPER) status.append(strings.get("developer"));
-        else if (account.getType() == AccountType.EXECUTOR) status.append(strings.get("executor"));
-        else if (account.getType() == AccountType.MODERATOR) status.append(strings.get("moderator"));
-        else status.append(strings.get("user"));
+        if (account.getType() == AccountType.DEVELOPER) status.append(strings.get("[i18n]Developer"));
+        else if (account.getType() == AccountType.EXECUTOR) status.append(strings.get("[i18n]Executor"));
+        else if (account.getType() == AccountType.MODERATOR) status.append(strings.get("[i18n]Moderator"));
+        else status.append(strings.get("[i18n]User"));
 
         boolean warned = false;
         boolean muted = false;
@@ -1054,17 +1050,17 @@ public class AccountController {
         if (banned) {
             status.append("\n");
             status.append("[red]");
-            status.append(strings.get("banned"));
+            status.append(strings.get("[i18n]Banned"));
         }
         else if (muted) {
             status.append("\n");
             status.append("[orange]");
-            status.append(strings.get("muted"));
+            status.append(strings.get("[i18n]Muted"));
         }
         else if (warned) {
             status.append("\n");
             status.append("[yellow]");
-            status.append(strings.get("warned"));
+            status.append(strings.get("[i18n]Warned"));
         }
 
         return status.toString();

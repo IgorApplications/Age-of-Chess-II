@@ -137,7 +137,6 @@ class MultiplayerGameActivityV extends MultiplayerGameActivity {
         if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(selectionDialog);
         if (!WindowUtil.isHidden(resultDialog))    getStage().addActor(resultDialog);
         if (!WindowUtil.isHidden(infoDialog))      getStage().addActor(infoDialog);
-        if (!WindowUtil.isHidden(menuDialog))      getStage().addActor(menuDialog);
         if (!WindowUtil.isHidden(selectionDialog)) getStage().addActor(statisticDialog);
 
         controller.setActivity(this);

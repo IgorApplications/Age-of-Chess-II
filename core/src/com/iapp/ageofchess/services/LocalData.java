@@ -5,18 +5,21 @@ import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.MatchState;
 import com.iapp.ageofchess.multiplayer.TurnMode;
+import com.iapp.lib.ui.screens.RdApplication;
 import com.iapp.lib.util.Pair;
 
 import java.util.*;
 
 public class LocalData {
 
-    private Locale language;
+    private String langCode;
     private boolean enableSounds = true;
     private boolean enableBackgroundMusic = true;
     private Fps fps = Fps.INFINITY;
     private boolean enableSysProperties;
     private float screenSpeed = 0.2f;
+    private float effectsVolume = 1;
+    private float musicVolume = 1;
 
     private String nameAcc, password;
     private long timeByTurn;
@@ -47,7 +50,23 @@ public class LocalData {
         for (var gameMode : GameMode.values()) {
             bestResultByLevel.put(gameMode, Integer.MAX_VALUE);
         }
-        language = Locale.getDefault();
+        langCode = RdApplication.self().getDefaultLanguage();
+    }
+
+    public float getEffectsVolume() {
+        return effectsVolume;
+    }
+
+    public void setEffectsVolume(float effectsVolume) {
+        this.effectsVolume = effectsVolume;
+    }
+
+    public float getMusicVolume() {
+        return musicVolume;
+    }
+
+    public void setMusicVolume(float musicVolume) {
+        this.musicVolume = musicVolume;
     }
 
     public void setRandomColor(boolean random) {
@@ -114,12 +133,12 @@ public class LocalData {
         this.windowSize = windowSize;
     }
 
-    public Locale getLocale() {
-        return language;
+    public String getLangCode() {
+        return langCode;
     }
 
-    public void setLocale(Locale language) {
-        this.language = language;
+    public void setLocale(String langCode) {
+        this.langCode = langCode;
     }
 
     public boolean isEnableSounds() {

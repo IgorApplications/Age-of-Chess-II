@@ -25,6 +25,10 @@ import com.iapp.lib.util.WindowUtil;
 import com.iapp.lib.web.RankType;
 import com.iapp.lib.web.RequestStatus;
 
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.function.Consumer;
 
 public class MultiplayerCreationActivity extends Activity {
@@ -75,42 +79,44 @@ public class MultiplayerCreationActivity extends Activity {
 
     @Override
     public void initActors() {
+
         var content = new RdTable();
         content.setFillParent(true);
         window = new RdWindow("",  "screen_window");
         window.setMovable(false);
-        properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
 
         name = new RdTextArea("", ChessAssetManager.current().getSkin());
         name.setMaxLength(15);
 
-        infinity = strings.get("infinity");
+        infinity = strings.get("[i18n]infinity");
         timeByTurn = new RdSelectBox<>(ChessAssetManager.current().getSkin());
 
+        String turnsKey = "[i18n]turns={0,choice,1#1 turn|1<{0,number,integer} turns}";
         maxTurns = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         maxTurns.setItems(
                 infinity,
-                strings.format("turns", 5), strings.format("turns", 10),
-                strings.format("turns", 15), strings.format("turns", 20),
-                strings.format("turns", 25), strings.format("turns", 30),
-                strings.format("turns", 35), strings.format("turns", 40),
-                strings.format("turns", 45), strings.format("turns", 50),
-                strings.format("turns", 55), strings.format("turns", 60),
-                strings.format("turns", 65), strings.format("turns", 70),
-                strings.format("turns", 75), strings.format("turns", 80),
-                strings.format("turns", 85), strings.format("turns", 90),
-                strings.format("turns", 95), strings.format("turns", 100));
+                strings.format(turnsKey, 5), strings.format(turnsKey, 10),
+                strings.format(turnsKey, 15), strings.format(turnsKey, 20),
+                strings.format(turnsKey, 25), strings.format(turnsKey, 30),
+                strings.format(turnsKey, 35), strings.format(turnsKey, 40),
+                strings.format(turnsKey, 45), strings.format(turnsKey, 50),
+                strings.format(turnsKey, 55), strings.format(turnsKey, 60),
+                strings.format(turnsKey, 65), strings.format(turnsKey, 70),
+                strings.format(turnsKey, 75), strings.format(turnsKey, 80),
+                strings.format(turnsKey, 85), strings.format(turnsKey, 90),
+                strings.format(turnsKey, 95), strings.format(turnsKey, 100));
         timeByGame = new RdSelectBox<>(ChessAssetManager.current().getSkin());
 
-        create = new RdTextButton(strings.get("create"), "blue");
+        create = new RdTextButton(strings.get("[i18n]create"), "blue");
 
         rankType = new RdSelectBox<>();
-        rankType.setItems(strings.get("bullet"), strings.get("blitz"),
-                strings.get("rapid"), strings.get("non_ranked"));
+        rankType.setItems(strings.get("[i18n]Bullet"), strings.get("[i18n]Blitz"),
+                strings.get("[i18n]Rapid"), strings.get("[i18n]Not ranked"));
         // strings.get("long"),
 
         random = new RdCheckBox("check_box");
@@ -188,7 +194,7 @@ public class MultiplayerCreationActivity extends Activity {
         getStage().addActor(background);
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("multiplayer"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Multiplayer"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -197,20 +203,20 @@ public class MultiplayerCreationActivity extends Activity {
         var turnModeHint = new RdImageTextButton("", "circle");
         turnModeHint.getLabelCell().reset();
         turnModeHint.setImage("ib_question");
-        var turnModeTool = new RdTextTooltip(strings.get("turn_mode_hint"));
+        var turnModeTool = new RdTextTooltip(strings.get("[i18n]In alternately mode, you always have to wait for the end of the time per turn"));
         turnModeHint.addListener(turnModeTool);
 
         update();
-        properties.add(new PropertyTable.Title(strings.get("game_creation")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Game creation")));
 
-        properties.add(new PropertyTable.Element(strings.get("game_name"), name));
-        properties.add(new PropertyTable.Element(strings.get("rank_type"), rankType));
-        properties.add(new PropertyTable.Element(strings.get("random_color"), random));
-        properties.add(new PropertyTable.Element(strings.get("game_time"), timeByGame));
-        properties.add(new PropertyTable.Element(strings.get("time_turn"), timeByTurn));
-        properties.add(new PropertyTable.Element(strings.get("turn_mode"), turnModeHint, turnMode));
-        properties.add(new PropertyTable.Element(strings.get("sponsored_coins"), sponsored));
-        properties.add(new PropertyTable.Element(strings.get("max_turns"), maxTurns));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Game name"), name));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Rank type is "), rankType));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Random color"), random));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Time for the whole game for one person"), timeByGame));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Time to turn"), timeByTurn));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Turn Mode"), turnModeHint, turnMode));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Sponsored coins"), sponsored));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Max turns"), maxTurns));
 
         properties.add(new PropertyTable.Element("", create));
 
@@ -219,85 +225,93 @@ public class MultiplayerCreationActivity extends Activity {
 
     private void update() {
         var type = SettingsUtil.getRankType(rankType.getSelected());
+        String secondsByMove = "[i18n]{0,choice,1#1 second|1<{0,number} seconds}/move";
+        String minutesByMove = "[i18n]{0,choice,1#1 minute|1<{0,number} minutes}/move";
+        String minutes = "[i18n]{0,choice,1#1 minute|1<{0,number} minutes}";
+        String hours = "[i18n]{0,choice,1#1 hour|1<{0,number} hours}";
+        String hoursByMove = "[i18n]{0,choice,1#1 hour|1<{0,number} hours}/move";
 
         if (type == RankType.BULLET) {
 
             timeByTurn.setItems();
-
             timeByGame.setItems(
-                    strings.format("minutes", 1),
-                    strings.format("minutes", 1.5),
-                    strings.format("minutes", 2),
-                    strings.format("minutes", 2.5),
-                    strings.format("minutes", 3));
+                    strings.format(minutes, 1),
+                    strings.format(minutes, 1.5),
+                    strings.format(minutes, 2),
+                    strings.format(minutes, 2.5),
+                    strings.format(minutes, 3));
 
-            turnMode.setItems(strings.get("concurrent_fast"));
+            turnMode.setItems(strings.get("[i18n]Alternately/Fast"));
 
         } else if (type == RankType.BLITZ) {
 
             timeByTurn.setItems(
-                    strings.format("sec_by_move", 30), strings.format("sec_by_move", 45),
-                    strings.format("min_by_move", 1), strings.format("min_by_move", 1.5),
-                    strings.format("min_by_move", 2));
+                    strings.format(secondsByMove, 30), strings.format(secondsByMove, 45),
+                    strings.format(minutesByMove, 1), strings.format(minutesByMove, 1.5),
+                    strings.format(minutesByMove, 2));
 
             timeByGame.setItems(
-                    strings.format("minutes", 4),
-                    strings.format("minutes", 5),
-                    strings.format("minutes", 6),
-                    strings.format("minutes", 7),
-                    strings.format("minutes", 8),
-                    strings.format("minutes", 9),
-                    strings.format("minutes", 10));
+                    strings.format(minutes, 4),
+                    strings.format(minutes, 5),
+                    strings.format(minutes, 6),
+                    strings.format(minutes, 7),
+                    strings.format(minutes, 8),
+                    strings.format(minutes, 9),
+                    strings.format(minutes, 10));
 
-            turnMode.setItems(strings.get("concurrent_fast"));
+            turnMode.setItems(strings.get("[i18n]Alternately/Fast"),
+                strings.get("[i18n]Alternately"));
 
         } else if (type == RankType.RAPID) {
 
             timeByTurn.setItems(
-                    strings.format("min_by_move", 1), strings.format("min_by_move", 1.5),
-                    strings.format("min_by_move", 2), strings.format("min_by_move", 2.5),
-                    strings.format("min_by_move", 3));
+                    strings.format(minutesByMove, 1), strings.format(minutesByMove, 1.5),
+                    strings.format(minutesByMove, 2), strings.format(minutesByMove, 2.5),
+                    strings.format(minutesByMove, 3));
 
             timeByGame.setItems(
-                    strings.format("minutes", 15),
-                    strings.format("minutes", 20),
-                    strings.format("minutes", 30),
-                    strings.format("minutes", 40),
-                    strings.format("minutes", 50),
-                    strings.format("hours", 1));
+                    strings.format(minutes, 15),
+                    strings.format(minutes, 20),
+                    strings.format(minutes, 30),
+                    strings.format(minutes, 40),
+                    strings.format(minutes, 50),
+                    strings.format(hours, 1));
 
-            turnMode.setItems(strings.get("concurrent_fast"), strings.get("concurrent"));
+            turnMode.setItems(strings.get("[i18n]Alternately/Fast"),
+                strings.get("[i18n]Alternately"));
 
         } else if (type == RankType.LONG) {
 
             timeByTurn.setItems(
-                    strings.format("hours_by_move", 8), strings.format("hours_by_move", 12),
-                    strings.format("hours_by_move", 24), strings.format("hours_by_move", 36),
-                    strings.format("hours_by_move", 48));
+                    strings.format(hoursByMove, 8), strings.format(hoursByMove, 12),
+                    strings.format(hoursByMove, 24), strings.format(hoursByMove, 36),
+                    strings.format(hoursByMove, 48));
 
             timeByGame.setItems();
-            turnMode.setItems(strings.get("concurrent_fast"), strings.get("concurrent"));
+            turnMode.setItems(strings.get("[i18n]Alternately/Fast"),
+                strings.get("[i18n]Alternately"));
 
         } else {
 
             timeByTurn.setItems(
                     infinity,
-                    strings.format("min_by_move", 1), strings.format("min_by_move", 2),
-                    strings.format("min_by_move", 3), strings.format("min_by_move", 4),
-                    strings.format("min_by_move", 5));
+                    strings.format(minutesByMove, 1), strings.format(minutesByMove, 2),
+                    strings.format(minutesByMove, 3), strings.format(minutesByMove, 4),
+                    strings.format(minutesByMove, 5));
 
             timeByGame.setItems(
                     infinity,
-                    strings.format("minutes", 5),
-                    strings.format("minutes", 10),
-                    strings.format("minutes", 20),
-                    strings.format("minutes", 30),
-                    strings.format("minutes", 40),
-                    strings.format("minutes", 50),
-                    strings.format("hours", 1),
-                    strings.format("hours", 2));
+                    strings.format(minutes, 5),
+                    strings.format(minutes, 10),
+                    strings.format(minutes, 20),
+                    strings.format(minutes, 30),
+                    strings.format(minutes, 40),
+                    strings.format(minutes, 50),
+                    strings.format(hours, 1),
+                    strings.format(hours, 2));
 
-            turnMode.setItems(strings.get("concurrent_fast"), strings.get("concurrent"));
+            turnMode.setItems(strings.get("[i18n]Alternately/Fast"),
+                strings.get("[i18n]Alternately"));
         }
 
 

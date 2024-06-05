@@ -10,14 +10,21 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
+import com.iapp.ageofchess.multiplayer.MultiplayerEngine;
 import com.iapp.lib.chess_engine.Color;
 import com.iapp.ageofchess.controllers.SettingsController;
 import com.iapp.ageofchess.services.*;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.ui.screens.Activity;
+import com.iapp.lib.ui.screens.RdApplication;
+import com.iapp.lib.util.ArraysUtil;
 import com.iapp.lib.util.OnChangeListener;
 import com.iapp.lib.util.TransitionEffects;
 import com.iapp.lib.util.WindowUtil;
+
+import java.io.*;
+import java.util.Arrays;
+import java.util.function.Consumer;
 
 public class SettingsActivity extends Activity {
 
@@ -26,6 +33,8 @@ public class SettingsActivity extends Activity {
     private RdSelectBox<String> language;
     private RdCheckBox enableSounds;
     private RdCheckBox enableBackgroundMusic;
+    private RdSelectBox<String> volumeEffects;
+    private RdSelectBox<String> volumeMusic;
     private RdSelectBox<String> fps;
     private RdCheckBox enableSysProperties;
     private RdSelectBox<String> screenSpeed;
@@ -46,7 +55,6 @@ public class SettingsActivity extends Activity {
 
     private RdCheckBox fullScreen;
     private RdCheckBox windowSize;
-    private RdDialog resetDialog;
     private WindowGroup windowGroup;
 
     public SettingsActivity() {
@@ -55,18 +63,24 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void initActors() {
-        back = new RdImageTextButton(strings.get("back"),"red_screen");
+
+        back = new RdImageTextButton(strings.get("[i18n]Back"),"red_screen");
         back.setImage("ib_back");
 
-        var infinity = strings.get("infinity");
+        var infinity = strings.get("[i18n]infinity");
         language = new RdSelectBox<>(ChessAssetManager.current().getSkin());
-        language.setItems(ChessApplication.self().getDisplayLanguages().toArray(new String[0]));
+        language.setItems(ChessApplication.self().getDisplayLanguages());
 
         enableSounds = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
         enableBackgroundMusic = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
 
+        volumeEffects = new RdSelectBox<>();
+        volumeEffects.setItems("20%", "40%", "60%", "80%", "100%");
+        volumeMusic = new RdSelectBox<>();
+        volumeMusic.setItems("20%", "40%", "60%", "80%", "100%");
+
         fps = new RdSelectBox<>(ChessAssetManager.current().getSkin());
-        fps.setItems("25 fps", "30 fps", "45 fps", "60 fps", "90 fps", "120 fps", strings.get("infinity"));
+        fps.setItems("25 fps", "30 fps", "45 fps", "60 fps", "90 fps", "120 fps", strings.get("[i18n]infinity"));
 
         enableSysProperties = new RdCheckBox(ChessAssetManager.current().getSkin(), "check_box");
 
@@ -80,28 +94,30 @@ public class SettingsActivity extends Activity {
         piecesSpeed = new RdSelectBox<>(ChessAssetManager.current().getSkin());
         piecesSpeed.setItems("0.001", "0.0015", "0.002", "0.0025", "0.003", "0.0035", "0.004", "0.0045", "0.005");
 
-        reset = new RdTextButton(strings.get("reset"), ChessAssetManager.current().getSkin(), "blue");
+        reset = new RdTextButton(strings.get("[i18n]Reset"), ChessAssetManager.current().getSkin(), "blue");
 
         // ---------------------------------------------------------------------------------------------------------
 
         name = new RdTextField("", ChessAssetManager.current().getSkin());
         name.setMaxLength(15);
         pieceColor = new RdSelectionButton(ChessAssetManager.current().getSkin(),
-                new String[]{strings.get("white"), strings.get("black")});
+                new String[]{strings.get("[i18n]white"), strings.get("[i18n]Black")});
 
         randomColor = new RdCheckBox("check_box");
+
+        String minByMoveKey = "[i18n]{0,choice,1#1 minute|1<{0,number} minutes}/move";
 
         timeByTurn = new RdSelectBox<>();
         timeByTurn.setItems(
                 infinity,
-                strings.format("min_by_move", 1), strings.format("min_by_move", 2),
-                strings.format("min_by_move", 3), strings.format("min_by_move", 4),
-                strings.format("min_by_move", 5));
+                strings.format(minByMoveKey, 1), strings.format(minByMoveKey, 2),
+                strings.format(minByMoveKey, 3), strings.format(minByMoveKey, 4),
+                strings.format(minByMoveKey, 5));
 
         turnMode = new RdSelectBox<>();
         turnMode.setItems(
-                strings.get("concurrent"),
-                strings.get("concurrent_fast"));
+                strings.get("[i18n]Alternately"),
+                strings.get("[i18n]Alternately/Fast"));
 
         maxTurns = new RdSelectBox<>();
         maxTurns.setItems(
@@ -167,6 +183,20 @@ public class SettingsActivity extends Activity {
             @Override
             public void onChange(Actor actor) {
                 controller.updateSounds(enableSounds.isChecked());
+            }
+        });
+
+        volumeEffects.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                controller.updateVolumeEffects(volumeEffects.getSelected());
+            }
+        });
+
+        volumeMusic.addListener(new OnChangeListener() {
+            @Override
+            public void onChange(Actor actor) {
+                controller.updateVolumeMusic(volumeMusic.getSelected());
             }
         });
 
@@ -289,7 +319,7 @@ public class SettingsActivity extends Activity {
         reset.addListener(new OnChangeListener() {
             @Override
             public void onChange(Actor actor) {
-                resetDialog = controller.resetSettings();
+                controller.resetSettings();
                 resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             }
         });
@@ -330,72 +360,74 @@ public class SettingsActivity extends Activity {
 
         var window = new RdWindow("", "screen_window");
         window.setMovable(false);
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
         var fpsHint = new RdImageTextButton("", "circle");
         fpsHint.getLabelCell().reset();
         fpsHint.setImage("ib_question");
-        var fpsTool = new RdTextTooltip(strings.get("fps_hint"));
+        var fpsTool = new RdTextTooltip(strings.get("[i18n]Sets limits on the maximum number of frames per second"));
         fpsHint.addListener(fpsTool);
 
         var systemHint = new RdImageTextButton("", "circle");
         systemHint.getLabelCell().reset();
         systemHint.setImage("ib_question");
-        var systemTool = new RdTextTooltip(strings.get("system_hint"));
+        var systemTool = new RdTextTooltip(strings.get("[i18n]Shows frames per second and memory used"));
         systemHint.addListener(systemTool);
 
         var turnModeHint = new RdImageTextButton("", "circle");
         turnModeHint.getLabelCell().reset();
         turnModeHint.setImage("ib_question");
-        var turnModeTool = new RdTextTooltip(strings.get("turn_mode_hint"));
+        var turnModeTool = new RdTextTooltip(strings.get("[i18n]In alternately mode, you always have to wait for the end of the time per turn"));
         turnModeHint.addListener(turnModeTool);
 
         var screenSizeHint = new RdImageTextButton("", "circle");
         screenSizeHint.getLabelCell().reset();
         screenSizeHint.setImage("ib_question");
-        var screenSizeTool = new RdTextTooltip(strings.get("screen_size_hint"));
+        var screenSizeTool = new RdTextTooltip(strings.get("[i18n]saves application window size on exit"));
         screenSizeHint.addListener(screenSizeTool);
 
-        properties.add(new PropertyTable.Title(strings.get("sys_settings")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]System settings")));
 
-        properties.add(new PropertyTable.Element(strings.get("app_lang"), language));
-        properties.add(new PropertyTable.Element(strings.get("sound_effects"), enableSounds));
-        properties.add(new PropertyTable.Element(strings.get("background_music"), enableBackgroundMusic));
-        properties.add(new PropertyTable.Element(strings.get("fps"), fpsHint, fps));
-        properties.add(new PropertyTable.Element(strings.get("sys_properties"), systemHint, enableSysProperties));
-        properties.add(new PropertyTable.Element(strings.get("speed_screen"), screenSpeed));
-        properties.add(new PropertyTable.Element(strings.get("max_board_size") , maxBoardSize));
-        properties.add(new PropertyTable.Element(strings.get("max_pieces_speed"), piecesSpeed));
-        properties.add(new PropertyTable.Element(strings.get("reset_default"), reset));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]App language"), language));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Sound effects"), enableSounds));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Background music"), enableBackgroundMusic));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Effects Volume"), volumeEffects));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Music volume"), volumeMusic));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Frames per second"), fpsHint, fps));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]System properties"), systemHint, enableSysProperties));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Screen transition speed"), screenSpeed));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Maximum board size") , maxBoardSize));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Speed of movement of pieces"), piecesSpeed));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Reset settings"), reset));
 
-        properties.add(new PropertyTable.Title(strings.get("general_settings")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]General settings")));
 
-        properties.add(new PropertyTable.Element(strings.get("game_name"), name));
-        properties.add(new PropertyTable.Element(strings.get("match_info"), matchDescription));
-        properties.add(new PropertyTable.Element(strings.get("max_turns"), maxTurns));
-        properties.add(new PropertyTable.Element(strings.get("random_color"), randomColor));
+        properties.add(new PropertyTable.Element(strings.get("[i18nGame name"), name));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Display match info on enter"), matchDescription));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Max turns"), maxTurns));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Random color"), randomColor));
 
-        properties.add(new PropertyTable.Title(strings.get("single-player") + strings.get("settings_default")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Single-player") + strings.get("[i18n] (default)")));
 
-        properties.add(new PropertyTable.Element(strings.get("upper_color"), pieceColor));
-        properties.add(new PropertyTable.Element(strings.get("time_turn"), timeByTurn));
-        properties.add(new PropertyTable.Element(strings.get("turn_mode"), turnModeHint, turnMode));
-        properties.add(new PropertyTable.Element(strings.get("game_time"), timeByGame));
-        properties.add(new PropertyTable.Element(strings.get("blocked_hints"), blockedHints));
-        properties.add(new PropertyTable.Element(strings.get("flipped_pieces"), flippedPieces));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Shape color"), pieceColor));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Time to turn"), timeByTurn));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Turn Mode"), turnModeHint, turnMode));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Time for the whole game for one person"), timeByGame));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Block hints"), blockedHints));
+        properties.add(new PropertyTable.Element(strings.get("[i18n]Flipped pieces"), flippedPieces));
 
         //properties.add(new PropertyTable.Title(strings.get("multiplayer") + strings.get("settings_default")));
 
         if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
-            properties.add(new PropertyTable.Title(strings.get("desktop_settings")));
+            properties.add(new PropertyTable.Title(strings.get("[i18n]Desktop settings")));
 
-            properties.add(new PropertyTable.Element(strings.get("full_screen_mode"), fullScreen));
-            properties.add(new PropertyTable.Element(strings.get("save_screen_sizes"), screenSizeHint, windowSize));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Full screen mode"), fullScreen));
+            properties.add(new PropertyTable.Element(strings.get("[i18n]Save screen sizes"), screenSizeHint, windowSize));
         }
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("single-player"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Single Player"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);
@@ -411,15 +443,18 @@ public class SettingsActivity extends Activity {
     @Override
     public void resize(int width, int height) {
         super.resize(width, height);
-        WindowUtil.resizeCenter(resetDialog);
         windowGroup.update();
     }
 
     @Override
     public void loadSettings() {
-        language.setSelected(ChessConstants.localData.getLocale().getDisplayLanguage(ChessConstants.localData.getLocale()));
+        language.setSelected(RdApplication.self().getDisplayLanguages()
+            [ArraysUtil.indexOf(RdApplication.self().getLanguageCodes(), ChessConstants.localData.getLangCode())]);
         enableSounds.setChecked(ChessConstants.localData.isEnableSounds());
         enableBackgroundMusic.setChecked(ChessConstants.localData.isEnableBackgroundMusic());
+        volumeEffects.setSelected(((int) ChessConstants.localData.getEffectsVolume() * 100) + "%");
+        volumeMusic.setSelected(((int) ChessConstants.localData.getMusicVolume() * 100) + "%");
+
         fps.setSelected(SettingsUtil.defineFPS());
         enableSysProperties.setChecked(ChessConstants.localData.isEnableSysProperties());
         screenSpeed.setSelected(String.valueOf(ChessConstants.localData.getScreenDuration()));

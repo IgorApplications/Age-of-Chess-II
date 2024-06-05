@@ -14,7 +14,6 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.iapp.lib.ui.actors.RdDialog;
-import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.util.DisposeUtil;
 import com.iapp.lib.util.Pair;
 import com.iapp.lib.util.RdI18NBundle;
@@ -23,8 +22,8 @@ import com.iapp.lib.util.WindowUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
@@ -74,6 +73,34 @@ public abstract class RdApplication implements ApplicationListener {
     private String logPath;
     /** list of screen-independent actors, added on top of the rest */
     private final List<Actor> topActors = new ArrayList<>();
+    /** main languages in coded form */
+    private static final String[] languageCodes = new String[]
+            {"ar", "az", "be", "bg",
+            "cs", "cze", "da", "de",
+            "el", "en", "es", "est",
+            "fa", "fi", "fr", "he",
+            "hr", "hu", "hy", "id",
+            "it", "ja", "ka", "kk",
+            "ku", "lt", "lv", "mk",
+            "mal", "no", "dut", "pol",
+            "pt", "ro", "ru", "slo",
+            "slv", "sq", "sr", "sw",
+            "th", "tl", "tr", "uk",
+            "uz", "vi", "zh"};
+    /** major languages in readable form */
+    private static final String[] displayLanguages = new String[]
+            {"العربية", "azərbaycan", "беларуская", "български",
+            "čeština", "Czech", "dansk", "Deutsch",
+            "Ελληνικά", "English", "español", "Estonian",
+            "فارسی", "suomi", "français", "עברית",
+            "hrvatski", "magyar", "հայերեն", "Bahasa Indonesia",
+            "italiano", "日本語", "ქართული", "қазақ тілі",
+            "Kurdish", "lietuvių", "latviešu", "македонски",
+            "Malayalam", "norsk", "Dutch", "Polish",
+            "português", "română", "русский", "Slovak",
+            "Slovenian", "shqip", "српски", "Kiswahili",
+            "ไทย", "Tagalog", "Türkçe", "українська",
+            "o‘zbek", "Tiếng Việt", "中文"};
 
     /** @return the application core from anywhere */
     public static RdApplication self() {
@@ -134,7 +161,34 @@ public abstract class RdApplication implements ApplicationListener {
         launcher.initPool(parallelThreads);
     }
 
-    /**  */
+    /**
+     * returns the default language
+     * */
+    public String getDefaultLanguage() {
+        String def = Locale.getDefault().getLanguage();
+        for (String el : languageCodes) {
+            if (def.equals(el)) return el;
+        }
+        return "en";
+    }
+
+    /**
+     * returns language codes
+     * */
+    public String[] getLanguageCodes() {
+        return languageCodes;
+    }
+
+    /**
+     * returns languages in readable form
+     * */
+    public String[] getDisplayLanguages() {
+        return displayLanguages;
+    }
+
+    /**
+     * sets the logging path
+     * */
     public void setLogHandle(Files.FileType type, String path) {
         if (logType == null) replaceLogOutput();
         logType = type;
@@ -258,6 +312,7 @@ public abstract class RdApplication implements ApplicationListener {
      * */
     public int addDialog(RdDialog dialog, Consumer<RdDialog> resize) {
         dialogList.add(new Pair<>(dialog, resize));
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         return dialogList.size() - 1;
     }
 
@@ -393,7 +448,7 @@ public abstract class RdApplication implements ApplicationListener {
         try {
             ScreenUtils.clear(backgroundColor);
             if (System.currentTimeMillis() - lastRender < periodRender) {
-                var sleepTime = (long) (periodRender - (System.currentTimeMillis() - lastRender));
+                long sleepTime = (long) (periodRender - (System.currentTimeMillis() - lastRender));
                 Thread.sleep((long) (sleepTime * 0.8f));
             }
 
@@ -422,8 +477,8 @@ public abstract class RdApplication implements ApplicationListener {
             viewport.update(width, height, true);
 
             dialogList.removeIf(pair -> pair.getKey().isHidden());
-            for (var pair : dialogList) {
-                var dialog = pair.getKey();
+            for (Pair<RdDialog, Consumer<RdDialog>> pair : dialogList) {
+                RdDialog dialog = pair.getKey();
                 pair.getValue().accept(dialog);
             }
 

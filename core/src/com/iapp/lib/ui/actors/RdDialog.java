@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
+import com.badlogic.gdx.scenes.scene2d.actions.SizeByAction;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
@@ -41,11 +42,11 @@ public class RdDialog extends RdWindow {
     FocusListener focusListener;
 
     /** RdDialog style */
-    private RdDialogStyle rdDialogStyle;
+    private final RdDialogStyle rdDialogStyle;
     /** button to close the dialog */
     private @Null ImageButton closeBox;
     /** dialog icon */
-    private Image icon = new Image();
+    private final Image icon = new Image();
     /** cell icon in the table */
     private RdCell<Image> iconRdCell;
     /** close box cell in table */
@@ -150,7 +151,7 @@ public class RdDialog extends RdWindow {
     @Override
     protected void drawBackground(Batch batch, float parentAlpha, float x, float y) {
         if (getBackground() instanceof TwoNinePath) {
-            var bg = ((TwoNinePath) getBackground());
+            TwoNinePath bg = ((TwoNinePath) getBackground());
 
             bg.setSecondHeight(Math.max(
                     getButtonTable().getPrefHeight(), 10));
@@ -159,8 +160,8 @@ public class RdDialog extends RdWindow {
     }
 
     @Override
-    protected void drawLoading(RdTable loading, Batch batch) {
-        if (!loading.isVisible()) return;
+    protected void drawLoading(LoadingTable loading, Batch batch) {
+        if (loading == null || !loading.isVisible()) return;
         loading.setPosition(getX() + rdDialogStyle.padLeftC,
                 getY() + rdDialogStyle.padBottomB);
         loading.setSize(getWidth() - rdDialogStyle.padLeftC - rdDialogStyle.padRightC,
@@ -177,9 +178,9 @@ public class RdDialog extends RdWindow {
         setModal(true);
 
         defaults().space(6);
-        add(contentTable = new RdTable(skin)).expand().fill();
+        add(contentTable = new RdTable()).expand().fill();
         row();
-        add(buttonTable = new RdTable(skin)).fillX();
+        add(buttonTable = new RdTable()).fillX();
 
         contentTable.defaults().space(6);
         buttonTable.defaults().space(6);
@@ -328,13 +329,12 @@ public class RdDialog extends RdWindow {
         actor = stage.getScrollFocus();
         if (actor != null && !actor.isDescendantOf(this)) previousScrollFocus = actor;
 
-
+        stage.addActor(this);
         pack();
         stage.cancelTouchFocus();
         stage.setKeyboardFocus(this);
         stage.setScrollFocus(this);
         if (action != null) addAction(action);
-        stage.addActor(this);
 
         return this;
     }
@@ -342,7 +342,16 @@ public class RdDialog extends RdWindow {
     /** Centers the dialog in the stage and calls {@link #show(Stage, Action)} with a {@link Actions#fadeIn(float, Interpolation)}
      * action. */
     public RdDialog show (Stage stage) {
-        show(stage, sequence(Actions.alpha(0), Actions.fadeIn(0.4f, Interpolation.fade)));
+        SizeByAction action1 = action(CenterSizeByAction.class);
+        action1.setAmount(-0.2f, -0.2f);
+        action1.setDuration(0);
+
+        SizeByAction action2 = action(CenterSizeByAction.class);
+        action2.setAmount(0.2f, 0.2f);
+        action2.setDuration(0.1f);
+
+        show(stage, sequence(action1, Actions.alpha(0),
+            parallel(Actions.fadeIn(0.4f, Interpolation.fade), action2)));
         setPosition(Math.round((stage.getWidth() - getWidth()) / 2), Math.round((stage.getHeight() - getHeight()) / 2));
         return this;
     }
@@ -350,9 +359,11 @@ public class RdDialog extends RdWindow {
     /** Removes the dialog from the stage, restoring the previous keyboard and scroll focus, and adds the specified action to the
      * dialog.
      * @param action If null, the dialog is removed immediately. Otherwise, the dialog is removed when the action completes. The
-     *           dialog will not respond to touch down events during the action. */
-    public void hide (@Null Action action) {
+     * dialog will not respond to touch down events during the action.
+     **/
+    public void hide(@Null Action action) {
         hidden = true;
+
         Stage stage = getStage();
         if (stage != null) {
             removeListener(focusListener);
@@ -366,12 +377,8 @@ public class RdDialog extends RdWindow {
         }
         if (action != null) {
             addCaptureListener(ignoreTouchDown);
-            addAction(
-                    sequence(Actions.run(() -> Gdx.input.setOnscreenKeyboardVisible(false)),
-                            action,
-                            Actions.removeListener(ignoreTouchDown, true),
-                            Actions.removeActor())
-            );
+            Gdx.input.setOnscreenKeyboardVisible(false);
+            addAction(sequence(action, Actions.removeListener(ignoreTouchDown, true), Actions.removeActor()));
         } else
             remove();
     }
@@ -380,8 +387,12 @@ public class RdDialog extends RdWindow {
      * Hides the dialog. Called automatically when a close button is clicked.
      * The default implementation fades out the dialog over 400 milliseconds.
      * */
-    public void hide () {
-        hide(fadeOut(0.4f, Interpolation.fade));
+    public void hide() {
+        SizeByAction action1 = action(CenterSizeByAction.class);
+        action1.setAmount(-0.2f, -0.2f);
+        action1.setDuration(0.1f);
+
+        hide(parallel(action1, fadeOut(0.2f, Interpolation.fade)));
     }
 
     /**
@@ -391,10 +402,13 @@ public class RdDialog extends RdWindow {
      * @param action - additional action after closing the dialog box
      * */
     public void afterHide(Action action) {
-        SequenceAction sequence = new SequenceAction();
-        sequence.addAction(fadeOut(0.4f, Interpolation.fade));
-        sequence.addAction(action);
-        hide(sequence);
+        SizeByAction action1 = action(CenterSizeByAction.class);
+        action1.setAmount(-0.2f, -0.2f);
+        action1.setDuration(0.1f);
+
+        hide(sequence(
+            parallel(action1, fadeOut(0.2f, Interpolation.fade)),
+            action));
     }
 
     public void setObject (Actor actor, @Null Object object) {

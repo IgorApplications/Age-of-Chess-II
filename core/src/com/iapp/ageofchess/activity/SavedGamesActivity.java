@@ -48,7 +48,7 @@ public class SavedGamesActivity extends Activity {
         scrollContent = new Table();
         scrollContent.align(Align.topLeft);
 
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
     }
 
@@ -90,14 +90,14 @@ public class SavedGamesActivity extends Activity {
         window.add(properties).expand().fill();
 
         properties.setVisibleBackground(false);
-        properties.add(new PropertyTable.Title(strings.get("saved_games")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Saved games")));
 
         var scroll = new ScrollPane(scrollContent);
         scroll.setScrollingDisabled(true, false);
         properties.getContent().add(scroll).expand().fill();
 
         windowGroup = new WindowGroup(window, back);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("single-player"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Single Player"));
 
         windowGroup.setFillParent(true);
         stage.addActor(windowGroup);

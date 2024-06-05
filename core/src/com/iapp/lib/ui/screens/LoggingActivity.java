@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import com.iapp.lib.ui.actors.RdLabel;
+import com.iapp.lib.ui.actors.RdTable;
 import com.iapp.lib.util.CallListener;
 
 class LoggingActivity extends Activity {
@@ -42,7 +43,7 @@ class LoggingActivity extends Activity {
 
     @Override
     public void show(Stage stage, Activity last) {
-        var content = new Table();
+        RdTable content = new RdTable();
         content.setFillParent(true);
         content.align(Align.topLeft);
         stage.addActor(content);

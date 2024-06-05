@@ -12,9 +12,9 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.controllers.ScenariosController;
+import com.iapp.ageofchess.graphics.MapScenariosView;
 import com.iapp.lib.ui.widgets.ChatView;
 import com.iapp.ageofchess.graphics.LevelView;
-import com.iapp.ageofchess.graphics.MapDataView;
 import com.iapp.ageofchess.graphics.ScenarioView;
 import com.iapp.ageofchess.modding.GameMode;
 import com.iapp.ageofchess.modding.MapData;
@@ -30,7 +30,6 @@ import com.iapp.lib.util.WindowUtil;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 public class ScenariosActivity extends Activity {
 
@@ -47,10 +46,10 @@ public class ScenariosActivity extends Activity {
     @Override
     public void initActors() {
         if (ChessConstants.chatView != null) ChessConstants.chatView.updateMode(ChatView.Mode.LOBBY);
-        back = new RdImageTextButton(strings.get("back"), "red_screen");
+        back = new RdImageTextButton(strings.get("[i18n]Back"), "red_screen");
         back.setImage("ib_back");
 
-        savedGames = new RdImageTextButton(strings.get("games"), "white_screen");
+        savedGames = new RdImageTextButton(strings.get("[i18n]Games"), "white_screen");
         savedGames.setImage("ib_games");
     }
 
@@ -91,18 +90,18 @@ public class ScenariosActivity extends Activity {
 
         var window = new RdWindow("","screen_window");
         window.setMovable(false);
-        var properties = new PropertyTable(400, ChessAssetManager.current().getSkin());
+        var properties = new PropertyTable(400);
         window.add(properties).expand().fill();
 
         properties.setVisibleBackground(false);
-        properties.add(new PropertyTable.Title(strings.get("scenario_selection")));
+        properties.add(new PropertyTable.Title(strings.get("[i18n]Scene selection")));
 
         properties.getContent().add(getLevels()).height(250).fillX().pad(10, 10, 10, 10).row();
         addMapInfo(properties.getContent(), ChessAssetManager.current().getDataMaps());
 
         windowGroup = new WindowGroup(window, back, savedGames);
         windowGroup.setFillParent(true);
-        ChessApplication.self().updateTitle(windowGroup, strings.get("single-player"));
+        ChessApplication.self().updateTitle(windowGroup, strings.get("[i18n]Single Player"));
 
         stage.addActor(windowGroup);
         windowGroup.update();
@@ -126,7 +125,7 @@ public class ScenariosActivity extends Activity {
     private void addMapInfo(RdTable content, List<MapData> maps) {
         for (int i = 0; i < maps.size(); i++) {
             int finalI = i;
-            content.add(new MapDataView(maps.get(i), new OnChangeListener() {
+            content.add(new MapScenariosView(maps.get(i), new OnChangeListener() {
                 @Override
                 public void onChange(Actor actor) {
                     showScenarios(maps.get(finalI));
@@ -141,11 +140,11 @@ public class ScenariosActivity extends Activity {
             return;
         }
 
-        scenarios = new RdDialog(strings.get("scenarios"), ChessAssetManager.current().getSkin());
+        scenarios = new RdDialog(strings.get("[i18n]Scenarios"), ChessAssetManager.current().getSkin());
 
         var content = new RdTable();
         content.align(Align.topLeft);
-        var scrollPane = new RdScrollPane(content, ChessAssetManager.current().getSkin());
+        var scrollPane = new RdScrollPane(content);
         scrollPane.setScrollingDisabled(true, false);
         scrollPane.setFadeScrollBars(false);
         scrollPane.setOverscroll(false, false);
@@ -157,7 +156,7 @@ public class ScenariosActivity extends Activity {
                 content.add(new ScenarioView(mapData, i, new OnChangeListener() {
                             @Override
                             public void onChange(Actor actor) {
-                                scenarios.hide(Actions.run(() ->
+                                scenarios.afterHide(Actions.run(() ->
                                     controller.goToCreation(mapData, finalI)));
 
                             }
@@ -169,16 +168,13 @@ public class ScenariosActivity extends Activity {
 
                 int index = badScenarios.size;
                 var badScenario = new RdDialogBuilder()
-                        .title(strings.get("error"))
+                        .title(strings.get("[i18n]Error"))
                         .text(RdLogger.self().getDescription(t))
-                        .accept(strings.get("accept"), new BiConsumer<RdDialog, String>() {
-                            @Override
-                            public void accept(RdDialog dialog, String s) {
-                                badScenarios.get(index).hide();
-                                badScenarios.removeValue(badScenarios.get(index), true);
-                            }
+                        .accept(strings.get("[i18n]accept"), (dialog, s) -> {
+                            badScenarios.get(index).hide();
+                            badScenarios.removeValue(badScenarios.get(index), true);
                         })
-                        .build(ChessAssetManager.current().getSkin(), "input");
+                        .build("input");
 
                 badScenarios.add(badScenario);
                 badScenario.getIcon().setDrawable(new TextureRegionDrawable(

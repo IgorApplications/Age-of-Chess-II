@@ -31,13 +31,13 @@ public class MultiplayerCreationController extends Controller {
             },
             error -> {
                 RdApplication.postRunnable(() ->
-                    ChessApplication.self().showError(strings.get("error_create_match") + error));
+                    ChessApplication.self().showError(strings.get("[i18n]Match creation error - ") + error));
             });
     }
 
     public void goToGame(LocalMatch localMatch, Match match) {
 
-        var spinner = new Spinner(strings.get("loading"));
+        var spinner = new Spinner(strings.get("[i18n]Loading"));
         activity.setSpinner(spinner);
         spinner.show(RdApplication.self().getStage());
         spinner.setSize(400, 100);

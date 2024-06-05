@@ -9,11 +9,12 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.github.tommyettinger.textra.Font;
-import com.github.tommyettinger.textra.TextraField;
 import com.iapp.lib.ui.actors.*;
 import com.iapp.lib.util.DisposeUtil;
 import com.iapp.lib.util.StreamUtil;
@@ -34,9 +35,6 @@ public class GrayAssetManager extends RdAssetManager {
     private Texture grayLine, lightGray, redTexture;
     private Cursor defCursor, spinnerCursor, scrollCursor;
     private Font font;
-
-    private NinePatchDrawable loadingBg;
-    private AnimatedImage loadingAnim;
 
     /**
      * @return the style store of all actors
@@ -75,9 +73,9 @@ public class GrayAssetManager extends RdAssetManager {
 
         initCursor();
 
-        initLoading();
-
         addRdLabelStyle();
+
+        addLoadingStyle();
 
         // "color_screen"
         addScreenButton("white", Color.WHITE);
@@ -112,6 +110,8 @@ public class GrayAssetManager extends RdAssetManager {
 
         addSelectionButton();
 
+        addLoadingRdTable();
+
         addPropertyTableStyle();
 
         addLoggingViewStyle();
@@ -131,8 +131,6 @@ public class GrayAssetManager extends RdAssetManager {
 
         addRdTextTooltipStyle();
 
-        addLoadingRdTable();
-
         addCircleButton();
 
         addWidowGroupStyle();
@@ -147,60 +145,11 @@ public class GrayAssetManager extends RdAssetManager {
 
     // ---------------------------------------------------------------------------------------------------------
 
-    private void initLoading() {
-        loadingBg = new NinePatchDrawable(
-                new NinePatch(GrayAssetManager.current().findRegion("load_bg"),
-                        9, 9, 9, 9));
-        loadingAnim = new AnimatedImage(150,
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 1)),
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 2)),
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 3)),
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 4)),
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 5)),
-                new TextureRegionDrawable(GrayAssetManager.current().findRegion("load_logo", 6))
-        );
-
-        AnimatedImage animatedImage = new AnimatedImage(30,
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-1")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-2")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-3")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-4")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-5")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-6")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-7")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-8")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-9")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-10")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-11")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-12")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-13")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-14")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-15")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-16")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-17")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-18")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-19")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-20")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-21")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-22")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-23")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-24")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-25")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-26")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-27")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-28")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-29")),
-            new TextureRegionDrawable(GrayAssetManager.current().findRegion("frame-30"))
-        );
-
-        graySkin.add("loading_bg", loadingBg);
-        graySkin.add("logo_anim", animatedImage);
-    }
 
     private void initCursor() {
-        var pixCursor = new Pixmap(Gdx.files.internal("gray_style/textures/cursor.png"));
-        var pixScroll = new Pixmap(Gdx.files.internal("gray_style/textures/scroll_cursor.png"));
-        var pixSpinner = new Pixmap(Gdx.files.internal("gray_style/textures/spinner_cursor.png"));
+        Pixmap pixCursor = new Pixmap(Gdx.files.internal("gray_style/textures/cursor.png"));
+        Pixmap pixScroll = new Pixmap(Gdx.files.internal("gray_style/textures/scroll_cursor.png"));
+        Pixmap pixSpinner = new Pixmap(Gdx.files.internal("gray_style/textures/spinner_cursor.png"));
 
         defCursor = Gdx.graphics.newCursor(pixCursor, 0, 0);
         scrollCursor = Gdx.graphics.newCursor(pixScroll, 0, 0);
@@ -212,7 +161,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdLabelStyle() {
-        var style = new RdLabel.RdLabelStyle();
+        RdLabel.RdLabelStyle style = new RdLabel.RdLabelStyle();
 
         style.font = font;
         style.color = Color.WHITE;
@@ -220,8 +169,64 @@ public class GrayAssetManager extends RdAssetManager {
         graySkin.add("default", style);
     }
 
+    public void addLoadingStyle() {
+        AnimatedImage animatedImage = new AnimatedImage(30,
+            new TextureRegionDrawable(current().findRegion("frame-1")),
+            new TextureRegionDrawable(current().findRegion("frame-2")),
+            new TextureRegionDrawable(current().findRegion("frame-3")),
+            new TextureRegionDrawable(current().findRegion("frame-4")),
+            new TextureRegionDrawable(current().findRegion("frame-5")),
+            new TextureRegionDrawable(current().findRegion("frame-6")),
+            new TextureRegionDrawable(current().findRegion("frame-7")),
+            new TextureRegionDrawable(current().findRegion("frame-8")),
+            new TextureRegionDrawable(current().findRegion("frame-9")),
+            new TextureRegionDrawable(current().findRegion("frame-10")),
+            new TextureRegionDrawable(current().findRegion("frame-11")),
+            new TextureRegionDrawable(current().findRegion("frame-12")),
+            new TextureRegionDrawable(current().findRegion("frame-13")),
+            new TextureRegionDrawable(current().findRegion("frame-14")),
+            new TextureRegionDrawable(current().findRegion("frame-15")),
+            new TextureRegionDrawable(current().findRegion("frame-16")),
+            new TextureRegionDrawable(current().findRegion("frame-17")),
+            new TextureRegionDrawable(current().findRegion("frame-18")),
+            new TextureRegionDrawable(current().findRegion("frame-19")),
+            new TextureRegionDrawable(current().findRegion("frame-20")),
+            new TextureRegionDrawable(current().findRegion("frame-21")),
+            new TextureRegionDrawable(current().findRegion("frame-22")),
+            new TextureRegionDrawable(current().findRegion("frame-23")),
+            new TextureRegionDrawable(current().findRegion("frame-24")),
+            new TextureRegionDrawable(current().findRegion("frame-25")),
+            new TextureRegionDrawable(current().findRegion("frame-26")),
+            new TextureRegionDrawable(current().findRegion("frame-27")),
+            new TextureRegionDrawable(current().findRegion("frame-28")),
+            new TextureRegionDrawable(current().findRegion("frame-29")),
+            new TextureRegionDrawable(current().findRegion("frame-30"))
+        );
+        graySkin.add("logo_anim", animatedImage);
+
+        NinePatchDrawable loadingBg = new NinePatchDrawable(
+            new NinePatch(current().findRegion("load_bg"),
+                9, 9, 9, 9));
+        AnimatedImage loadingAnim = new AnimatedImage(150,
+            new TextureRegionDrawable(current().findRegion("load_logo", 1)),
+            new TextureRegionDrawable(current().findRegion("load_logo", 2)),
+            new TextureRegionDrawable(current().findRegion("load_logo", 3)),
+            new TextureRegionDrawable(current().findRegion("load_logo", 4)),
+            new TextureRegionDrawable(current().findRegion("load_logo", 5)),
+            new TextureRegionDrawable(current().findRegion("load_logo", 6))
+        );
+
+        LoadingTable.LoadingStyle loadingStyle = new LoadingTable.LoadingStyle();
+
+        loadingStyle.loadingText = getSkin().get(RdLabel.RdLabelStyle.class);
+        loadingStyle.loadingAnim = loadingAnim;
+        loadingStyle.loadingBg = loadingBg;
+
+        graySkin.add("default", loadingStyle);
+    }
+
     private void addLineTableStyle() {
-        var style = new LineTable.LineTableStyle();
+        LineTable.LineTableStyle style = new LineTable.LineTableStyle();
 
         style.part1 = new NinePatchDrawable(
                 new NinePatch(findRegion("title_panel", 1),
@@ -238,7 +243,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addLoggingViewStyle() {
-        var style = new LoggingView.LoggingViewStyle();
+        LoggingView.LoggingViewStyle style = new LoggingView.LoggingViewStyle();
 
         style.font = font;
         style.color = Color.WHITE;
@@ -281,7 +286,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addScreenButton(String color, Color textColor) {
-        var style = new RdImageTextButton.RdImageTextButtonStyle();
+        RdImageTextButton.RdImageTextButtonStyle style = new RdImageTextButton.RdImageTextButtonStyle();
 
         style.up = new NinePatchDrawable(
                 new NinePatch(findRegion("screen_" + color + "_up"),
@@ -301,9 +306,9 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addSelectionButton() {
-        var style = new RdSelectionButton.RdSelectionButtonStyle();
+        RdSelectionButton.RdSelectionButtonStyle style = new RdSelectionButton.RdSelectionButtonStyle();
 
-        var left = new RdImageTextButton.RdImageTextButtonStyle();
+        RdImageTextButton.RdImageTextButtonStyle left = new RdImageTextButton.RdImageTextButtonStyle();
         left.up = new NinePatchDrawable(
                 new NinePatch(findRegion("selection_left_up"),
                         12, 2, 15, 19));
@@ -319,7 +324,7 @@ public class GrayAssetManager extends RdAssetManager {
         left.font = font;
         left.fontColor = Color.WHITE;
 
-        var center = new RdImageTextButton.RdImageTextButtonStyle();
+        RdImageTextButton.RdImageTextButtonStyle center = new RdImageTextButton.RdImageTextButtonStyle();
         center.up = new NinePatchDrawable(
                 new NinePatch(findRegion("selection_center_up"),
                         2, 2, 15, 19));
@@ -335,7 +340,7 @@ public class GrayAssetManager extends RdAssetManager {
         center.font = font;
         center.fontColor = Color.WHITE;
 
-        var right = new RdImageTextButton.RdImageTextButtonStyle();
+        RdImageTextButton.RdImageTextButtonStyle right = new RdImageTextButton.RdImageTextButtonStyle();
         right.up = new NinePatchDrawable(
                 new NinePatch(findRegion("selection_right_up"),
                         2, 12, 15, 19));
@@ -359,7 +364,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addCheckBox() {
-        var style = new ImageButton.ImageButtonStyle();
+        ImageButton.ImageButtonStyle style = new ImageButton.ImageButtonStyle();
 
         style.up = new NinePatchDrawable(
                 new NinePatch(findRegion("check_box_up"),
@@ -380,8 +385,8 @@ public class GrayAssetManager extends RdAssetManager {
                 new NinePatch(findRegion("check_box_down"),
                         13, 15, 19, 16));
 
-        var on = findRegion("icon_on");
-        var off = findRegion("icon_off");
+        TextureAtlas.AtlasRegion on = findRegion("icon_on");
+        TextureAtlas.AtlasRegion off = findRegion("icon_off");
         style.imageChecked = new TextureRegionDrawable(on);
         style.imageUp = new TextureRegionDrawable(off);
 
@@ -389,35 +394,35 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addPropertyTableStyle() {
-        var style = new PropertyTable.PropertyTableStyle();
+        PropertyTable.PropertyTableStyle style = new PropertyTable.PropertyTableStyle();
 
         grayLine = TextureUtil.create(10, 10, new Color(Color.rgba8888(0, 0, 0, 0.3f)));
         style.scrollStyle = graySkin.get(RdScrollPane.RdScrollPaneStyle.class);
         style.panel = new TextureRegionDrawable(grayLine);
         style.titleStyle = new RdLabel.RdLabelStyle(font, Color.GOLD);
-
         style.elementStyle = new RdLabel.RdLabelStyle(font, Color.WHITE);
+        style.contentStyle = getSkin().get("loading", RdTable.RdTableStyle.class);
 
         graySkin.add("default", style);
     }
 
     private void addScreenWindowStyle() {
-        var style = new RdWindow.RdWindowStyle();
+        RdWindow.RdWindowStyle style = new RdWindow.RdWindowStyle();
 
         style.titleFont = font;
         style.background = new NinePatchDrawable(
                 new NinePatch(findRegion("window"),
                         10, 10, 10, 10));
-        style.loadingBg = loadingBg;
-        style.loadingAnim = new AnimatedImage(loadingAnim);
+        style.loadingStyle = new LoadingTable.LoadingStyle(
+            getSkin().get(LoadingTable.LoadingStyle.class));
 
         graySkin.add("screen_window", style);
     }
 
     private void addInputDialog() {
-        var style = new RdDialog.RdDialogStyle();
+        RdDialog.RdDialogStyle style = new RdDialog.RdDialogStyle();
 
-        var closeBoxStyle = new ImageButton.ImageButtonStyle();
+        ImageButton.ImageButtonStyle closeBoxStyle = new ImageButton.ImageButtonStyle();
         closeBoxStyle.up = new TextureRegionDrawable(findRegion("cancel_up"));
         closeBoxStyle.down = new TextureRegionDrawable(findRegion("cancel_down"));
         closeBoxStyle.over  = new TextureRegionDrawable(findRegion("cancel_over"));
@@ -427,14 +432,14 @@ public class GrayAssetManager extends RdAssetManager {
         style.titleFontColor = Color.BLACK;
         style.background = new TwoNinePath(
                 new NinePatchDrawable(new NinePatch(
-                        GrayAssetManager.current().findRegion("input_dialog1"),
+                        current().findRegion("input_dialog1"),
                         19, 200,92, 0)),
                 new NinePatchDrawable(new NinePatch(
-                        GrayAssetManager.current().findRegion("input_dialog2"),
+                        current().findRegion("input_dialog2"),
                         19, 200,2, 20))
         );
-        style.loadingBg = loadingBg;
-        style.loadingAnim = new AnimatedImage(loadingAnim);
+        style.loadingStyle = new LoadingTable.LoadingStyle(
+            getSkin().get(LoadingTable.LoadingStyle.class));
 
         style.padTopT = 80;
         style.padLeftT = 15;
@@ -457,9 +462,9 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdDialogStyle() {
-        var style = new RdDialog.RdDialogStyle();
+        RdDialog.RdDialogStyle style = new RdDialog.RdDialogStyle();
 
-        var closeBoxStyle = new ImageButton.ImageButtonStyle();
+        ImageButton.ImageButtonStyle closeBoxStyle = new ImageButton.ImageButtonStyle();
         closeBoxStyle.up = new TextureRegionDrawable(findRegion("cancel_up"));
         closeBoxStyle.down = new TextureRegionDrawable(findRegion("cancel_down"));
         closeBoxStyle.over  = new TextureRegionDrawable(findRegion("cancel_over"));
@@ -470,8 +475,8 @@ public class GrayAssetManager extends RdAssetManager {
         style.background = new NinePatchDrawable(
                 new NinePatch(findRegion("dialog"),
                         19, 200,92, 20));
-        style.loadingBg = loadingBg;
-        style.loadingAnim = new AnimatedImage(loadingAnim);
+        style.loadingStyle = new LoadingTable.LoadingStyle(
+            getSkin().get(LoadingTable.LoadingStyle.class));
 
         style.padTopT = 80;
         style.padLeftT = 15;
@@ -494,7 +499,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addSpinnerStyle() {
-        var style = new Spinner.SpinnerStyle();
+        Spinner.SpinnerStyle style = new Spinner.SpinnerStyle();
 
         style.titleFont = font;
         style.background = new NinePatchDrawable(
@@ -516,7 +521,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdListStyle() {
-        var style = new RdList.RdListStyle();
+        RdList.RdListStyle style = new RdList.RdListStyle();
 
         style.selection = new NinePatchDrawable(
                 new NinePatch(findRegion("selection"),
@@ -537,7 +542,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdDialogBuilderStyle() {
-        var style = new RdDialogBuilder.RdDialogBuilderStyle();
+        RdDialogBuilder.RdDialogBuilderStyle style = new RdDialogBuilder.RdDialogBuilderStyle();
 
         style.textStyle = graySkin.get(RdLabel.RdLabelStyle.class);
         style.rdDialogStyle = graySkin.get(RdDialog.RdDialogStyle.class);
@@ -550,7 +555,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addInputDialogBuilderStyle() {
-        var style = new RdDialogBuilder.RdDialogBuilderStyle();
+        RdDialogBuilder.RdDialogBuilderStyle style = new RdDialogBuilder.RdDialogBuilderStyle();
 
         style.textStyle = graySkin.get(RdLabel.RdLabelStyle.class);
         style.rdDialogStyle = graySkin.get("input", RdDialog.RdDialogStyle.class);
@@ -563,14 +568,14 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addFileSelectorStyle() {
-        var filePath = new RdLabel.RdLabelStyle();
+        RdLabel.RdLabelStyle filePath = new RdLabel.RdLabelStyle();
 
         lightGray = TextureUtil.create(10, 10, Color.LIGHT_GRAY);
         filePath.font = font;
         filePath.color = Color.BLACK;
         filePath.background = new TextureRegionDrawable(lightGray);
 
-        var style = new FileSelectorBuilder.FileSelectorStyle();
+        FileSelectorBuilder.FileSelectorStyle style = new FileSelectorBuilder.FileSelectorStyle();
 
         style.dialogBuilderStyle =
                 new RdDialogBuilder.RdDialogBuilderStyle(
@@ -593,7 +598,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdSelectBox() {
-        var style = new RdSelectBox.RdSelectBoxStyle();
+        RdSelectBox.RdSelectBoxStyle style = new RdSelectBox.RdSelectBoxStyle();
 
         style.background = new NinePatchDrawable(
                 new NinePatch(findRegion("dropbox"),
@@ -622,7 +627,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdScrollStyle() {
-        var style = new RdScrollPane.RdScrollPaneStyle();
+        RdScrollPane.RdScrollPaneStyle style = new RdScrollPane.RdScrollPaneStyle();
 
         style.hScroll = new NinePatchDrawable(
                 new NinePatch(
@@ -643,12 +648,14 @@ public class GrayAssetManager extends RdAssetManager {
         style.fadeScrollBars = false;
         style.overscrollY = false;
         style.overscrollX = false;
+        style.loadingStyle = new LoadingTable.LoadingStyle(
+            getSkin().get(LoadingTable.LoadingStyle.class));
 
         graySkin.add("default", style);
     }
 
     private void addSampleRdScroll() {
-        var style = new RdScrollPane.RdScrollPaneStyle();
+        RdScrollPane.RdScrollPaneStyle style = new RdScrollPane.RdScrollPaneStyle();
 
         style.cursor = scrollCursor;
         style.fadeScrollBars = false;
@@ -659,7 +666,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdTextFieldStyle() {
-        var style = new RdTextField.RdTextFieldStyle();
+        RdTextField.RdTextFieldStyle style = new RdTextField.RdTextFieldStyle();
 
         redTexture = TextureUtil.create(10, 10, Color.RED);
         style.selection = new TextureRegionDrawable(redTexture);
@@ -684,7 +691,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addRdTextTooltipStyle() {
-        var style = new RdTextTooltip.RdTextTooltipStyle();
+        RdTextTooltip.RdTextTooltipStyle style = new RdTextTooltip.RdTextTooltipStyle();
         style.labelStyle = graySkin.get(RdLabel.RdLabelStyle.class);
         style.background = new NinePatchDrawable(
                 new NinePatch(findRegion("tooltip_bg"),
@@ -697,15 +704,15 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addLoadingRdTable() {
-        var style = new RdTable.RdTableStyle();
-        style.loadingBg = loadingBg;
-        style.loadingAnim = new AnimatedImage(loadingAnim);
+        RdTable.RdTableStyle style = new RdTable.RdTableStyle();
+        style.loadingStyle = new LoadingTable.LoadingStyle(
+            getSkin().get(LoadingTable.LoadingStyle.class));
 
         graySkin.add("loading", style);
     }
 
     private void addCircleButton() {
-        var style = new RdImageTextButton.RdImageTextButtonStyle();
+        RdImageTextButton.RdImageTextButtonStyle style = new RdImageTextButton.RdImageTextButtonStyle();
 
         style.up = new TextureRegionDrawable(findRegion("circle_up"));
         style.over = new TextureRegionDrawable(findRegion("circle_over"));
@@ -717,7 +724,7 @@ public class GrayAssetManager extends RdAssetManager {
     }
 
     private void addWidowGroupStyle() {
-        var style = new WindowGroup.WindowGroupStyle();
+        WindowGroup.WindowGroupStyle style = new WindowGroup.WindowGroupStyle();
 
         style.padLeft = 15;
         style.padRight = 15;

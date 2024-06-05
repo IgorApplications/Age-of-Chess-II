@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.*;
+import com.iapp.ageofchess.ChessApplication;
 import com.iapp.ageofchess.services.ChessAssetManager;
 import com.iapp.ageofchess.services.ChessConstants;
 import com.iapp.lib.util.RdI18NBundle;
@@ -171,7 +172,7 @@ public class MapData implements Disposable {
         if (stringsPath != null) {
             var handle = Gdx.files.getFileHandle(stringsPath, type);
             if (!handle.parent().child(handle.name() + "_en.properties").exists()) return false;
-            strings = RdI18NBundle.createBundle(handle, ChessConstants.localData.getLocale());
+            strings = RdI18NBundle.createBundle(handle, new Locale(ChessConstants.localData.getLangCode()));
         } else {
             return false;
         }
@@ -199,7 +200,7 @@ public class MapData implements Disposable {
 
     public void updateLang() {
         strings = RdI18NBundle.createBundle(Gdx.files.getFileHandle(stringsPath, type),
-                ChessConstants.localData.getLocale());
+            new Locale(ChessConstants.localData.getLangCode()));
     }
 
     public void updateLang(String language) {
